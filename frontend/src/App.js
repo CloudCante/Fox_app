@@ -9,6 +9,7 @@ import PackingPage from './components/pages/PackingPage';
 import PerformancePage from './components/pages/PerformancePage';
 import ThroughputPage from './components/pages/ThroughputPage';
 import SNFNPage from './components/pages/SNFNPage';
+import PackingCharts from './components/pages/PackingCharts';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 // Import CSS for optimized theme switching
@@ -41,6 +42,7 @@ const AppRoutes = React.memo(() => (
     <Route path="/performance" element={<PerformancePage />} />
     <Route path="/throughput" element={<ThroughputPage />} />
     <Route path="/snfn" element={<SNFNPage />} />
+    <Route path="/packing-charts" element={<PackingCharts />} />
   </Routes>
 ));
 

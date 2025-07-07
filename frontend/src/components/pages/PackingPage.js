@@ -6,8 +6,8 @@ import {
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { toUTCDateString, createUTCDate } from '../../utils/dateUtils';
-
 import { useTheme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -69,6 +69,7 @@ const PackingPage = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const theme = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Fetch real data
@@ -226,16 +227,33 @@ const PackingPage = () => {
     <div style={{ padding: '20px' }}>
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
         alignItems: 'center', 
+        gap: '16px',
         marginBottom: '20px' 
       }}>
         <h1 style={{ margin: 0 }}>Packing Output</h1>
+        <button
+          style={{
+            background: '#1976d2',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            padding: '8px 18px',
+            fontWeight: 600,
+            fontSize: '15px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+          }}
+          onClick={() => navigate('/packing-charts')}
+        >
+          Packing Charts
+        </button>
         {lastUpdated && (
           <div style={{ 
             fontSize: '14px', 
             color: '#666',
-            fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
+            fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+            marginLeft: 'auto'
           }}>
             Last updated: {lastUpdated.toLocaleTimeString()}
           </div>
