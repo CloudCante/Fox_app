@@ -35,7 +35,7 @@ export const Dashboard = () => {
     // Convert fetch functions to return their promises so we can use Promise.all
     const fetchSXM5 = () => {
       const params = new URLSearchParams();
-      params.append('model', 'SXM5');
+      params.append('model', 'Tesla SXM5');
       if (startDate) {
         const utcStartDate = new Date(startDate);
         utcStartDate.setUTCHours(0, 0, 0, 0);
@@ -58,7 +58,7 @@ export const Dashboard = () => {
       }
 
       // If not in cache, fetch from API
-      return fetch(`${API_BASE}/api/test-records/station-performance?${params.toString()}`)
+      return fetch(`${API_BASE}/api/functional-testing/station-performance?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
           setTestStationData(data);
@@ -74,7 +74,7 @@ export const Dashboard = () => {
 
     const fetchSXM4 = () => {
       const params = new URLSearchParams();
-      params.append('model', 'SXM4');
+      params.append('model', 'Tesla SXM4');
       if (startDate) {
         const utcStartDate = new Date(startDate);
         utcStartDate.setUTCHours(0, 0, 0, 0);
@@ -96,7 +96,7 @@ export const Dashboard = () => {
         return Promise.resolve(cachedData);
       }
 
-      return fetch(`${API_BASE}/api/test-records/station-performance?${params.toString()}`)
+      return fetch(`${API_BASE}/api/functional-testing/station-performance?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
           setTestStationDataSXM4(data);
@@ -140,7 +140,7 @@ export const Dashboard = () => {
             station: item._id || item.fixture,
             pass: item.total - item.fail,
             fail: item.fail,
-            failureRate: item.failureRate
+            failurerate: item.failurerate
           }));
           setTopFixturesData(mapped);
           // Store in cache

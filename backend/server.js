@@ -1,51 +1,61 @@
-// Import required packages
-const express = require('express'); // Web framework
-const cors = require('cors'); // Cross-origin resource sharing
-const mongoose = require('mongoose'); // MongoDB Library
-const dotenv = require('dotenv'); // Environment variables
+const express = require('express');
+const cors = require('cors'); 
+const {Pool} = require('pg'); 
+const dotenv = require('dotenv');
 
-// Load environment variables from .env file
+
 dotenv.config();
 
-// Debug: Log environment variables
-console.log('MongoDB URI:', process.env.MONGODB_URI);
-console.log('Port:', process.env.PORT);
-
-// Create Express app
 const app = express();
 
-// Middleware setup
-app.use(cors()); // Enable CORS for all origins
-app.use(express.json()); // Parse JSON bodies
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('MongoDB connected successfully'))
-    .catch(err => console.error('MongoDB connection error:', err));
+app.use(cors()); 
+app.use(express.json()); 
 
-// Import routes
-const testRecordsRouter = require('./routes/testRecords');
-const defectRecordsRouter = require('./routes/defectRecords');
-const workstationRouter = require('./routes/workstationRoutes');
+const pool = new Pool({
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 5432,
+    database: process.env.DB_NAME || 'fox_db',
+    user: process.env.DB_USER || 'gpu_user',
+    password: process.env.DB_PASSWORD || '',
+});
 
-// Use routes
-app.use('/api/test-records', testRecordsRouter);
-app.use('/api/defect-records', defectRecordsRouter);
-app.use('/api/workstation', workstationRouter);
 
-// Basic route for testing
+pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+        console.error('PostgreSQL connection error:', err);
+    } else {
+        console.log('PostgreSQL connected successfully');
+    }
+});
+
+//Import routes
+const functionalTestingRouter = require('./routes/functionalTestingRecords');
+app.use('/api/functional-testing', functionalTestingRouter);
+
+const packingRouter = require('./routes/packingRoutes');
+app.use('/api/packing', packingRouter);
+
+const sortRecordRouter = require('./routes/sortRecord');
+app.use('/api/sort-record', sortRecordRouter);
+
+const tpyRouter = require('./routes/tpyRoutes');
+app.use('/api/tpy', tpyRouter);
+
+//Server setups and error handling            
 app.get('/', (req, res) => {
     res.send('Quality Dashboard API is running');
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => { 
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
 
-// Start the server
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = {pool};

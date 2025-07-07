@@ -73,9 +73,9 @@ export const TestStationChart = ({ data }) => {
               style={{ fontWeight: 'bold', fontSize: '12px' }}
             />
           </Bar>
-          <Bar dataKey="failureRate" stackId="b" fill="transparent" name="Failure Rate">
+          <Bar dataKey="failurerate" stackId="b" fill="transparent" name="Failure Rate">
             <LabelList 
-              dataKey="failureRate" 
+              dataKey="failurerate" 
               position="top" 
               fill={textColor}
               formatter={(value) => `${(value * 100).toFixed(1)}%`}

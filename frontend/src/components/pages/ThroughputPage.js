@@ -24,6 +24,11 @@ import {
 import { ThroughputBarChart } from '../charts/ThroughputBarChart';
 import { useTheme } from '@mui/material/styles';
 
+const API_BASE = process.env.REACT_APP_API_BASE;
+if (!API_BASE) {
+  console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
+}
+
 /**
  * ThroughputPage Component with Performance Optimizations
  * 
@@ -120,50 +125,152 @@ const ThroughputPage = () => {
     willChange: processingState.isProcessing ? 'opacity' : 'auto'
   }), [processingState.isProcessing]);
 
-  const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'http://10.23.8.41:5000' 
-    : 'http://10.23.8.41:5000';
-
   // Fetch throughput data
   const fetchThroughputData = async () => {
     setLoading(true);
-    
     try {
-      const weeklyResponse = await fetch(`${API_BASE}/api/workstation/weekly-yield-metrics`);
+      // Always fetch the most recent week by default
+      // First, get all available weeks
+      const allWeeksResponse = await fetch(`${API_BASE}/api/tpy/weekly?startWeek=1900-W01&endWeek=2100-W99`);
+      if (!allWeeksResponse.ok) {
+        throw new Error(`Weekly metrics API error: ${allWeeksResponse.status}`);
+      }
+      const allWeeksData = await allWeeksResponse.json();
+      if (!allWeeksData.length) {
+        setAvailableWeeks([]);
+        setThroughputData(null);
+        setLoading(false);
+        return;
+      }
+      // Sort weeks descending and get the most recent
+      const sortedWeeks = allWeeksData.sort((a, b) => b.weekId.localeCompare(a.weekId));
+      const weeksWithDates = sortedWeeks.map(week => ({
+        id: week.weekId,
+        weekStart: week.weekStart,
+        weekEnd: week.weekEnd,
+        dateRange: formatWeekDateRange(week.weekStart, week.weekEnd)
+      }));
+      setAvailableWeeks(weeksWithDates);
+      const mostRecentWeekId = weeksWithDates[0].id;
+      const currentSelectedWeek = selectedWeek || mostRecentWeekId;
+      if (!selectedWeek) {
+        setSelectedWeek(currentSelectedWeek);
+      }
+      if (!currentSelectedWeek) {
+        setThroughputData(null);
+        setLoading(false);
+        return;
+      }
+      // Fetch only the selected week
+      const weeklyResponse = await fetch(`${API_BASE}/api/tpy/weekly?startWeek=${currentSelectedWeek}&endWeek=${currentSelectedWeek}`);
       if (!weeklyResponse.ok) {
         throw new Error(`Weekly metrics API error: ${weeklyResponse.status}`);
       }
-      
       const weeklyData = await weeklyResponse.json();
-      
-      // Process weeks to include date information
-      const weeksWithDates = weeklyData
-        .map(week => ({
-          id: week._id,
-          weekStart: week.weekStart,
-          weekEnd: week.weekEnd,
-          dateRange: formatWeekDateRange(week.weekStart, week.weekEnd)
-        }))
-        .sort((a, b) => b.id.localeCompare(a.id)); // Most recent first
-      
-      setAvailableWeeks(weeksWithDates);
-      
-      const currentSelectedWeek = selectedWeek || (weeksWithDates.length > 0 ? weeksWithDates[0].id : '');
-      if (!selectedWeek && weeksWithDates.length > 0) {
-        setSelectedWeek(currentSelectedWeek);
-      }
-      
-      if (!currentSelectedWeek) {
+      if (!weeklyData.length) {
         setThroughputData(null);
+        setLoading(false);
         return;
       }
-      
-      const weekData = weeklyData.find(week => week._id === currentSelectedWeek);
+
+      // Find the selected week in the new data (use weekId)
+      const weekData = weeklyData.find(week => week.weekId === currentSelectedWeek);
       if (weekData) {
-        setThroughputData(weekData);
-        console.log('Loaded throughput data for', currentSelectedWeek, ':', weekData);
+        // Fetch daily data for the selected week to get station-level details
+        const startDate = new Date(weekData.weekStart).toISOString().split('T')[0];
+        const endDate = new Date(weekData.weekEnd).toISOString().split('T')[0];
+        
+        const dailyResponse = await fetch(`${API_BASE}/api/tpy/daily?startDate=${startDate}&endDate=${endDate}`);
+        if (!dailyResponse.ok) {
+          throw new Error(`Daily metrics API error: ${dailyResponse.status}`);
+        }
+        const dailyData = await dailyResponse.json();
+        console.log('Daily data fetched:', dailyData.length, 'days');
+
+        // Aggregate daily data by station and model
+        const aggregatedStations = {
+          'Tesla SXM4': {},
+          'Tesla SXM5': {}
+        };
+
+        // Process each day's data
+        dailyData.forEach(dayData => {
+          if (dayData.stations) {
+            // Process SXM4 stations
+            if (dayData.stations['Tesla SXM4']) {
+              Object.entries(dayData.stations['Tesla SXM4']).forEach(([stationName, stationData]) => {
+                if (!aggregatedStations['Tesla SXM4'][stationName]) {
+                  aggregatedStations['Tesla SXM4'][stationName] = {
+                    totalParts: 0,
+                    passedParts: 0,
+                    failedParts: 0,
+                    throughputYield: 0
+                  };
+                }
+                aggregatedStations['Tesla SXM4'][stationName].totalParts += stationData.totalParts || 0;
+                aggregatedStations['Tesla SXM4'][stationName].passedParts += stationData.passedParts || 0;
+                aggregatedStations['Tesla SXM4'][stationName].failedParts += stationData.failedParts || 0;
+              });
+            }
+
+            // Process SXM5 stations
+            if (dayData.stations['Tesla SXM5']) {
+              Object.entries(dayData.stations['Tesla SXM5']).forEach(([stationName, stationData]) => {
+                if (!aggregatedStations['Tesla SXM5'][stationName]) {
+                  aggregatedStations['Tesla SXM5'][stationName] = {
+                    totalParts: 0,
+                    passedParts: 0,
+                    failedParts: 0,
+                    throughputYield: 0
+                  };
+                }
+                aggregatedStations['Tesla SXM5'][stationName].totalParts += stationData.totalParts || 0;
+                aggregatedStations['Tesla SXM5'][stationName].passedParts += stationData.passedParts || 0;
+                aggregatedStations['Tesla SXM5'][stationName].failedParts += stationData.failedParts || 0;
+              });
+            }
+          }
+        });
+
+        console.log('Aggregated SXM4 stations:', Object.keys(aggregatedStations['Tesla SXM4']).length);
+        console.log('Aggregated SXM5 stations:', Object.keys(aggregatedStations['Tesla SXM5']).length);
+
+        // Calculate throughput yield for each station
+        Object.keys(aggregatedStations).forEach(model => {
+          Object.keys(aggregatedStations[model]).forEach(station => {
+            const stationData = aggregatedStations[model][station];
+            if (stationData.totalParts > 0) {
+              stationData.throughputYield = (stationData.passedParts / stationData.totalParts) * 100;
+            }
+          });
+        });
+
+        // Map the new API structure to the expected frontend structure
+        setThroughputData({
+          weekId: weekData.weekId,
+          weekStart: weekData.weekStart,
+          weekEnd: weekData.weekEnd,
+          weeklyTPY: {
+            hardcoded: {
+              SXM4: { tpy: parseFloat(weekData.sxm4HardcodedTPY) },
+              SXM5: { tpy: parseFloat(weekData.sxm5HardcodedTPY) }
+            },
+            dynamic: {
+              SXM4: { tpy: parseFloat(weekData.sxm4DynamicTPY) },
+              SXM5: { tpy: parseFloat(weekData.sxm5DynamicTPY) }
+            }
+          },
+          weeklyThroughputYield: {
+            modelSpecific: aggregatedStations
+          },
+          summary: weekData.summary
+        });
+        console.log('ThroughputData set:', {
+          weekId: weekData.weekId,
+          sxm4Stations: Object.keys(aggregatedStations['Tesla SXM4']).length,
+          sxm5Stations: Object.keys(aggregatedStations['Tesla SXM5']).length
+        });
       }
-      
     } catch (error) {
       console.error('Error fetching throughput data:', error);
     } finally {
@@ -173,10 +280,23 @@ const ThroughputPage = () => {
 
   // Process station data for charts - now using debounced processingState
   const processedStationData = useMemo(() => {
-    if (!throughputData) return { sxm4: [], sxm5: [], tpyData: {} };
+    if (!throughputData) {
+      console.log('No throughputData available');
+      return { sxm4: [], sxm5: [], tpyData: {} };
+    }
+    
+    console.log('Processing station data, throughputData:', {
+      hasWeeklyThroughputYield: !!throughputData.weeklyThroughputYield,
+      hasModelSpecific: !!throughputData.weeklyThroughputYield?.modelSpecific,
+      sxm4Keys: Object.keys(throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM4'] || {}),
+      sxm5Keys: Object.keys(throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM5'] || {})
+    });
     
     const processModelData = (modelData) => {
-      if (!modelData) return [];
+      if (!modelData) {
+        console.log('No modelData provided');
+        return [];
+      }
       
       let stations = Object.entries(modelData)
         .map(([stationName, data]) => ({
@@ -190,12 +310,15 @@ const ThroughputPage = () => {
         }))
         .filter(station => station.totalParts >= 10); // Minimum volume filter
       
+      console.log('Processed stations before filtering:', stations.length);
+      
       // Filter repair stations if needed - using processingState
       if (!processingState.showRepairStations) {
         stations = stations.filter(station => 
           !station.station.includes('REPAIR') && 
           !station.station.includes('DEBUG')
         );
+        console.log('Stations after repair filter:', stations.length);
       }
       
       // Sort stations - using processingState
@@ -223,11 +346,19 @@ const ThroughputPage = () => {
     const sxm4Data = throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM4'];
     const sxm5Data = throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM5'];
     
-    return {
+    const result = {
       sxm4: processModelData(sxm4Data),
       sxm5: processModelData(sxm5Data),
       tpyData: throughputData.weeklyTPY?.[tpySource] || {}
     };
+    
+    console.log('Final processedStationData:', {
+      sxm4Count: result.sxm4.length,
+      sxm5Count: result.sxm5.length,
+      tpyData: result.tpyData
+    });
+    
+    return result;
   }, [throughputData, processingState.useHardcodedTPY, processingState.sortBy, processingState.showRepairStations]);
 
   // Process station data for tables (filtered for TPY calculation)
@@ -640,4 +771,4 @@ const FastSwitch = React.memo(({ checked, onChange, label, color = 'primary' }) 
 });
 
 // Export with React.memo for performance
-export default React.memo(ThroughputPage); 
+export default React.memo(ThroughputPage);  
