@@ -28,9 +28,10 @@ const PerformancePage = () => {
   const [selectedStation, setSelectedStation] = useState('BAT');
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.NODE_ENV === 'production' 
-    ? 'http://10.23.8.41:5000' 
-    : 'http://10.23.8.41:5000';
+  const API_BASE = process.env.REACT_APP_API_BASE;
+  if (!API_BASE) {
+    console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
+  }
 
   // Available models and priority stations
   const availableModels = ['Tesla SXM4', 'Tesla SXM5'];
