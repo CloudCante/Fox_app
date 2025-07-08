@@ -17,7 +17,7 @@ const isDev = process.env.NODE_ENV === 'development';
 export const SimplePerformanceMonitor = () => {
   // Skip rendering in production
   if (!isDev) return null;
-  
+
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
@@ -26,17 +26,17 @@ export const SimplePerformanceMonitor = () => {
     memory: 0,
     lastLagDuration: 0,
   });
-  
+
   const frameCountRef = useRef(0);
   const lastFrameTimeRef = useRef(performance.now());
   const rafIdRef = useRef(null);
-  
+
   // Toggle visibility
   const toggleVisibility = () => setIsVisible(!isVisible);
-  
+
   // Toggle expanded state
   const toggleExpanded = () => setIsExpanded(!isExpanded);
-  
+
   // Toggle recording state
   const toggleRecording = () => {
     if (isRecording) {
@@ -49,7 +49,7 @@ export const SimplePerformanceMonitor = () => {
       setIsRecording(true);
     }
   };
-  
+
   // Clear metrics
   const clearMetrics = () => {
     setMetrics({
@@ -59,7 +59,7 @@ export const SimplePerformanceMonitor = () => {
     });
     frameCountRef.current = 0;
   };
-  
+
   // Start performance recording
   const startRecording = () => {
     // Start counting frames for FPS
@@ -67,27 +67,27 @@ export const SimplePerformanceMonitor = () => {
       frameCountRef.current++;
       const now = performance.now();
       const elapsed = now - lastFrameTimeRef.current;
-      
+
       // Update metrics every second
       if (elapsed >= 1000) {
         const fps = Math.round((frameCountRef.current * 1000) / elapsed);
-        
+
         // Get memory usage if available
         let memory = 0;
         if (window.performance && window.performance.memory) {
           memory = Math.round(window.performance.memory.usedJSHeapSize / (1024 * 1024));
         }
-        
+
         setMetrics(prev => ({
           ...prev,
           fps,
           memory,
         }));
-        
+
         frameCountRef.current = 0;
         lastFrameTimeRef.current = now;
       }
-      
+
       // Check for large gaps between frames (lag)
       if (elapsed > 50) { // Anything over 50ms is considered lag (less than 20fps)
         setMetrics(prev => ({
@@ -95,18 +95,18 @@ export const SimplePerformanceMonitor = () => {
           lastLagDuration: Math.round(elapsed)
         }));
       }
-      
+
       rafIdRef.current = requestAnimationFrame(updateMetrics);
     };
-    
+
     rafIdRef.current = requestAnimationFrame(updateMetrics);
   };
-  
+
   // Start recording when isRecording changes
   useEffect(() => {
     if (isRecording) {
       startRecording();
-      
+
       return () => {
         if (rafIdRef.current) {
           cancelAnimationFrame(rafIdRef.current);
@@ -115,7 +115,7 @@ export const SimplePerformanceMonitor = () => {
       };
     }
   }, [isRecording]);
-  
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -124,15 +124,15 @@ export const SimplePerformanceMonitor = () => {
       }
     };
   }, []);
-  
-  const fpsColor = metrics.fps > 55 ? 'success.main' : 
-                  metrics.fps > 30 ? 'warning.main' : 'error.main';
-  
+
+  const fpsColor = metrics.fps > 55 ? 'success.main' :
+    metrics.fps > 30 ? 'warning.main' : 'error.main';
+
   const memoryColor = metrics.memory < 100 ? 'success.main' :
-                     metrics.memory < 200 ? 'warning.main' : 'error.main';
-  
+    metrics.memory < 200 ? 'warning.main' : 'error.main';
+
   return (
-    <Paper 
+    <Paper
       elevation={3}
       sx={{
         position: 'fixed',
@@ -146,8 +146,8 @@ export const SimplePerformanceMonitor = () => {
       }}
     >
       {!isVisible ? (
-        <IconButton 
-          color="primary" 
+        <IconButton
+          color="primary"
           onClick={toggleVisibility}
           sx={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
         >
@@ -160,15 +160,15 @@ export const SimplePerformanceMonitor = () => {
               Simple Performance Monitor
             </Typography>
             <Box>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={toggleExpanded}
                 sx={{ color: 'white', p: 0.5 }}
               >
-                {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                {isExpanded ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
               </IconButton>
-              <IconButton 
-                size="small" 
+              <IconButton
+                size="small"
                 onClick={toggleVisibility}
                 sx={{ color: 'white', p: 0.5 }}
               >
@@ -176,7 +176,7 @@ export const SimplePerformanceMonitor = () => {
               </IconButton>
             </Box>
           </Box>
-          
+
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography variant="body2" component="div" color={fpsColor}>
               FPS: {metrics.fps}
@@ -185,13 +185,13 @@ export const SimplePerformanceMonitor = () => {
               Memory: {metrics.memory} MB
             </Typography>
           </Box>
-          
+
           {metrics.lastLagDuration > 0 && (
             <Typography variant="body2" component="div" color="error.main" sx={{ mb: 1 }}>
               Last lag: {metrics.lastLagDuration}ms
             </Typography>
           )}
-          
+
           <Collapse in={isExpanded}>
             <Typography variant="body2" component="div" sx={{ mt: 1 }}>
               • This is a simplified monitor that only tracks FPS and memory
@@ -203,22 +203,22 @@ export const SimplePerformanceMonitor = () => {
               • For component renders, check browser console
             </Typography>
           </Collapse>
-          
+
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={toggleRecording}
               sx={{ color: isRecording ? 'error.main' : 'success.main', p: 0.5 }}
             >
               {isRecording ? <StopIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
             </IconButton>
-            
-            <Typography 
-              variant="caption" 
-              component="div" 
+
+            <Typography
+              variant="caption"
+              component="div"
               onClick={clearMetrics}
-              sx={{ 
-                cursor: 'pointer', 
+              sx={{
+                cursor: 'pointer',
                 textDecoration: 'underline',
                 alignSelf: 'center',
                 '&:hover': { color: 'primary.main' }
