@@ -1,23 +1,31 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
 
+console.log('Initializing database configuration...');
+
 dotenv.config();
 
-const pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'fox_db',
-    user: process.env.DB_USER || 'gpu_user',
-    password: process.env.DB_PASSWORD || '',
+console.log('Creating database pool with config:', {
+    host: '10.23.8.41',
+    port: 5432,
+    database: 'fox_db',
+    user: 'gpu_user'
 });
 
-// Test the connection
-pool.query('SELECT NOW()', (err, res) => {
-    if (err) {
-        console.error('PostgreSQL connection error:', err);
-    } else {
-        console.log('PostgreSQL connected successfully');
-    }
+const pool = new Pool({
+    host: '10.23.8.41',
+    port: 5432,
+    database: 'fox_db',
+    user: 'gpu_user',
+    password: '',
+});
+
+pool.on('error', (err) => {
+    console.error('❌ Unexpected error on idle client:', err);
+});
+
+pool.on('connect', () => {
+    console.log('✅ New client connected to database');
 });
 
 module.exports = { pool };
