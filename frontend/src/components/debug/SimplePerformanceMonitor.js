@@ -139,19 +139,28 @@ export const SimplePerformanceMonitor = () => {
         bottom: 16,
         right: 16,
         zIndex: 9999,
-        maxWidth: isExpanded ? 300 : 'auto',
+        maxWidth: isVisible && isExpanded ? 250 : 150, // Set narrow width when minimized
+        width: !isVisible ? 150 : 'auto',              // Force width when minimized
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         color: 'white',
-        transition: 'all 0.3s ease'
+        transition: 'all 0.3s ease',
+        p: 0 // Remove extra Paper padding when minimized
       }}
     >
       {!isVisible ? (
         <IconButton
           color="primary"
           onClick={toggleVisibility}
-          sx={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+          sx={{
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            width: 28,    // Make the button more narrow
+            height: 28,   // Make the button more compact
+            minWidth: 0,
+            minHeight: 0,
+            p: 0          // Remove extra padding
+          }}
         >
-          <SpeedIcon />
+          <SpeedIcon fontSize="small" />
         </IconButton>
       ) : (
         <Box sx={{ p: 1 }}>
@@ -177,7 +186,7 @@ export const SimplePerformanceMonitor = () => {
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: .5, px: 0.5 }}>
             <Typography variant="body2" component="div" color={fpsColor}>
               FPS: {metrics.fps}
             </Typography>
@@ -231,4 +240,4 @@ export const SimplePerformanceMonitor = () => {
       )}
     </Paper>
   );
-}; 
+};

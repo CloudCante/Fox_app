@@ -52,43 +52,43 @@ const PerformancePage = () => {
   // Fetch Station P-Chart data
   const fetchPChartData = async () => {
     setLoading(true);
-    
+
     try {
       // First, get available weeks from weekly metrics
-      const weeklyResponse = await fetch(`${API_BASE}/api/workstation/weekly-yield-metrics`);
+      /*const weeklyResponse = await fetch(`${API_BASE}/api/workstation/weekly-yield-metrics`);
       if (!weeklyResponse.ok) {
         throw new Error(`Weekly metrics API error: ${weeklyResponse.status}`);
-      }
-      
+      }*/
+
       const weeklyData = await weeklyResponse.json();
       const weeks = weeklyData.map(week => week._id).sort().reverse(); // Most recent first
       setAvailableWeeks(weeks);
-      
+
       // Set default selected week to most recent if not already set
       const currentSelectedWeek = selectedWeek || (weeks.length > 0 ? weeks[0] : '');
       if (!selectedWeek && weeks.length > 0) {
         setSelectedWeek(currentSelectedWeek);
       }
-      
+
       if (!currentSelectedWeek || !selectedModel || !selectedStation) {
         setDailyPChartData([]);
         setWeeklySummary([]);
         return;
       }
-      
+
       // Fetch station-specific P-chart data
       console.log(`Fetching P-Chart data for ${selectedModel} ${selectedStation} in ${currentSelectedWeek}`);
-      
+
       // Call the real API endpoint
       const pchartResponse = await fetch(`${API_BASE}/api/workstation/pchart/${currentSelectedWeek}/${selectedModel}/${selectedStation}`);
-      
+
       if (!pchartResponse.ok) {
         throw new Error(`P-Chart API error: ${pchartResponse.status}`);
       }
-      
+
       const pchartData = await pchartResponse.json();
       console.log(`P-Chart API Response:`, pchartData);
-      
+
       // Transform to chart format
       const chartData = pchartData.dailyPoints.map(point => ({
         date: point.date,
@@ -104,7 +104,7 @@ const PerformancePage = () => {
       }));
 
       setDailyPChartData(chartData);
-      
+
       // Set summary data
       setWeeklySummary([{
         _id: currentSelectedWeek,
@@ -117,7 +117,7 @@ const PerformancePage = () => {
       }]);
 
       console.log(`Loaded ${chartData.length} daily data points for ${selectedStation} station P-Chart`);
-      
+
     } catch (error) {
       console.error('Error fetching P-Chart data:', error);
     } finally {
@@ -128,12 +128,12 @@ const PerformancePage = () => {
   // Calculate summary statistics for station defect rates
   const summaryStats = useMemo(() => {
     if (!dailyPChartData || dailyPChartData.length === 0) return null;
-    
+
     const defectRates = dailyPChartData.map(d => d.defectRate);
     const totalParts = dailyPChartData.reduce((sum, d) => sum + d.sampleSize, 0);
     const totalDefects = dailyPChartData.reduce((sum, d) => sum + d.defects, 0);
     const outOfControlPoints = dailyPChartData.filter(d => !d.inControl).length;
-    
+
     return {
       meanDefectRate: defectRates.reduce((sum, p) => sum + p, 0) / defectRates.length,
       overallDefectRate: (totalDefects / totalParts) * 100,
@@ -189,7 +189,7 @@ const PerformancePage = () => {
         <Typography variant="body1" color="text.secondary" paragraph>
           Statistical process control for station-specific defect rates. P-charts detect when a station's daily defect rate goes out of control.
         </Typography>
-        
+
         {/* Selection Controls */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={4}>
@@ -209,7 +209,7 @@ const PerformancePage = () => {
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
               <InputLabel>Model</InputLabel>
@@ -227,7 +227,7 @@ const PerformancePage = () => {
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
               <InputLabel>Station</InputLabel>
@@ -260,7 +260,7 @@ const PerformancePage = () => {
           {/* Main P-Chart */}
           <Grid item xs={12}>
             <Card elevation={3}>
-              <CardHeader 
+              <CardHeader
                 title={`Daily Completion FPY P-Chart - ${selectedWeek || 'No Week Selected'}`}
                 subheader="Daily completion FPY within selected week with historical control limits"
                 titleTypographyProps={{ variant: 'h6' }}
@@ -268,7 +268,7 @@ const PerformancePage = () => {
               />
               <CardContent>
                 <Box sx={{ height: 450 }}>
-                  <PChart 
+                  <PChart
                     data={dailyPChartData}
                     title={`${selectedStation} Station Defect Rate P-Chart - ${selectedModel} (${selectedWeek})`}
                     subtitle={`Daily defect rates with control limits. Center line: ${dailyPChartData.length > 0 ? (dailyPChartData[0].centerLine * 100).toFixed(2) : 0}%`}
@@ -286,7 +286,7 @@ const PerformancePage = () => {
           {/* Summary Statistics */}
           <Grid item xs={12}>
             <Card elevation={3}>
-              <CardHeader 
+              <CardHeader
                 title={`P-Chart Summary - ${selectedWeek || 'No Week Selected'}`}
                 titleTypographyProps={{ variant: 'h6' }}
               />
@@ -303,7 +303,7 @@ const PerformancePage = () => {
                         </Typography>
                       </Paper>
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6} md={3}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         <Typography variant="h4" color="warning.main">
@@ -314,7 +314,7 @@ const PerformancePage = () => {
                         </Typography>
                       </Paper>
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6} md={3}>
                       <Paper sx={{ p: 2, textAlign: 'center' }}>
                         <Typography variant="h4" color="info.main">
@@ -325,7 +325,7 @@ const PerformancePage = () => {
                         </Typography>
                       </Paper>
                     </Grid>
-                    
+
                     <Grid item xs={12} sm={6} md={3}>
                       <Paper sx={{ p: 2, textAlign: 'center', bgcolor: summaryStats?.processInControl ? 'success.light' : 'error.light' }}>
                         <Typography variant="h4" color={summaryStats?.processInControl ? 'success.dark' : 'error.dark'}>
@@ -351,7 +351,7 @@ const PerformancePage = () => {
           {weeklySummary.length > 0 && (
             <Grid item xs={12}>
               <Card elevation={3}>
-                <CardHeader 
+                <CardHeader
                   title={`Week ${selectedWeek} Summary`}
                   subheader="Complete weekly metrics for selected week"
                   titleTypographyProps={{ variant: 'h6' }}
@@ -369,7 +369,7 @@ const PerformancePage = () => {
                           </Typography>
                         </Paper>
                       </Grid>
-                      
+
                       <Grid item xs={12} md={3}>
                         <Paper sx={{ p: 2, textAlign: 'center' }}>
                           <Typography variant="h5" color="secondary">
@@ -392,7 +392,7 @@ const PerformancePage = () => {
       {/* Success Note */}
       <Box sx={{ mt: 4, p: 2, backgroundColor: 'success.light', borderRadius: 1 }}>
         <Typography variant="body2" color="success.contrastText">
-          <strong>✅ Live P-Chart:</strong> Daily data points within selected week with control limits from historical data. 
+          <strong>✅ Live P-Chart:</strong> Daily data points within selected week with control limits from historical data.
           Week selector provides focused analysis while maintaining statistical process control.
           {!loading && selectedWeek && ` Currently showing ${dailyPChartData.length} days from ${selectedWeek}.`}
         </Typography>
