@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, Paper, Typography, CircularProgress } from '@mui/material';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -7,6 +7,9 @@ import { ParetoChart } from '../charts/ParetoChart';
 import { toUTCDateString } from '../../utils/dateUtils';
 import { dataCache } from '../../utils/cacheUtils';
 
+const ReadOnlyInput = React.forwardRef((props, ref) => (
+  <input {...props} ref={ref} readOnly />
+));
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -31,7 +34,7 @@ export const Dashboard = () => {
   useEffect(() => {
     // Set loading state at the beginning of data fetch
     setLoading(true);
-    
+
     // Convert fetch functions to return their promises so we can use Promise.all
     const fetchSXM5 = () => {
       const params = new URLSearchParams();
@@ -49,7 +52,7 @@ export const Dashboard = () => {
 
       // Generate cache key based on parameters
       const cacheKey = `sxm5_${params.toString()}`;
-      
+
       // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
@@ -88,7 +91,7 @@ export const Dashboard = () => {
 
       // Generate cache key based on parameters
       const cacheKey = `sxm4_${params.toString()}`;
-      
+
       // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
@@ -125,7 +128,7 @@ export const Dashboard = () => {
 
       // Generate cache key based on parameters
       const cacheKey = `fixtures_${params.toString()}`;
-      
+
       // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
@@ -168,7 +171,7 @@ export const Dashboard = () => {
 
       // Generate cache key based on parameters
       const cacheKey = `failStations_${params.toString()}`;
-      
+
       // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
@@ -205,7 +208,7 @@ export const Dashboard = () => {
 
       // Generate cache key based on parameters
       const cacheKey = `defectCodes_${params.toString()}`;
-      
+
       // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
@@ -234,18 +237,18 @@ export const Dashboard = () => {
         console.error("Error fetching dashboard data:", error);
         setLoading(false); // Turn off loading even on error
       });
-    
+
     // Set up refresh interval
     const interval = setInterval(() => {
       // Don't show loading indicator on background refresh
       // Clear cache and re-fetch on interval
       dataCache.clear();
-      
+
       // Refresh all data in parallel
       Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures(), fetchFailStations(), fetchDefectCodes()])
         .catch(error => console.error("Error refreshing dashboard data:", error));
     }, 60000);
-    
+
     return () => clearInterval(interval);
     // eslint-disable-next-line
   }, [startDate, endDate]);
@@ -253,6 +256,7 @@ export const Dashboard = () => {
   return (
     <Box p={1}>
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+
         <DatePicker
           selected={startDate}
           onChange={date => setStartDate(date)}
@@ -261,7 +265,7 @@ export const Dashboard = () => {
           endDate={endDate}
           placeholderText="Start Date"
           dateFormat="yyyy-MM-dd"
-          isClearable
+          customInput={<ReadOnlyInput />}
         />
         <DatePicker
           selected={endDate}
@@ -272,7 +276,7 @@ export const Dashboard = () => {
           minDate={startDate}
           placeholderText="End Date"
           dateFormat="yyyy-MM-dd"
-          isClearable
+          customInput={<ReadOnlyInput />}
         />
       </div>
       <Box sx={{
