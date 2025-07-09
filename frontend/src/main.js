@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, autoUpdater } = require('electron');
 const path = require('node:path');
 
 
@@ -37,6 +37,10 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  mainWindow.once('ready-to-show',()=>{
+    autoUpdater.checkForUpdatesAndNotify();
+  })
 };
 
 
@@ -58,4 +62,11 @@ app.on('window-all-closed', () => {
   }
 });
 
+autoUpdater.on('update-available',()=>{
+  console.log('Update available');
+});
 
+autoUpdater.on('update-downloaded',()=>{
+  console.log('Update downloaded');
+  autoUpdater.quitAndInstall();
+});
