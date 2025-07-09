@@ -1,4 +1,5 @@
-const { app, BrowserWindow, autoUpdater } = require('electron');
+const { app, BrowserWindow } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 
 
@@ -39,6 +40,8 @@ const createWindow = () => {
   mainWindow.webContents.openDevTools();
 
   mainWindow.once('ready-to-show',()=>{
+    autoUpdater.allowPrerelease = true;
+    autoUpdater.autoDownload= false;
     autoUpdater.checkForUpdatesAndNotify();
   })
 };

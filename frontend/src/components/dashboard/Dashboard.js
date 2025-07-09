@@ -252,7 +252,7 @@ export const Dashboard = () => {
 
   return (
     <Box p={1}>
-    <p>Test Text</p>
+    <p>Test Text2</p>
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
         <DatePicker
           selected={startDate}
