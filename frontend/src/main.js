@@ -73,3 +73,7 @@ autoUpdater.on('update-downloaded',()=>{
   console.log('Update downloaded');
   autoUpdater.quitAndInstall();
 });
+
+autoUpdater.on('update-not-available',()=>{
+  console.log('No update available – app is up to date.');
+});
