@@ -10,7 +10,6 @@ console.log('📝 Initializing test route handler...');
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 }).single('file');
 
 // Simple catch endpoint with error handling and file saving
@@ -34,14 +33,14 @@ router.post('/catch-file', (req, res) => {
         }
         
         // Read the file content as text
-        const fileContent = req.file.buffer.toString('utf-8');
-        console.log('📄 File contents:', fileContent);
+        //const fileContent = req.file.buffer.toString('utf-8');
+        //console.log('📄 File contents:', fileContent);
         
         console.log('✅ File received successfully:', {
             filename: req.file.originalname,
             size: req.file.size,
             mimetype: req.file.mimetype,
-            content: fileContent
+            //content: fileContent
         });
 
         // Save the file to /home/darvin/Downloads
@@ -67,7 +66,7 @@ router.post('/catch-file', (req, res) => {
                 filename: req.file.originalname,
                 size: req.file.size,
                 mimetype: req.file.mimetype,
-                content: fileContent,
+                //content: fileContent,
                 savedTo: targetPath,
                 timestamp: new Date().toISOString()
             });
