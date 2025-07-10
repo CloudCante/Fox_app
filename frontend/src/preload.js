@@ -1,26 +1,18 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  sendMessage: (channel, data) => {
-    ipcRenderer.send(channel, data);
-  },
-  onMessage: (channel, func) => {
-    ipcRenderer.on(channel, (event, ...args) => func(...args));
-  },
-  
-  // Expose process information safely
+// With contextIsolation disabled, we can directly set window properties
+window.electronAPI = {
+  sendMessage: (message) => ipcRenderer.send('message', message),
   platform: process.platform,
-  env: {
-    NODE_ENV: process.env.NODE_ENV || 'production',
-    // Add other env variables you need
-  },
-  
-  // Add other process properties you need
+  env: { NODE_ENV: process.env.NODE_ENV || 'production' },
   versions: process.versions,
-  
-  // Safe way to check if running in Electron
   isElectron: true
-});
+};
 
-// Optional: Log successful load
+window.process = {
+  env: { NODE_ENV: process.env.NODE_ENV || 'production' },
+  platform: process.platform,
+  versions: process.versions
+};
+
 console.log('Preload script loaded successfully');

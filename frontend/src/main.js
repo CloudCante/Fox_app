@@ -1,9 +1,12 @@
 const { app, BrowserWindow } = require('electron');
 const { autoUpdater } = require('electron-updater');
-const path = require('node:path');
+const path = require('path');
 const fs = require('fs');
 
+console.log('[main] Starting application...');
+
 if (require('electron-squirrel-startup')) {
+  console.log('[main] Squirrel startup detected. Quitting...');
   app.quit();
 }
 
@@ -12,61 +15,56 @@ autoUpdater.autoDownload = false;
 
 let logFile;
 
-// Check if running in development
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-
-// Logging function
 function logToFile(message) {
   const logEntry = `[${new Date().toISOString()}] ${message}\n`;
   if (logFile) {
     try {
       fs.appendFileSync(logFile, logEntry);
     } catch (err) {
-      console.error('Failed to write log:', err);
+      console.error('[log] Failed to write log:', err);
     }
   } else {
-    console.warn('logFile not initialized yet:', message);
+    console.warn('[log] logFile not initialized yet:', message);
   }
 }
 
-// Set up update events early
+// AutoUpdater logs
 autoUpdater.on('checking-for-update', () => {
-  console.log('Checking for update...');
+  console.log('[updater] Checking for update...');
   logToFile('Checking for update...');
 });
-
 autoUpdater.on('update-available', () => {
-  console.log('Update available');
+  console.log('[updater] Update available');
   logToFile('Update available');
 });
-
 autoUpdater.on('update-not-available', () => {
-  console.log('No update available – app is up to date.');
-  logToFile('No update available – app is up to date.');
+  console.log('[updater] No update available');
+  logToFile('No update available');
 });
-
 autoUpdater.on('update-downloaded', () => {
-  console.log('Update downloaded');
+  console.log('[updater] Update downloaded');
   logToFile('Update downloaded – quitting and installing');
   autoUpdater.quitAndInstall();
 });
-
 autoUpdater.on('error', (err) => {
-  console.error('AutoUpdater error:', err);
+  console.error('[updater] Error:', err);
   logToFile(`AutoUpdater error: ${err.message}`);
 });
 
-// Create main window
-const createWindow = () => {
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// 🔹 Main window creation
+function createWindow() {
+  console.log('[main] Creating browser window...');
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname,'preload.js'),
+      preload: path.join(__dirname, 'preload.js'),
       webSecurity: false,
-      nodeIntegration: false,
-      contextIsolation: true,
-      enableRemoteModule: true,
+      nodeIntegration: true,          // Enable Node.js in renderer
+      contextIsolation: false,        // Disable context isolation
+      enableRemoteModule: true
     },
     frame: false,
     titleBarStyle: 'hidden',
@@ -74,7 +72,7 @@ const createWindow = () => {
       color: '#1e3a5f',
       symbolColor: '#ffffff',
       height: 30,
-    },
+    }
   });
 
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -86,63 +84,65 @@ const createWindow = () => {
     });
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  const indexPath = path.join(__dirname, 'index.html');
+  console.log('[main] Loading file:', indexPath);
   
-  // Add process polyfill to renderer
-  mainWindow.webContents.executeJavaScript(`
-    if (typeof process === 'undefined') {
-      window.process = {
-        env: {
-          NODE_ENV: '${isDev ? 'development' : 'production'}'
-        },
-        platform: '${process.platform}',
-        versions: ${JSON.stringify(process.versions)}
-      };
-    }
-  `);
-  
+  mainWindow.loadFile(indexPath).then(() => {
+    console.log('[main] index.html loaded successfully');
+  }).catch(err => {
+    console.error('[main] Failed to load index.html:', err);
+  });
+
   mainWindow.webContents.openDevTools();
 
+  // Add more detailed logging
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[main] Page finished loading');
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('[main] Page failed to load:', errorCode, errorDescription);
+  });
+
   mainWindow.once('ready-to-show', () => {
-    // Only check for updates in production
+    console.log('[main] Window ready to show');
     if (!isDev) {
       autoUpdater.checkForUpdatesAndNotify();
     }
   });
-};
+}
 
-// Initialize everything when app is ready
+// 🔹 App ready event
 app.whenReady().then(() => {
-  // Initialize logging first
+  console.log('[main] App is ready');
   logFile = path.join(app.getPath('userData'), 'updater.log');
   logToFile('Updater log started...');
 
-  // Now safe to log preload check
-  const preloadPath = path.join(__dirname,'preload.js');
-  console.log('Preload exists:', fs.existsSync(preloadPath), preloadPath);
-  logToFile(`Preload script path: ${preloadPath}`);
+  const preloadPath = path.join(__dirname, 'preload.js');
+  console.log('[main] Checking preload path:', preloadPath);
+  logToFile(`Preload exists: ${fs.existsSync(preloadPath)} at ${preloadPath}`);
 
-  // Set up dev update config if needed
   if (isDev) {
-    // Option 1: Disable auto-updater in development
-    logToFile('Development mode: Auto-updater disabled');
-    // Don't call autoUpdater.checkForUpdatesAndNotify() in dev
+    logToFile('Running in development mode. Skipping update checks.');
   } else {
-    // Only check for updates in production
-    logToFile('Production mode: Auto-updater enabled');
+    logToFile('Running in production mode.');
   }
 
   createWindow();
 
   app.on('activate', () => {
+    console.log('[main] App activated');
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
 });
 
+// 🔹 All windows closed
 app.on('window-all-closed', () => {
+  console.log('[main] All windows closed');
   if (process.platform !== 'darwin') {
+    console.log('[main] Quitting app');
     app.quit();
   }
 });
