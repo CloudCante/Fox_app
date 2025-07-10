@@ -18,6 +18,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SpeedIcon from '@mui/icons-material/Speed';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import StorageIcon from '@mui/icons-material/Storage';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -38,6 +39,11 @@ const MENU_ITEMS = [
   { text: 'Packing', icon: <Inventory2Icon />, route: '/packing' },
   { text: 'Performance', icon: <SpeedIcon />, route: '/performance' },
   { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
+];
+
+// Add development-only menu items
+const DEV_MENU_ITEMS = [
+  { text: 'Database Tables', icon: <StorageIcon />, route: '/dev/tables' }
 ];
 
 // Pre-render all menu icons once to avoid recreation on renders
@@ -73,6 +79,22 @@ const MenuList = React.memo(({ onClose }) => (
     {MENU_ITEMS.map((item) => (
       <MenuItem key={item.text} item={item} onClose={onClose} />
     ))}
+    {process.env.NODE_ENV === 'development' && (
+      <>
+        <ListItem sx={{ borderTop: '1px solid rgba(255, 255, 255, 0.12)', mt: 2, pt: 2 }}>
+          <ListItemText 
+            primary="Development"
+            primaryTypographyProps={{ 
+              variant: 'overline',
+              sx: { opacity: 0.7 }
+            }}
+          />
+        </ListItem>
+        {DEV_MENU_ITEMS.map((item) => (
+          <MenuItem key={item.text} item={item} onClose={onClose} />
+        ))}
+      </>
+    )}
   </List>
 ));
 
