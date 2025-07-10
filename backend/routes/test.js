@@ -8,7 +8,6 @@ console.log('📝 Initializing test route handler...');
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
-    // Add error handling to multer
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 }).single('file');
 
@@ -32,18 +31,23 @@ router.post('/catch-file', (req, res) => {
             });
         }
         
+        // Read the file content as text
+        const fileContent = req.file.buffer.toString('utf-8');
+        console.log('📄 File contents:', fileContent);
+        
         console.log('✅ File received successfully:', {
             filename: req.file.originalname,
             size: req.file.size,
-            mimetype: req.file.mimetype
+            mimetype: req.file.mimetype,
+            content: fileContent
         });
         
-        // Just confirm we got the file
         res.json({
-            message: 'File received',
+            message: 'File received and read',
             filename: req.file.originalname,
             size: req.file.size,
             mimetype: req.file.mimetype,
+            content: fileContent,
             timestamp: new Date().toISOString()
         });
     });
