@@ -44,10 +44,6 @@ const tpyRouter = require('./routes/tpyRoutes');
 app.use('/api/tpy', tpyRouter);
 console.log('✓ TPY routes loaded');
 
-const testboardRouter = require('./routes/testboardRecords');
-app.use('/api/testboard', testboardRouter);
-console.log('✓ Testboard routes loaded');
-
 // Load test route with detailed logging
 console.log('📝 Loading test route handler...');
 try {
