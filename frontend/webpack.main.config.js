@@ -1,11 +1,22 @@
+const path = require('path');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
 module.exports = {
-  /**
-   * This is the main entry point for your application, it's the first file
-   * that runs in the main process.
-   */
+  mode: 'production',
   entry: './src/main.js',
-  // Put your normal webpack config below here
-  module: {
-    rules: require('./webpack.rules'),
+  target: 'electron-main',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'main.js'
   },
+  externals: {
+    electron: 'commonjs2 electron',
+    'electron-updater': 'commonjs2 electron-updater',
+    'electron-squirrel-startup': 'commonjs2 electron-squirrel-startup'
+  },
+  plugins:[ new CleanWebpackPlugin({cleanOnceBeforeBuildPatterns:[]})],
+  node: {
+    __dirname: false,
+    __filename: false
+  }
 };

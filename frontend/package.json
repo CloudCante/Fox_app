@@ -1,62 +1,63 @@
 {
   "name": "fox-quality-dashboard",
-  "productName": "fox-quality-dashboard",
   "version": "1.1.26",
   "description": "Quality Dashboard for Fox Manufacturing",
-  "main": ".webpack/main",
-  "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\"",
-    "generate-icons": "electron-icon-builder --input=./src/assets/icons/fox-icon-256.png --output=build --flatten"
-  },
-  "keywords": [],
   "author": "darvin",
-  "license": "MIT",
-  "devDependencies": {
-    "@babel/core": "^7.27.1",
-    "@babel/preset-env": "^7.27.2",
-    "@babel/preset-react": "^7.27.1",
-    "@electron-forge/cli": "^7.8.1",
-    "@electron-forge/maker-deb": "^7.8.1",
-    "@electron-forge/maker-rpm": "^7.8.1",
-    "@electron-forge/maker-squirrel": "^7.8.1",
-    "@electron-forge/maker-zip": "^7.8.1",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
-    "@electron-forge/plugin-fuses": "^7.8.1",
-    "@electron-forge/plugin-webpack": "^7.8.1",
-    "@electron/fuses": "^1.8.0",
-    "@vercel/webpack-asset-relocator-loader": "^1.7.3",
-    "babel-loader": "^10.0.0",
-    "css-loader": "^6.11.0",
-    "dotenv-webpack": "^8.1.0",
-    "electron": "36.2.1",
-    "electron-icon-builder": "^2.0.1",
-    "node-loader": "^2.1.0",
-    "style-loader": "^3.3.4"
+  "main": "dist/main.js",
+  "scripts": {
+    "webpack:main": "webpack --config webpack.main.config.js",
+    "webpack:renderer": "webpack --config webpack.renderer.config.js",
+    "webpack:preload": "webpack --config webpack.preload.config.js",
+    "build:webpack": "npm run webpack:main && npm run webpack:renderer && npm run webpack:preload",
+    "start": "electron dist/main.js",
+    "clean": "rimraf dist/win-unpacked",
+    "build": "npm run clean && npm run build:webpack && electron-builder"
+  },
+  "build": {
+    "appId": "com.cloudcante.foxquality",
+    "productName": "Fox Quality Dashboard",
+    "directories": {
+      "app": "./"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "CloudCante",
+        "repo": "Fox_app"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    }
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^7.1.0",
-    "@mui/material": "^7.1.0",
-    "@tanstack/react-table": "^8.21.3",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.1.1",
     "react": "^19.1.0",
-    "react-datepicker": "^8.3.0",
+    "react-datepicker": "^8.4.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.0",
-    "react-window": "^1.8.11",
-    "recharts": "^2.15.3"
+    "react-router-dom": "^7.6.3",
+    "recharts": "^3.1.0"
   },
-  "build":{
-    "publish":[{
-      "provider":"github",
-      "owner":"CloudCante",
-      "repo":"Fox_app",
-      "releaseType":"release"
-    }]
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-react": "^7.27.1",
+    "babel-loader": "^10.0.0",
+    "css-loader": "^7.1.2",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "html-webpack-plugin": "^5.6.3",
+    "rimraf": "^6.0.1",
+    "style-loader": "^4.0.0"
   }
 }

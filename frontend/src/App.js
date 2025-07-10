@@ -47,6 +47,7 @@ const AppRoutes = React.memo(() => (
 ));
 
 function App() {
+  console.log('App component rendering...');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isLowEnd, setIsLowEnd] = useState(false);
   

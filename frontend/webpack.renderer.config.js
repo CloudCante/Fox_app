@@ -1,14 +1,33 @@
-const webpack = require('webpack');
-const rules = require('./webpack.rules');
-const Dotenv = require('dotenv-webpack');
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
 module.exports = {
-  module: {
-    rules,
+  mode: 'production',
+  entry: './src/renderer.js',
+  target: 'electron-renderer',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'renderer.js'
   },
   resolve: {
-    extensions: ['.js', '.jsx', '.css']
+    extensions: ['.js', '.jsx']
   },
-  plugins: [
-    new Dotenv(),
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: 'babel-loader'
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      }
+    ]
+  },
+  plugins: [// ✅ Cleans the dist folder before build
+    new HtmlWebpackPlugin({
+      template: 'src/index.html'
+    })
   ]
 };
