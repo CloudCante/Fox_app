@@ -44,6 +44,20 @@ const tpyRouter = require('./routes/tpyRoutes');
 app.use('/api/tpy', tpyRouter);
 console.log('✓ TPY routes loaded');
 
+const testboardRouter = require('./routes/testboardRecords');
+app.use('/api/testboard', testboardRouter);
+console.log('✓ Testboard routes loaded');
+
+// Load test route with detailed logging
+console.log('📝 Loading test route handler...');
+try {
+    const testRouter = require('./routes/test');
+    app.use('/api/test', testRouter);
+    console.log('✅ Test routes loaded and registered at /api/test/*');
+} catch (error) {
+    console.error('❌ Failed to load test routes:', error);
+}
+
 //Server setups and error handling            
 app.get('/', (req, res) => {
     console.log('Root endpoint accessed');
