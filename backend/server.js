@@ -45,13 +45,13 @@ app.use('/api/tpy', tpyRouter);
 console.log('✓ TPY routes loaded');
 
 // Load test route with detailed logging
-console.log('📝 Loading test route handler...');
+console.log('📝 Loading upload handler...');
 try {
-    const testRouter = require('./routes/test');
-    app.use('/api/test', testRouter);
-    console.log('✅ Test routes loaded and registered at /api/test/*');
+    const uploadHandlerRouter = require('./routes/uploadHandler');
+    app.use('/api/upload', uploadHandlerRouter);
+    console.log('✅ Upload handler loaded and registered at /api/upload/*');
 } catch (error) {
-    console.error('❌ Failed to load test routes:', error);
+    console.error('❌ Failed to load upload handler:', error);
 }
 
 //Server setups and error handling            

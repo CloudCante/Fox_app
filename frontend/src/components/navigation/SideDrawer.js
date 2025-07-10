@@ -18,7 +18,7 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SpeedIcon from '@mui/icons-material/Speed';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import StorageIcon from '@mui/icons-material/Storage';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -43,7 +43,7 @@ const MENU_ITEMS = [
 
 // Add development-only menu items
 const DEV_MENU_ITEMS = [
-  { text: 'Database Tables', icon: <StorageIcon />, route: '/dev/tables' }
+  { text: 'File Upload', icon: <CloudUploadIcon />, route: '/dev/upload' }
 ];
 
 // Pre-render all menu icons once to avoid recreation on renders
