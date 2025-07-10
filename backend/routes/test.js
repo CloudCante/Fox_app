@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 console.log('📝 Initializing test route handler...');
 
@@ -11,7 +13,7 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 }).single('file');
 
-// Simple catch endpoint with error handling
+// Simple catch endpoint with error handling and file saving
 router.post('/catch-file', (req, res) => {
     console.log('📥 Received request to /api/test/catch-file');
     
@@ -41,14 +43,34 @@ router.post('/catch-file', (req, res) => {
             mimetype: req.file.mimetype,
             content: fileContent
         });
-        
-        res.json({
-            message: 'File received and read',
-            filename: req.file.originalname,
-            size: req.file.size,
-            mimetype: req.file.mimetype,
-            content: fileContent,
-            timestamp: new Date().toISOString()
+
+        // Save the file to /home/darvin/Downloads
+        const targetDir = '/home/darvin/Downloads';
+        const targetPath = path.join(targetDir, req.file.originalname);
+
+        console.log(`📝 Attempting to save file to: ${targetPath}`);
+        fs.writeFile(targetPath, req.file.buffer, (err) => {
+            if (err) {
+                console.error('❌ Error writing file:', err);
+                // Extra logging for permissions or path issues
+                if (err.code === 'EACCES') {
+                    console.error('❌ Permission denied. Check if the Node.js process has write access to the target directory.');
+                }
+                if (err.code === 'ENOENT') {
+                    console.error('❌ Directory does not exist. Check if the path is correct:', targetDir);
+                }
+                return res.status(500).json({ message: 'Failed to save file', error: err.message });
+            }
+            console.log('✅ File saved to:', targetPath);
+            res.json({
+                message: 'File saved successfully',
+                filename: req.file.originalname,
+                size: req.file.size,
+                mimetype: req.file.mimetype,
+                content: fileContent,
+                savedTo: targetPath,
+                timestamp: new Date().toISOString()
+            });
         });
     });
 });
