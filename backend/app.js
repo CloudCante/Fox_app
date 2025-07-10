@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const routes = require('./routes');
+const dbExplorerRoutes = require('./routes/dbExplorer');
 require('dotenv').config();
 
 const app = express();
@@ -21,6 +22,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 // API Routes
 app.use('/api', routes);
+app.use('/api', dbExplorerRoutes);  // Simplified route registration
 
 // Serve static files from the React app in production
 if (process.env.NODE_ENV === 'production') {
