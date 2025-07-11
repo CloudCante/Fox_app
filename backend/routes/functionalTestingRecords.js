@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db.js');
 
-// Rewired: Get station performance for a specific date (mimics tpyRoutes.js style)
+// Rewired: Get station performance for a date range (mimics tpyRoutes.js style)
 router.get('/station-performance', async (req, res) => {
     try {
-        const { date, model } = req.query;
-        if (!date) {
-            return res.status(400).json({ error: 'Missing required query parameter: date' });
+        const { startDate, endDate, model } = req.query;
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Missing required query parameters: startDate, endDate' });
         }
         let query = `
             SELECT 
@@ -16,15 +16,15 @@ router.get('/station-performance', async (req, res) => {
                 passed_parts,
                 failed_parts,
                 throughput_yield
-            FROM daily_tpy_metrics 
-            WHERE date_id = $1
+            FROM daily_tpy_metrics
+            WHERE date_id >= $1 AND date_id <= $2
         `;
-        let params = [date];
+        let params = [startDate, endDate];
         if (model) {
-            query += ` AND model = $2`;
+            query += ' AND model = $3';
             params.push(model);
         }
-        query += ` ORDER BY throughput_yield DESC`;
+        query += ' ORDER BY date_id, model, workstation_name';
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
