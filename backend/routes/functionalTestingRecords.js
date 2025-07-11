@@ -4,6 +4,7 @@ const { pool } = require('../db.js');
 
 // Get station performance for a specific date
 router.get('/station-performance', async (req, res) => {
+    console.log('station-performance hit', req.query); // Debug log
     try {
         const { date, model } = req.query;
         
