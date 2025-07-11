@@ -1,5 +1,15 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
+const { updateElectronApp, UpdateSourceType } = require('update-electron-app');
+
+updateElectronApp({
+  updateSource: {
+    type: UpdateSourceType.ElectronPublicUpdateService,
+    repo: 'CloudCante/Fox_app'
+  },
+  updateInterval: '1 hour',
+  //logger: require('electron-log')
+});
 
 
 if (require('electron-squirrel-startup')) {
