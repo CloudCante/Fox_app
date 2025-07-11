@@ -255,6 +255,7 @@ export const Dashboard = () => {
 
   return (
     <Box p={1}>
+    <Typography>this is a test</Typography>
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
 
         <DatePicker
