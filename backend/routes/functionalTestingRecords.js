@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db.js');
 
-// Get testboard station performance for a date range and model
+// Get testboard station performance for a date range and model, aggregated by workstation
 router.get('/station-performance', async (req, res) => {
     try {
         const { startDate, endDate, model } = req.query;
@@ -12,11 +12,14 @@ router.get('/station-performance', async (req, res) => {
         let query = `
             SELECT
                 workstation_name,
-                pass,
-                fail,
-                failurerate
+                SUM(pass) AS pass,
+                SUM(fail) AS fail,
+                CASE WHEN SUM(pass) + SUM(fail) = 0 THEN 0
+                     ELSE ROUND(SUM(fail)::numeric / (SUM(pass) + SUM(fail)), 3)
+                END AS failurerate
             FROM testboard_station_performance_daily
             WHERE end_date >= $1 AND end_date <= $2 AND model = $3
+            GROUP BY workstation_name
             ORDER BY workstation_name
         `;
         let params = [startDate, endDate, model];
