@@ -31,4 +31,74 @@ router.get('/station-performance', async (req, res) => {
     }
 });
 
+// Get fixture performance for Most Common Fail Stations chart
+router.get('/fixture-performance', async (req, res) => {
+    try {
+        const { startDate, endDate, model, pn, workstation_name } = req.query;
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Missing required query parameters: startDate, endDate' });
+        }
+        
+        let query = `
+            WITH filtered_data AS (
+                SELECT
+                    fixture_no,
+                    SUM(pass) AS pass,
+                    SUM(fail) AS fail,
+                    SUM(total) AS total
+                FROM fixture_performance_daily
+                WHERE day >= $1 AND day <= $2
+        `;
+        
+        let params = [startDate, endDate];
+        let paramIndex = 3;
+        
+        if (model) {
+            query += ` AND model = $${paramIndex}`;
+            params.push(model);
+            paramIndex++;
+        }
+        
+        if (pn) {
+            query += ` AND pn = $${paramIndex}`;
+            params.push(pn);
+            paramIndex++;
+        }
+        
+        if (workstation_name) {
+            query += ` AND workstation_name = $${paramIndex}`;
+            params.push(workstation_name);
+            paramIndex++;
+        }
+        
+        query += `
+                GROUP BY fixture_no
+            ),
+            total_fails AS (
+                SELECT SUM(fail) AS total_failures FROM filtered_data
+            )
+            SELECT
+                fd.fixture_no,
+                fd.pass,
+                fd.fail,
+                fd.total,
+                CASE WHEN fd.total = 0 THEN 0
+                     ELSE ROUND(fd.fail::numeric / fd.total, 3)
+                END AS failurerate,
+                CASE WHEN tf.total_failures = 0 THEN 0
+                     ELSE ROUND(fd.fail::numeric / tf.total_failures, 3)
+                END AS fail_percent_of_total
+            FROM filtered_data fd, total_fails tf
+            ORDER BY fd.fail DESC
+            LIMIT 6
+        `;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching fixture performance:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
