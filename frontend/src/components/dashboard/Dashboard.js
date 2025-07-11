@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { TestStationChart } from '../charts/TestStationChart';
 import { ParetoChart } from '../charts/ParetoChart';
+import { FixtureFailParetoChart } from '../charts/FixtureFailParetoChart';
 import { toUTCDateString } from '../../utils/dateUtils';
 import { dataCache } from '../../utils/cacheUtils';
 
@@ -64,10 +65,17 @@ export const Dashboard = () => {
       return fetch(`${API_BASE}/api/functional-testing/station-performance?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
-          setTestStationData(data);
-          // Store in cache
-          dataCache.set(cacheKey, data);
-          return data;
+          const mapped = Array.isArray(data)
+            ? data.map(row => ({
+                station: row.workstation_name,
+                pass: row.pass,
+                fail: row.fail,
+                failurerate: parseFloat(row.failurerate)
+              }))
+            : [];
+          setTestStationData(mapped);
+          dataCache.set(cacheKey, mapped);
+          return mapped;
         })
         .catch(() => {
           setTestStationData([]);
@@ -102,10 +110,17 @@ export const Dashboard = () => {
       return fetch(`${API_BASE}/api/functional-testing/station-performance?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
-          setTestStationDataSXM4(data);
-          // Store in cache
-          dataCache.set(cacheKey, data);
-          return data;
+          const mapped = Array.isArray(data)
+            ? data.map(row => ({
+                station: row.workstation_name,
+                pass: row.pass,
+                fail: row.fail,
+                failurerate: parseFloat(row.failurerate)
+              }))
+            : [];
+          setTestStationDataSXM4(mapped);
+          dataCache.set(cacheKey, mapped);
+          return mapped;
         })
         .catch(() => {
           setTestStationDataSXM4([]);
@@ -136,15 +151,18 @@ export const Dashboard = () => {
         return Promise.resolve(cachedData);
       }
 
-      return fetch(`${API_BASE}/api/test-records/top-fixtures?${params.toString()}`)
+      return fetch(`${API_BASE}/api/functional-testing/fixture-performance?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
-          const mapped = data.map(item => ({
-            station: item._id || item.fixture,
-            pass: item.total - item.fail,
-            fail: item.fail,
-            failurerate: item.failurerate
-          }));
+          const mapped = Array.isArray(data)
+            ? data.map(item => ({
+                station: item.fixture_no,
+                pass: parseInt(item.pass),
+                fail: parseInt(item.fail),
+                failurerate: parseFloat(item.failurerate),
+                fail_percent_of_total: parseFloat(item.fail_percent_of_total)
+              }))
+            : [];
           setTopFixturesData(mapped);
           // Store in cache
           dataCache.set(cacheKey, mapped);
@@ -383,14 +401,14 @@ export const Dashboard = () => {
                 }
               }}
             >
-              Most Common Fail Stations
+              Fixture Performance
             </Typography>
           </Box>
           <Box sx={{ height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             {loading ? (
               <CircularProgress />
             ) : (
-              <ParetoChart data={topFixturesData} />
+              <FixtureFailParetoChart data={topFixturesData} />
             )}
           </Box>
         </Paper>
