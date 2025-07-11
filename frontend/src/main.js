@@ -8,7 +8,7 @@ updateElectronApp({
     repo: 'CloudCante/Fox_app'
   },
   updateInterval: '1 hour',
-  //logger: require('electron-log')
+  logger: require('electron-log')
 });
 
 

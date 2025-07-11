@@ -7,7 +7,7 @@
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make",
+    "make": "electron-forge make && node generate-latest-yml.js",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
     "generate-icons": "electron-icon-builder --input=./src/assets/icons/fox-icon-256.png --output=build --flatten"
@@ -50,5 +50,6 @@
     "react-router-dom": "^7.6.0",
     "react-window": "^1.8.11",
     "recharts": "^2.15.3"
-  }
+  },
+  "repository":"github:CloudCante/Fox_app"
 }
