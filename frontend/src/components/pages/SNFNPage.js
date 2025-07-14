@@ -160,15 +160,21 @@ const SnFnPage = () => {
     const rows = [];
 
     filteredData.forEach((station) => {
-        const stationId = station[0];
+        const stationId = station[0][0];
         station.slice(1).forEach(([errorCode, count, snList]) => {
         snList.forEach((sn) => {
-            rows.push([stationId, errorCode, count, sn]);
+            rows.push([stationId, errorCode, count, sn[0],sn[1]]);
         });
         });
     });
 
-    const header = ['Station', 'Error Code', 'Error Count', 'Serial Number'];
+    const header = [
+      groupByWorkstation ? 'Workstation' : 'Fixture',
+      'Error Code',
+      'Error Count',
+      'Serial Number',
+      'Part Number'
+    ];
     const csvContent =
         [header, ...rows]
         .map((row) => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -192,7 +198,10 @@ const SnFnPage = () => {
         count,
         serialNumbers: snList,
         }));
-        jsonData.push({ station: stationId, errors });
+        jsonData.push({
+          [groupByWorkstation ? 'workstation' : 'fixture']: stationId,
+          errors
+        });
     });
 
     const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
