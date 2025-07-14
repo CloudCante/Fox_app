@@ -99,7 +99,8 @@ const SnFnPage = () => {
   // Modal rendering selected station and error code details
   const ModalContent = () => {
     const [stationData,codeData]=modalInfo;
-    const codeDisc = (codeDB.find((x) => x[0] === codeData[0]) || [null, "NAN"])[1];
+    //const codeDisc = (codeDB.find((x) => x[0] === codeData[0]) || [null, "NAN"])[1];
+    const codeDisc = codeDB.find((x) => x[0] === codeData[0])?.[1] ?? "NAN";
     return (
       <Modal
         open={open}
@@ -116,9 +117,19 @@ const SnFnPage = () => {
             <Typography id="modal-desc-detail" variant="body2">
             Error Description: {codeDisc}
             </Typography>
-            {codeData[2].map(([sn,pn], idx) => (
-            <p key={sn}>SN: {sn}<br></br>- {pn}</p>
-            ))}
+           <Box sx={{ 
+              maxHeight: 300, // adjust as needed
+              overflowY: codeData[2].length > 5 ? 'auto' : 'visible',
+              mt: 2,
+              pr: 1 // optional: avoid scrollbar overlap
+            }}>
+              {codeData[2].map(([sn, pn], idx) => (
+                <Box key={sn} mb={1}>
+                  <strong>SN:</strong> {sn}<br />
+                  - {pn}
+                </Box>
+              ))}
+            </Box>
         </Box>
       </Modal>
     );
@@ -202,7 +213,7 @@ const SnFnPage = () => {
   useEffect(() => {
     const fetchAndSortData = async () => {
       //const dataSet = testSnFnData; // Placeholder data
-      const res = await fetch(`${API_BASE}/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+      const res = await fetch(`${API_BASE}/api/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
       const dataSet = await res.json();
       const data = [];
       const codeSet = new Set();
@@ -219,7 +230,7 @@ const SnFnPage = () => {
         failure_code: EC,
         code_count: TN,
         pn: PN,
-        model: BT,
+        workstation_name: BT,
         normalized_end_time: DT
       } = d;
       
@@ -478,7 +489,7 @@ const SnFnPage = () => {
                 {station.slice(1, maxErrorCodes+1).map((codes, jdx) => (
                   <tr key={jdx} 
                   onClick={() => getClick([station, codes])}
-                  title={`Error ${codes[0]} — ${codeDB.find((x) => x[0] === codes[0])[1] || ["NAN"]}`}>
+                  title={`Error ${codes[0]} — ${codeDB.find((x) => x[0] === codes[0])?.[1] ?? "NAN"}`}>
                     <td style={style}>{codes[0]}</td>
                     <td style={style}>{codes[1]}</td>
                   </tr>
