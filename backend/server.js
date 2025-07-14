@@ -44,6 +44,10 @@ const tpyRouter = require('./routes/tpyRoutes');
 app.use('/api/tpy', tpyRouter);
 console.log('✓ TPY routes loaded');
 
+const snfnRouter = require('./routes/snfnRecords');
+app.use('/api/snfn', snfnRouter);
+console.log('✓ SNFN routes loaded');
+
 // Load test route with detailed logging
 console.log('📝 Loading upload handler...');
 try {

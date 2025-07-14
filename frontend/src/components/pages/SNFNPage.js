@@ -201,17 +201,28 @@ const SnFnPage = () => {
   // Fetch and process data initially and every 5 minutes
   useEffect(() => {
     const fetchAndSortData = async () => {
-      const dataSet = testSnFnData; // Placeholder data
+      //const dataSet = testSnFnData; // Placeholder data
+      const res = await fetch(`${API_BASE}/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+      const dataSet = await res.json();
       const data = [];
       const codeSet = new Set();
       const stationSet = new Set();
       const partSet = new Set();
 
       dataSet.forEach((d) => {
-        if (!Array.isArray(d) || d.length < 4) return;// catch for incorrect data structure
+        //if (!Array.isArray(d) || d.length < 4) return;// catch for incorrect data structure
         // Currently pulls data as [FN(station number),SN(serial number),TN(count of error),EC(error code)]
-        const [FN,SN,TN,EC,DT,PN,BT] = d //PN and BT are placeholder for PN(Part number) and BT(Dont know what this stands for just roll with it)
-        
+        //const [FN,SN,TN,EC,DT,PN,BT] = d //PN and BT are placeholder for PN(Part number) and BT(Dont know what this stands for just roll with it)
+        const {
+        fixture_no: FN,
+        sn: SN,
+        failure_code: EC,
+        code_count: TN,
+        pn: PN,
+        model: BT,
+        normalized_end_time: DT
+      } = d;
+      
         const tPN = (PN === null || PN === undefined || PN === '') ? "NANPN" : PN;
         const tBT = (BT === null || BT === undefined || BT === '') ? "NANBT" : BT;
         
