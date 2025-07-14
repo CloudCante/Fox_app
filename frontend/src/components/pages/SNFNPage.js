@@ -41,8 +41,8 @@ const SnFnPage = () => {
   const [allCodeDesc, setCodeDesc] = useState([]); // Placeholder incase we need to read in desc vs static table
   const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
   const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
-  const [partsFilter, setPartsFilter] = useState([]); // Placeholder for PN filter
-  const [allParts, setAllParts] = useState([]); // Placeholder for PN filter
+  const [modelFilter, setModelFilter] = useState([]); // 
+  const [allModels, setAllModels] = useState([]); // 
 
   // UI consts
   const [itemsPerPage,setItemsPer] = useState(6); // Number of stations per page
@@ -147,6 +147,7 @@ const SnFnPage = () => {
     setEndDate(normalizeEnd(new Date()));
     setErrorCodeFilter([]);
     setStationFilter([]);
+    setModelFilter([]);
     setPage(1);
   };
 
@@ -163,7 +164,7 @@ const SnFnPage = () => {
         const stationId = station[0][0];
         station.slice(1).forEach(([errorCode, count, snList]) => {
         snList.forEach((sn) => {
-            rows.push([stationId, errorCode, count, sn[0],sn[1]]);
+            rows.push([stationId, errorCode, count, sn[0],sn[1],sn[2]]);
         });
         });
     });
@@ -173,7 +174,8 @@ const SnFnPage = () => {
       'Error Code',
       'Error Count',
       'Serial Number',
-      'Part Number'
+      'Part Number',
+      'Model'
     ];
     const csvContent =
         [header, ...rows]
@@ -232,7 +234,8 @@ const SnFnPage = () => {
       const data = [];
       const codeSet = new Set();
       const stationSet = new Set();
-      const partSet = new Set();
+      const modelSet = new Set();
+
 
       dataSet.forEach((d) => {
         //if (!Array.isArray(d) || d.length < 4) return;// catch for incorrect data structure
@@ -245,11 +248,9 @@ const SnFnPage = () => {
         code_count: TN,
         pn: PN,
         workstation_name: BT,
-        normalized_end_time: DT
+        normalized_end_time: DT,
+        model:MD
       } = d;
-      
-        const tPN = (PN === null || PN === undefined || PN === '') ? "NANPN" : PN;
-        const tBT = (BT === null || BT === undefined || BT === '') ? "NANBT" : BT;
         
         // Validate date range
         const recordDate = new Date(DT);
@@ -265,20 +266,20 @@ const SnFnPage = () => {
 
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        partSet.add(tPN); // Collect unique parts
+        modelSet.add(MD); // Collect unique models
         
         if (idx === -1) {
             // New station entry  [[FN,BT], [EC, Number(TN), [[SN,PN]]]
-            data.push([[groupKey, secondaryLabel], [EC, Number(TN), [[SN, tPN]]]]);
+            data.push([[groupKey, secondaryLabel], [EC, Number(TN), [[SN, PN, MD]]]]);
         } else {
             // Update existing station entry
             const jdx = data[idx].findIndex((x)=>x[0]===EC);
             if(jdx === -1){ // New error code
-                data[idx].push([EC, Number(TN), [[SN,tPN]]]);
+                data[idx].push([EC, Number(TN), [[SN,PN, MD]]]);
             }else{ // Update existing error code
                 const serials = data[idx][jdx][2]; // Array of SNs
-                if (!serials.includes([SN,tPN])) { // checking for duplicate ec sn combonation
-                    serials.push([SN,tPN]);
+                if (!serials.includes([SN,PN, MD])) { // checking for duplicate ec sn combonation
+                    serials.push([SN,PN, MD]);
                 }
                 data[idx][jdx][1] += Number(TN); // currently still counts duplicate ec sn to tn
             }
@@ -290,8 +291,9 @@ const SnFnPage = () => {
         group.splice(1, group.length - 1, ...group.slice(1).sort((a, b) => b[1] - a[1]));
       });
 
-      setAllErrorCodes([...codeSet]); // Populate filter list
+      setAllErrorCodes(Array.from(codeSet).sort()); // Populate filter list
       setAllStations(Array.from(stationSet).sort());
+      setAllModels(Array.from(modelSet).sort());
       setData(JSON.parse(JSON.stringify(data))); // Set main data
     };
 
@@ -308,25 +310,32 @@ const SnFnPage = () => {
   };
 
   // Apply station and error code filter to data
-  const filteredData = useMemo(()=> {
-    return dataBase 
-    .filter( // First remove stations not in filter (or allow all if no filter set)
+  const filteredData = useMemo(() => {
+  return dataBase
+    .filter(
       station => stationFilter.length === 0 || stationFilter.includes(station[0][0])
     )
-    .map(station => {// within selected stations filter out errors
-      const filteredCodes = station.slice(1).filter(
-        code => errorCodeFilter.length === 0 || errorCodeFilter.includes(code[0])
-      );
-      return [station[0], ...filteredCodes];
-    }) // Last removes stations with no errors left after filtering
-    .filter(station => station.length > 1)// Sort by station name to prevent table shuffling
-    .sort(
-      (a,b)=> {
-        const compare = String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true, sensitivity: 'base' });
-        return sortAsc ? compare : -compare;
-      }
-    ); 
-  },[dataBase, stationFilter, errorCodeFilter, sortAsc]);
+    .map(station => {
+      const filteredCodes = station.slice(1)
+        .map(([code, count, snList]) => {
+          const filteredSNs = snList.filter(([sn, pn, md]) =>
+            modelFilter.length === 0 || modelFilter.includes(md)
+          );
+          return [code, filteredSNs.length, filteredSNs];
+        })
+        .filter(([code, count]) =>
+          (errorCodeFilter.length === 0 || errorCodeFilter.includes(code)) &&
+          count > 0
+        );
+
+      return filteredCodes.length > 0 ? [station[0], ...filteredCodes] : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const compare = String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true, sensitivity: 'base' });
+      return sortAsc ? compare : -compare;
+    });
+}, [dataBase, stationFilter, errorCodeFilter, modelFilter, sortAsc]);
 
   // Paginate the filtered data
   const paginatedData = useMemo(() => {
@@ -425,6 +434,34 @@ const SnFnPage = () => {
                 {allErrorCodes.map((code) => (
                 <MenuItem key={code} value={code}>
                     <Checkbox checked={errorCodeFilter.includes(code)} />
+                    <ListItemText primary={code} />
+                </MenuItem>
+                ))}
+            </Select>
+        </FormControl>
+        {/* Multi-select model filter */}
+        <FormControl sx={{ minWidth: 200 }} size='small'>
+        <InputLabel sx={{ fontSize: 14 }}>Models</InputLabel>
+            <Select
+                multiple
+                value={modelFilter}
+                onChange={(e) => {
+                const value = e.target.value;
+                if (value.includes('__CLEAR__')) {
+                    setModelFilter([]);
+                } else {
+                    setModelFilter(value);
+                }
+                }}
+                input={<OutlinedInput label="Models" />}
+                renderValue={(selected) => selected.join(', ')}
+            >
+                <MenuItem value="__CLEAR__">
+                <em>Clear All</em>
+                </MenuItem>
+                {allModels.map((code) => (
+                <MenuItem key={code} value={code}>
+                    <Checkbox checked={modelFilter.includes(code)} />
                     <ListItemText primary={code} />
                 </MenuItem>
                 ))}
