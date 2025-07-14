@@ -51,6 +51,7 @@ const SnFnPage = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
+  const [groupByWorkstation, setGroupByWorkstation] = useState(false);
 
   // Theme and style objects for consistent UI
   const theme = useTheme();
@@ -109,8 +110,12 @@ const SnFnPage = () => {
         aria-describedby="modal-description"
         >
         <Box sx={modalStyle}>
-            <Typography id="modal-title" variant="h5">Station {stationData?.[0][0]}</Typography>
-            <Typography id="modal-sub-title" variant="h7">Station "{stationData?.[0][1]}"</Typography>
+            <Typography id="modal-title" variant="h5">
+              {groupByWorkstation ? `Workstation ${stationData?.[0][0]}` : `Fixture ${stationData?.[0][1]}`}
+            </Typography>
+            <Typography id="modal-sub-title" variant="h7">
+              {groupByWorkstation ? `Fixture "${stationData?.[0][1]}"` : `Workstation "${stationData?.[0][0]}"`}
+            </Typography>
             <Typography id="modal-desc-summary" variant="body1">
             Error Code: {codeData?.[0]} — {codeData?.[2]?.length ?? 0} serial numbers
             </Typography>
@@ -245,14 +250,17 @@ const SnFnPage = () => {
 
         if (TN == 0) return; // Skip if count is zero
 
-        codeSet.add(EC); // Collect unique error codes
-        stationSet.add(FN); //Collect unique Fixture numbers
-        partSet.add(tPN); // Collect unique parts
+        const groupKey = groupByWorkstation ? BT : FN;
+        const secondaryLabel = groupByWorkstation ? FN : BT; // For tooltips and UI clarity
+        const idx = data.findIndex((x) => x[0][0] === groupKey);
 
-        const idx = data.findIndex((x) => x[0][0] === FN);
+        codeSet.add(EC); // Collect unique error codes
+        stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
+        partSet.add(tPN); // Collect unique parts
+        
         if (idx === -1) {
             // New station entry  [[FN,BT], [EC, Number(TN), [[SN,PN]]]
-            data.push([[FN,tBT], [EC, Number(TN), [[SN,tPN]]]]);
+            data.push([[groupKey, secondaryLabel], [EC, Number(TN), [[SN, tPN]]]]);
         } else {
             // Update existing station entry
             const jdx = data[idx].findIndex((x)=>x[0]===EC);
@@ -274,15 +282,17 @@ const SnFnPage = () => {
       });
 
       setAllErrorCodes([...codeSet]); // Populate filter list
-      setAllStations([...stationSet]);
+      setAllStations(Array.from(stationSet).sort());
       setData(JSON.parse(JSON.stringify(data))); // Set main data
     };
 
     fetchAndSortData();
     const intervalId = setInterval(() => fetchAndSortData(), 300000); // Refresh every 5 min
     return () => clearInterval(intervalId);
-  }, [startDate,endDate]);
-
+  }, [startDate,endDate, groupByWorkstation]);
+  useEffect(() => {
+    setStationFilter([]); // Reset station filter on toggle
+  }, [groupByWorkstation]);
   // Handle page change
   const handleChangePage = (event, value) => {
     setPage(value);
@@ -357,7 +367,7 @@ const SnFnPage = () => {
         </Box>
         {/* Multi-select station filter */}
         <FormControl sx={{ minWidth: 200 }} size='small'>
-        <InputLabel sx={{ fontSize: 14 }}>Stations</InputLabel>
+        <InputLabel sx={{ fontSize: 14 }}>{groupByWorkstation ? 'Workstations' : 'Fixtures'}</InputLabel>
             <Select
                 multiple
                 value={stationFilter}
@@ -437,6 +447,14 @@ const SnFnPage = () => {
                 }
             }}/>
         <Box sx={{ display: 'flex', gap: 2 }}>
+            {/* Sort Toggle FN/BAT */}
+            <Button
+              variant="outlined"
+              sx={{ fontSize: 14 }}
+              onClick={() => setGroupByWorkstation(prev => !prev)}
+            >
+              Sort: {groupByWorkstation ? 'Fixture' : 'Workstation'}
+            </Button>
             {/* Sort Toggle Asc/Dsc */}
             <Button
               variant="outlined"
@@ -480,8 +498,8 @@ const SnFnPage = () => {
             <table>
               <thead>
                 <tr
-                title={`Station: "${station[0][1]}" — ${(station?.length??0)-1} unique error codes`}>
-                  <th style={style}>Station {station[0][0]}</th>
+                  title={`${groupByWorkstation ? 'Fixture' : 'Workstation'}: "${station[0][1]}" — ${(station?.length ?? 0) - 1} unique error codes`}>
+                  <th style={style}>{groupByWorkstation ? 'Workstation' : 'Fixture'} {station[0][0]}</th>
                   <th style={style}>Count of Error Codes</th>
                 </tr>
               </thead>
