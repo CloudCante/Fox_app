@@ -242,8 +242,21 @@ const SnFnPage = () => {
   useEffect(() => {
     const fetchAndSortData = async () => {
       //const dataSet = testSnFnData; // Placeholder data
-      const res = await fetch(`${API_BASE}/api/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
-      const dataSet = await res.json();
+      let dataSet = [];
+      try {
+        const res = await fetch(`${API_BASE}/api/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+
+        if (!res.ok) {
+          // Optional: Log or handle HTTP error responses
+          console.error(`Server error: ${res.status} ${res.statusText}`);
+          return;
+        }
+
+        dataSet = await res.json();
+      } catch (err) {
+        console.error('Failed to fetch SNFN data:', err);
+        return; // exit the function early or set fallback data
+      }
       const data = [];
       const codeSet = new Set();
       const stationSet = new Set();
@@ -507,9 +520,6 @@ const SnFnPage = () => {
             </Select>
           </FormControl>
         )}
-
-
-
         {/* Fields to set tables per page and error codes per table */}
         <TextField size='small' type='number' label='# Tables'
             slotProps={{
