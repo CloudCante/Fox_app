@@ -101,7 +101,7 @@ const SnFnPage = () => {
   const ModalContent = () => {
     const [stationData,codeData]=modalInfo;
     //const codeDisc = (codeDB.find((x) => x[0] === codeData[0]) || [null, "NAN"])[1];
-    const codeDisc = allCodeDesc.find((x) => x[0] === codeData[0])?.[1] ?? "NAN";
+    const codeDisc = allCodeDesc.find((x) => x[0] === stationData[0][0]+codeData[0])?.[1] ?? "NAN";
     return (
       <Modal
         open={open}
@@ -237,7 +237,7 @@ const SnFnPage = () => {
       const codeSet = new Set();
       const stationSet = new Set();
       const modelSet = new Set();
-      const discSet = new Set();
+      const discMap = new Map();
 
       if (!Array.isArray(dataSet)){
         console.error('API response is not an array: ', dataSet);
@@ -256,7 +256,7 @@ const SnFnPage = () => {
         //model:MD,
         error_disc:ED
       } = d;
-        console.log(d)
+        //console.log(d)
         const MD = "NAN";
         // Validate date range
         const recordDate = new Date(DT);
@@ -273,7 +273,13 @@ const SnFnPage = () => {
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
         modelSet.add(MD); // Collect unique models
-        discSet.add([EC,ED]);
+
+        const dKey = groupKey+EC;
+        if (!discMap.has(dKey)) {
+          discMap.set(dKey, new Set());
+        }
+        discMap.get(dKey).add(ED);
+
         
         if (idx === -1) {
             // New station entry  [[FN,BT], [EC, Number(TN), [[SN,PN]]]
@@ -301,7 +307,13 @@ const SnFnPage = () => {
       setAllErrorCodes(Array.from(codeSet).sort()); // Populate filter list
       setAllStations(Array.from(stationSet).sort());
       setAllModels(Array.from(modelSet).sort());
-      setCodeDesc(Array.from(discSet).sort());
+
+      const combinedCodeDesc = Array.from(discMap.entries()).map(([code, descSet]) => [
+        code,
+        Array.from(descSet).join('; '), // join multiple descriptions with semicolon or linebreak
+      ]);
+      setCodeDesc(combinedCodeDesc.sort());
+
 
       setData(JSON.parse(JSON.stringify(data))); // Set main data
     };
@@ -562,7 +574,7 @@ const SnFnPage = () => {
                 {station.slice(1, maxErrorCodes+1).map((codes, jdx) => (
                   <tr key={jdx} 
                   onClick={() => getClick([station, codes])}
-                  title={`Error ${codes[0]} — ${allCodeDesc.find((x) => x[0] === codes[0])?.[1] ?? "NAN"}`}>
+                  title={`Error ${codes[0]} — ${allCodeDesc.find((x) => x[0] === station[0][0]+codes[0])?.[1] ?? "NAN"}`}>
                     <td style={style}>{codes[0]}</td>
                     <td style={style}>{codes[1]}</td>
                   </tr>
