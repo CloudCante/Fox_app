@@ -239,6 +239,10 @@ const SnFnPage = () => {
       const modelSet = new Set();
       const discSet = new Set();
 
+      if (!Array.isArray(dataSet)){
+        console.error('API response is not an array: ', dataSet);
+        return;
+      }
 
       dataSet.forEach((d) => {
         const {
