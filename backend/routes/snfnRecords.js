@@ -16,7 +16,7 @@ router.get('/station-errors', async (req, res) => {
                 fixture_no,
                 error_code,
                 sn,
-                MAX(error_disc) as error_disc,
+                error_disc,
                 COUNT(error_code) as code_count,
                 MIN(pn) as pn,
                 (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond') AS normalized_end_time
