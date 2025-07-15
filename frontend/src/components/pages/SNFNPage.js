@@ -48,10 +48,14 @@ const SnFnPage = () => {
   const [itemsPerPage,setItemsPer] = useState(6); // Number of stations per page
   const [maxErrorCodes,setMaxErrors] = useState(5); // Number of error codes per station table
   const [sortAsc, setSortAsc] = useState(true); // true = ascending, false = descending
+  const [sortByCount, setByCount] = useState(false); // sort by EC count or station ID
   const [anchorEl, setAnchorEl] = useState(null);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
   const [groupByWorkstation, setGroupByWorkstation] = useState(false);
+  const [sortAnchorEl, setSortAnchorEl] = useState(null);
+  const sortMenuOpen = (e) => setSortAnchorEl(e.currentTarget);
+  const sortMenuClose = () => setSortAnchorEl(null);
 
   // Theme and style objects for consistent UI
   const theme = useTheme();
@@ -111,17 +115,24 @@ const SnFnPage = () => {
         >
         <Box sx={modalStyle}>
             <Typography id="modal-title" variant="h5">
-              {groupByWorkstation ? `Workstation ${stationData?.[0][0]}` : `Fixture ${stationData?.[0][1]}`}
+              {groupByWorkstation ? `Workstation ${stationData?.[0][1]}` : `Fixture ${stationData?.[0][0]}`}
             </Typography>
             <Typography id="modal-sub-title" variant="h7">
-              {groupByWorkstation ? `Fixture "${stationData?.[0][1]}"` : `Workstation "${stationData?.[0][0]}"`}
+              {groupByWorkstation ? `Fixture "${stationData?.[0][0]}"` : `Workstation "${stationData?.[0][1]}"`}
             </Typography>
             <Typography id="modal-desc-summary" variant="body1">
             Error Code: {codeData?.[0]} — {codeData?.[2]?.length ?? 0} serial numbers
             </Typography>
-            <Typography id="modal-desc-detail" variant="body2">
-            Error Description: {codeDisc}
-            </Typography>
+            <Box sx={{ 
+              maxHeight: 200, // adjust as needed
+              overflowY: 'auto',
+              mt: 2,
+              pr: 1 // optional: avoid scrollbar overlap
+              }}>
+              <Typography id="modal-desc-detail" variant="body2">
+              Error Description: {codeDisc}
+              </Typography>
+            </Box>
            <Box sx={{ 
               maxHeight: 300, // adjust as needed
               overflowY: codeData[2].length > 5 ? 'auto' : 'visible',
@@ -253,11 +264,11 @@ const SnFnPage = () => {
         pn: PN,
         workstation_name: BT,
         normalized_end_time: DT,
-        //model:MD,
+        model:MD,
         error_disc:ED
       } = d;
         //console.log(d)
-        const MD = "NAN";
+        //const MD = "NAN";
         // Validate date range
         const recordDate = new Date(DT);
         if (isNaN(recordDate) || recordDate < startDate || recordDate > endDate) {
@@ -272,7 +283,7 @@ const SnFnPage = () => {
 
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        modelSet.add(MD); // Collect unique models
+        if(MD)modelSet.add(MD); // Collect unique models
 
         const dKey = groupKey+EC;
         if (!discMap.has(dKey)) {
@@ -353,10 +364,16 @@ const SnFnPage = () => {
     })
     .filter(Boolean)
     .sort((a, b) => {
-      const compare = String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true, sensitivity: 'base' });
-      return sortAsc ? compare : -compare;
+      if (sortByCount) {
+        const totalA = a.slice(1).reduce((sum, [_, count]) => sum + count, 0);
+        const totalB = b.slice(1).reduce((sum, [_, count]) => sum + count, 0);
+        return sortAsc ? totalA - totalB : totalB - totalA;
+      } else {
+        const compare = String(a[0][0]).localeCompare(String(b[0][0]), undefined, { numeric: true, sensitivity: 'base' });
+        return sortAsc ? compare : -compare;
+      }
     });
-}, [dataBase, stationFilter, errorCodeFilter, modelFilter, sortAsc]);
+}, [dataBase, stationFilter, errorCodeFilter, modelFilter, sortAsc, sortByCount]);
 
   // Paginate the filtered data
   const paginatedData = useMemo(() => {
@@ -461,33 +478,36 @@ const SnFnPage = () => {
             </Select>
         </FormControl>
         {/* Multi-select model filter */}
-        <FormControl sx={{ minWidth: 200 }} size='small'>
-        <InputLabel sx={{ fontSize: 14 }}>Models</InputLabel>
+        {allModels.length > 0 && (
+          <FormControl sx={{ minWidth: 200 }} size='small'>
+            <InputLabel sx={{ fontSize: 14 }}>Models</InputLabel>
             <Select
-                multiple
-                value={modelFilter}
-                onChange={(e) => {
+              multiple
+              value={modelFilter}
+              onChange={(e) => {
                 const value = e.target.value;
                 if (value.includes('__CLEAR__')) {
-                    setModelFilter([]);
+                  setModelFilter([]);
                 } else {
-                    setModelFilter(value);
+                  setModelFilter(value);
                 }
-                }}
-                input={<OutlinedInput label="Models" />}
-                renderValue={(selected) => selected.join(', ')}
+              }}
+              input={<OutlinedInput label="Models" />}
+              renderValue={(selected) => selected.join(', ')}
             >
-                <MenuItem value="__CLEAR__">
+              <MenuItem value="__CLEAR__">
                 <em>Clear All</em>
-                </MenuItem>
-                {allModels.map((code) => (
+              </MenuItem>
+              {allModels.map((code) => (
                 <MenuItem key={code} value={code}>
-                    <Checkbox checked={modelFilter.includes(code)} />
-                    <ListItemText primary={code} />
+                  <Checkbox checked={modelFilter.includes(code)} />
+                  <ListItemText primary={code} />
                 </MenuItem>
-                ))}
+              ))}
             </Select>
-        </FormControl>
+          </FormControl>
+        )}
+
 
 
         {/* Fields to set tables per page and error codes per table */}
@@ -514,33 +534,27 @@ const SnFnPage = () => {
                 }
             }}/>
         <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* Sort Toggle FN/BAT */}
+            {/* Sort Menu */}
             <Button
               variant="outlined"
               sx={{ fontSize: 14 }}
-              onClick={() => setGroupByWorkstation(prev => !prev)}
+              onClick={sortMenuOpen}
             >
-              Sort: {groupByWorkstation ? 'Fixture' : 'Workstation'}
+              Sort Options
             </Button>
-            {/* Sort Toggle Asc/Dsc */}
-            <Button
-              variant="outlined"
-              sx={{ fontSize: 14 }}
-              onClick={() => setSortAsc(prev => !prev)}
-            >
-              Sort: {sortAsc ? 'A → Z' : 'Z → A'}
-            </Button>
+
             {/* Reset Filters */}
             <Button variant='outlined' sx={{ fontSize: 14 }} onClick={clearFilters}>Reset Filters</Button>
             {/* Exports */}
             <Button
-                id="export-button"
-                aria-controls={Boolean(anchorEl) ? 'export-menu' : undefined}
-                aria-haspopup="true"
-                aria-expanded={Boolean(anchorEl)}
-                onClick={handleMenuOpen}
-                >
-                Export
+              variant='outlined'
+              id="export-button"
+              aria-controls={Boolean(anchorEl) ? 'export-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={Boolean(anchorEl)}
+              onClick={handleMenuOpen}
+              >
+              Export
             </Button>
             {/* Exports Menu */}
             <Menu
@@ -555,6 +569,38 @@ const SnFnPage = () => {
                 <MenuItem onClick={handleExportCSV}>Export CSV</MenuItem>
                 <MenuItem onClick={handleExportJSON}>Export JSON</MenuItem>
             </Menu>
+            {/* Sort Menu */}
+            <Menu
+              id="sort-menu"
+              anchorEl={sortAnchorEl}
+              open={Boolean(sortAnchorEl)}
+              onClose={sortMenuClose}
+              MenuListProps={{
+                'aria-labelledby': 'sort-options-button',
+              }}
+            >
+              <MenuItem onClick={() => {
+                setGroupByWorkstation(prev => !prev);
+                sortMenuClose();
+              }}>
+                Sort by: {groupByWorkstation ? 'Workstation' : 'Fixture'}
+              </MenuItem>
+
+              <MenuItem onClick={() => {
+                setSortAsc(prev => !prev);
+                sortMenuClose();
+              }}>
+                Sort Order: {sortAsc ? 'Asc' : 'Dec'}
+              </MenuItem>
+
+              <MenuItem onClick={() => {
+                setByCount(prev => !prev);
+                sortMenuClose();
+              }}>
+                Sort by Count: {sortByCount ? 'ON' : 'OFF'}
+              </MenuItem>
+            </Menu>
+
         </Box>
       </Box>
 
