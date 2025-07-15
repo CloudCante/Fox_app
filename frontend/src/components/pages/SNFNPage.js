@@ -101,7 +101,7 @@ const SnFnPage = () => {
   const ModalContent = () => {
     const [stationData,codeData]=modalInfo;
     //const codeDisc = (codeDB.find((x) => x[0] === codeData[0]) || [null, "NAN"])[1];
-    const codeDisc = codeDB.find((x) => x[0] === codeData[0])?.[1] ?? "NAN";
+    const codeDisc = allCodeDesc.find((x) => x[0] === codeData[0])?.[1] ?? "NAN";
     return (
       <Modal
         open={open}
@@ -237,23 +237,23 @@ const SnFnPage = () => {
       const codeSet = new Set();
       const stationSet = new Set();
       const modelSet = new Set();
+      const discSet = new Set();
 
 
       dataSet.forEach((d) => {
-        //if (!Array.isArray(d) || d.length < 4) return;// catch for incorrect data structure
-        // Currently pulls data as [FN(station number),SN(serial number),TN(count of error),EC(error code)]
-        //const [FN,SN,TN,EC,DT,PN,BT] = d //PN and BT are placeholder for PN(Part number) and BT(Dont know what this stands for just roll with it)
         const {
         fixture_no: FN,
         sn: SN,
-        failure_code: EC,
+        error_code: EC,
         code_count: TN,
         pn: PN,
         workstation_name: BT,
         normalized_end_time: DT,
-        model:MD
+        //model:MD,
+        error_disc:ED
       } = d;
-        
+        console.log(d)
+        const MD = "NAN";
         // Validate date range
         const recordDate = new Date(DT);
         if (isNaN(recordDate) || recordDate < startDate || recordDate > endDate) {
@@ -269,6 +269,7 @@ const SnFnPage = () => {
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
         modelSet.add(MD); // Collect unique models
+        discSet.add([EC,ED]);
         
         if (idx === -1) {
             // New station entry  [[FN,BT], [EC, Number(TN), [[SN,PN]]]
@@ -296,6 +297,8 @@ const SnFnPage = () => {
       setAllErrorCodes(Array.from(codeSet).sort()); // Populate filter list
       setAllStations(Array.from(stationSet).sort());
       setAllModels(Array.from(modelSet).sort());
+      setCodeDesc(Array.from(discSet).sort());
+
       setData(JSON.parse(JSON.stringify(data))); // Set main data
     };
 
@@ -555,7 +558,7 @@ const SnFnPage = () => {
                 {station.slice(1, maxErrorCodes+1).map((codes, jdx) => (
                   <tr key={jdx} 
                   onClick={() => getClick([station, codes])}
-                  title={`Error ${codes[0]} — ${codeDB.find((x) => x[0] === codes[0])?.[1] ?? "NAN"}`}>
+                  title={`Error ${codes[0]} — ${allCodeDesc.find((x) => x[0] === codes[0])?.[1] ?? "NAN"}`}>
                     <td style={style}>{codes[0]}</td>
                     <td style={style}>{codes[1]}</td>
                   </tr>

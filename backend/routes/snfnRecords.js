@@ -14,24 +14,24 @@ router.get('/station-errors', async (req, res) => {
             SELECT
                 workstation_name,
                 fixture_no,
-                failure_code,
-                COUNT(failure_code) as code_count,
+                error_code,
                 sn,
+                MAX(error_disc) as error_disc,
+                COUNT(error_code) as code_count,
                 MIN(pn) as pn,
-                MIN(model) as model,
                 (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond') AS normalized_end_time
 
-            FROM testboard_master_log
+            FROM snfn_master_log
             WHERE history_station_passing_status = 'Fail'
               AND history_station_end_time BETWEEN $1 AND $2
-            GROUP BY fixture_no, sn, failure_code, workstation_name, (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond')
+            GROUP BY fixture_no, sn, error_code, workstation_name, (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond')
             ORDER BY workstation_name
         `;
         const params = [startDate, endDate];
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching testboard station performance:', error);
+        console.error('Error fetching snfn station performance:', error);
         res.status(500).json({ error: error.message });
     }
 });
