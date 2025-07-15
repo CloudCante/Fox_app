@@ -162,15 +162,17 @@ const SnFnPage = () => {
 
     filteredData.forEach((station) => {
         const stationId = station[0][0];
+        const stationSecondaryId = station[0][1];
         station.slice(1).forEach(([errorCode, count, snList]) => {
         snList.forEach((sn) => {
-            rows.push([stationId, errorCode, count, sn[0],sn[1],sn[2]]);
+            rows.push([stationId,stationSecondaryId, errorCode, count, sn[0],sn[1],sn[2]]);
         });
         });
     });
 
     const header = [
       groupByWorkstation ? 'Workstation' : 'Fixture',
+      groupByWorkstation ? 'Fixture' : 'Workstation',
       'Error Code',
       'Error Count',
       'Serial Number',
