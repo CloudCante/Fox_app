@@ -8,11 +8,17 @@ const MenuIconElement = <MenuIcon />;
 
 // Memoize the typography component to prevent re-renders
 // This never needs to update so it's a perfect memoization candidate
-const AppTitle = React.memo(() => (
+const AppTitle = React.memo(() => {
+  const version = window?.electronApp?.getVersion?.() || '0.0.0';
+  return(
   <Typography variant="h6" noWrap component="div">
     Quality Dashboard
+    <Typography component="sub" variant="caption" sx={{ marginLeft: 0.5 }}>
+      v{version}
+    </Typography>
   </Typography>
-));
+  );
+});
 
 // Memoize the menu button to optimize the critical interaction path
 // This is the component that was causing most of the lag
