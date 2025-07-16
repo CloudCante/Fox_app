@@ -244,7 +244,11 @@ const SnFnPage = () => {
       //const dataSet = testSnFnData; // Placeholder data
       let dataSet = [];
       try {
-        const res = await fetch(`${API_BASE}/api/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+        const queryParams = new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+        const res = await fetch(`${API_BASE}/api/snfn/station-errors?${queryParams}`);
 
         if (!res.ok) {
           // Optional: Log or handle HTTP error responses
@@ -296,7 +300,7 @@ const SnFnPage = () => {
 
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        if(MD)modelSet.add(MD); // Collect unique models
+        modelSet.add(MD); // Collect unique models
 
         const dKey = groupKey+EC;
         if (!discMap.has(dKey)) {
@@ -406,7 +410,16 @@ const SnFnPage = () => {
       </Box>
 
       {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          overflowX: 'auto',
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          gap: 2,
+          mb: 2,
+          p: 1
+        }}
+      >
         {/* Date Filters */}
         <Box>
           <DatePicker

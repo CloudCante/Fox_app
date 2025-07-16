@@ -16,6 +16,7 @@ router.get('/station-errors', async (req, res) => {
                 fixture_no,
                 error_code,
                 sn,
+                model,
                 error_disc,
                 COUNT(error_code) as code_count,
                 MIN(pn) as pn,
@@ -23,7 +24,7 @@ router.get('/station-errors', async (req, res) => {
 
             FROM snfn_master_log
             WHERE history_station_end_time BETWEEN $1 AND $2
-            GROUP BY fixture_no, sn, error_code, error_disc, workstation_name, (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond')
+            GROUP BY fixture_no, sn, error_code, error_disc,model, workstation_name, (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond')
             ORDER BY workstation_name
         `;
         const params = [startDate, endDate];
