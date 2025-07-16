@@ -44,7 +44,7 @@ router.post('/catch-file', (req, res) => {
         });
 
         //Transfer file to input for file monitor
-        const targetDir = '/home/darvin/Fox_ETL/input/snfnrecord.xlsx';
+        const targetDir = '/home/darvin/Fox_ETL/input/';
         const targetPath = path.join(targetDir, req.file.originalname);
 
         console.log(`📝 Attempting to save file to: ${targetPath}`);
