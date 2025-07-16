@@ -39,6 +39,7 @@ const SnFnPage = () => {
   const [errorCodeFilter, setErrorCodeFilter] = useState([]); // Array holding codes to filter for
   const [allErrorCodes, setAllErrorCodes] = useState([]); // Array holding error codes for filter list
   const [allCodeDesc, setCodeDesc] = useState([]); // Placeholder incase we need to read in desc vs static table
+  const codeDescMap = useMemo(() => new Map(allCodeDesc), [allCodeDesc]);
   const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
   const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
   const [modelFilter, setModelFilter] = useState([]); // 
@@ -56,6 +57,8 @@ const SnFnPage = () => {
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const sortMenuOpen = (e) => setSortAnchorEl(e.currentTarget);
   const sortMenuClose = () => setSortAnchorEl(null);
+  const scrollThreshold = 5;
+  const autoRefreshInterval = 300000; // in ms, 5 min
 
   // Theme and style objects for consistent UI
   const theme = useTheme();
@@ -135,7 +138,7 @@ const SnFnPage = () => {
             </Box>
            <Box sx={{ 
               maxHeight: 300, // adjust as needed
-              overflowY: codeData[2].length > 5 ? 'auto' : 'visible',
+              overflowY: codeData[2].length > scrollThreshold ? 'auto' : 'visible',
               mt: 2,
               pr: 1 // optional: avoid scrollbar overlap
             }}>
@@ -244,7 +247,11 @@ const SnFnPage = () => {
       //const dataSet = testSnFnData; // Placeholder data
       let dataSet = [];
       try {
-        const res = await fetch(`${API_BASE}/api/snfn/station-errors?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
+        const queryParams = new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+        const res = await fetch(`${API_BASE}/api/snfn/station-errors?${queryParams}`);
 
         if (!res.ok) {
           // Optional: Log or handle HTTP error responses
@@ -339,11 +346,12 @@ const SnFnPage = () => {
       setCodeDesc(combinedCodeDesc.sort());
 
 
-      setData(JSON.parse(JSON.stringify(data))); // Set main data
+      //setData(JSON.parse(JSON.stringify(data))); // Switch to this if dealing with circular refs or mutations
+      setData([...data]);
     };
 
     fetchAndSortData();
-    const intervalId = setInterval(() => fetchAndSortData(), 300000); // Refresh every 5 min
+    const intervalId = setInterval(() => fetchAndSortData(), autoRefreshInterval); // Refresh every 5 min
     return () => clearInterval(intervalId);
   }, [startDate,endDate, groupByWorkstation]);
   useEffect(() => {
@@ -406,7 +414,14 @@ const SnFnPage = () => {
       </Box>
 
       {/* Filters */}
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex',
+        flexWrap: 'wrap',
+        gap: 2,
+        mb: 2,
+        '& > *': {
+          minWidth: { xs: '100%', sm: 200 }, // Full width on XS screens, fixed on SM+
+          flexGrow: 1
+        } }}>
         {/* Date Filters */}
         <Box>
           <DatePicker
