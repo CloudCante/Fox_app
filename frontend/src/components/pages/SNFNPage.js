@@ -303,7 +303,7 @@ const SnFnPage = () => {
 
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        if(MD)modelSet.add(MD); // Collect unique models
+        modelSet.add(MD); // Collect unique models
 
         const dKey = groupKey+EC;
         if (!discMap.has(dKey)) {
@@ -414,6 +414,7 @@ const SnFnPage = () => {
       </Box>
 
       {/* Filters */}
+<<<<<<< HEAD
       <Box sx={{ display: 'flex',
         flexWrap: 'wrap',
         gap: 2,
@@ -422,6 +423,18 @@ const SnFnPage = () => {
           minWidth: { xs: '100%', sm: 200 }, // Full width on XS screens, fixed on SM+
           flexGrow: 1
         } }}>
+=======
+      <Box
+        sx={{
+          display: 'flex',
+          overflowX: 'auto',
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          gap: 2,
+          mb: 2,
+          p: 1
+        }}
+      >
+>>>>>>> snfnTest
         {/* Date Filters */}
         <Box>
           <DatePicker
