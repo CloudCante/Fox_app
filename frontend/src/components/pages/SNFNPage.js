@@ -414,16 +414,6 @@ const SnFnPage = () => {
       </Box>
 
       {/* Filters */}
-<<<<<<< HEAD
-      <Box sx={{ display: 'flex',
-        flexWrap: 'wrap',
-        gap: 2,
-        mb: 2,
-        '& > *': {
-          minWidth: { xs: '100%', sm: 200 }, // Full width on XS screens, fixed on SM+
-          flexGrow: 1
-        } }}>
-=======
       <Box
         sx={{
           display: 'flex',
@@ -434,7 +424,6 @@ const SnFnPage = () => {
           p: 1
         }}
       >
->>>>>>> snfnTest
         {/* Date Filters */}
         <Box>
           <DatePicker
