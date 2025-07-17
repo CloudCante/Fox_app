@@ -48,6 +48,10 @@ const snfnRouter = require('./routes/snfnRecords');
 app.use('/api/snfn', snfnRouter);
 console.log('✓ SNFN routes loaded');
 
+const stationHourlySummaryRouter = require('./routes/stationHourlySummary');
+app.use('/api/station-hourly-summary', stationHourlySummaryRouter);
+console.log('✓ Station hourly summary routes loaded');
+
 // Load test route with detailed logging
 console.log('📝 Loading upload handler...');
 try {
