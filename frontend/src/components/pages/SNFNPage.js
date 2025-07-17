@@ -303,7 +303,7 @@ const SnFnPage = () => {
 
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        modelSet.add(MD); // Collect unique models
+        if(MD)modelSet.add(MD); // Collect unique models
 
         const dKey = groupKey+EC;
         if (!discMap.has(dKey)) {
