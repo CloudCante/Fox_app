@@ -49,7 +49,6 @@ router.get('/sort-data', async (req, res) => {
         
         res.json(sortData);
     } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 

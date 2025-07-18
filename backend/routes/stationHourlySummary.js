@@ -21,8 +21,6 @@ router.get('/', async (req, res) => {
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching station hourly summary:', err);
-    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
