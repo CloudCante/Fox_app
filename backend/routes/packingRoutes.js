@@ -19,7 +19,6 @@ router.get('/packing-records', async (req, res) => {
         const data = {};
         result.rows.forEach(row => {
             if (!data[row.part_number]) data[row.part_number] = {};
-            // Format date as MM/DD/YYYY for frontend compatibility
             const dateObj = new Date(row.pack_date);
             const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
             data[row.part_number][dateStr] = row.packed_count;

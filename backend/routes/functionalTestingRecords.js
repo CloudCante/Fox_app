@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db.js');
 
-// Get testboard station performance for a date range and model, aggregated by workstation
 router.get('/station-performance', async (req, res) => {
     try {
         const { startDate, endDate, model } = req.query;
@@ -26,12 +25,9 @@ router.get('/station-performance', async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching testboard station performance:', error);
-        res.status(500).json({ error: error.message });
     }
 });
 
-// Get fixture performance for Most Common Fail Stations chart
 router.get('/fixture-performance', async (req, res) => {
     try {
         const { startDate, endDate, model, pn, workstation_name } = req.query;
@@ -96,8 +92,6 @@ router.get('/fixture-performance', async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching fixture performance:', error);
-        res.status(500).json({ error: error.message });
     }
 });
 

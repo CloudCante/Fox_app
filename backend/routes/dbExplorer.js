@@ -2,10 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 
-// Get testboard master log structure and sample data
 router.get('/testboard_master_log', async (req, res) => {
     try {
-        // First get column information
         const columnQuery = `
             SELECT 
                 column_name,
@@ -18,7 +16,6 @@ router.get('/testboard_master_log', async (req, res) => {
         `;
         const columnResult = await pool.query(columnQuery);
 
-        // Then get 3 rows of sample data
         const dataQuery = `
             SELECT *
             FROM testboard_master_log
@@ -31,16 +28,11 @@ router.get('/testboard_master_log', async (req, res) => {
             columns: columnResult.rows,
             sampleData: dataResult.rows
         });
-    } catch (err) {
-        console.error('Error fetching testboard data:', err);
-        res.status(500).json({ error: 'Failed to fetch testboard data' });
-    }
+    } catch (err) {}
 });
 
-// Get workstation master log structure and sample data
 router.get('/workstation_master_log', async (req, res) => {
     try {
-        // First get column information
         const columnQuery = `
             SELECT 
                 column_name,
@@ -53,7 +45,6 @@ router.get('/workstation_master_log', async (req, res) => {
         `;
         const columnResult = await pool.query(columnQuery);
 
-        // Then get 3 rows of sample data
         const dataQuery = `
             SELECT *
             FROM workstation_master_log
@@ -66,10 +57,7 @@ router.get('/workstation_master_log', async (req, res) => {
             columns: columnResult.rows,
             sampleData: dataResult.rows
         });
-    } catch (err) {
-        console.error('Error fetching workstation data:', err);
-        res.status(500).json({ error: 'Failed to fetch workstation data' });
-    }
+    } catch (err) {}
 });
 
 module.exports = router; 

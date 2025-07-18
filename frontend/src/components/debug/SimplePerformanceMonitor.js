@@ -7,15 +7,9 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 
-// Only show in development mode
 const isDev = process.env.NODE_ENV === 'development';
 
-/**
- * A simplified performance monitor that doesn't patch React internals
- * Only visible in development mode
- */
 export const SimplePerformanceMonitor = () => {
-  // Skip rendering in production
   if (!isDev) return null;
 
   const [isVisible, setIsVisible] = useState(true);
@@ -31,13 +25,10 @@ export const SimplePerformanceMonitor = () => {
   const lastFrameTimeRef = useRef(performance.now());
   const rafIdRef = useRef(null);
 
-  // Toggle visibility
   const toggleVisibility = () => setIsVisible(!isVisible);
 
-  // Toggle expanded state
   const toggleExpanded = () => setIsExpanded(!isExpanded);
 
-  // Toggle recording state
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
@@ -50,7 +41,6 @@ export const SimplePerformanceMonitor = () => {
     }
   };
 
-  // Clear metrics
   const clearMetrics = () => {
     setMetrics({
       fps: 0,
@@ -60,19 +50,15 @@ export const SimplePerformanceMonitor = () => {
     frameCountRef.current = 0;
   };
 
-  // Start performance recording
   const startRecording = () => {
-    // Start counting frames for FPS
     const updateMetrics = () => {
       frameCountRef.current++;
       const now = performance.now();
       const elapsed = now - lastFrameTimeRef.current;
 
-      // Update metrics every second
       if (elapsed >= 1000) {
         const fps = Math.round((frameCountRef.current * 1000) / elapsed);
 
-        // Get memory usage if available
         let memory = 0;
         if (window.performance && window.performance.memory) {
           memory = Math.round(window.performance.memory.usedJSHeapSize / (1024 * 1024));
@@ -88,8 +74,7 @@ export const SimplePerformanceMonitor = () => {
         lastFrameTimeRef.current = now;
       }
 
-      // Check for large gaps between frames (lag)
-      if (elapsed > 50) { // Anything over 50ms is considered lag (less than 20fps)
+      if (elapsed > 50) { 
         setMetrics(prev => ({
           ...prev,
           lastLagDuration: Math.round(elapsed)
@@ -102,7 +87,6 @@ export const SimplePerformanceMonitor = () => {
     rafIdRef.current = requestAnimationFrame(updateMetrics);
   };
 
-  // Start recording when isRecording changes
   useEffect(() => {
     if (isRecording) {
       startRecording();
@@ -116,7 +100,6 @@ export const SimplePerformanceMonitor = () => {
     }
   }, [isRecording]);
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       if (rafIdRef.current) {
@@ -139,12 +122,12 @@ export const SimplePerformanceMonitor = () => {
         bottom: 16,
         right: 16,
         zIndex: 9999,
-        maxWidth: isVisible && isExpanded ? 250 : 150, // Set narrow width when minimized
-        width: !isVisible ? 150 : 'auto',              // Force width when minimized
+        maxWidth: isVisible && isExpanded ? 250 : 150, 
+        width: !isVisible ? 150 : 'auto',              
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         color: 'white',
         transition: 'all 0.3s ease',
-        p: 0 // Remove extra Paper padding when minimized
+        p: 0 
       }}
     >
       {!isVisible ? (
@@ -153,11 +136,11 @@ export const SimplePerformanceMonitor = () => {
           onClick={toggleVisibility}
           sx={{
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            width: 28,    // Make the button more narrow
-            height: 28,   // Make the button more compact
+            width: 28,    
+            height: 28,   
             minWidth: 0,
             minHeight: 0,
-            p: 0          // Remove extra padding
+            p: 0          
           }}
         >
           <SpeedIcon fontSize="small" />

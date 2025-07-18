@@ -20,8 +20,6 @@ router.get('/hulk-smash', async (req, res) => {
         
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching testboard data:', error);
-        res.status(500).json({ error: error.message });
     }
 });
 

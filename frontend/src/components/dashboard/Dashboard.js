@@ -24,19 +24,16 @@ export const Dashboard = () => {
   const [failStationsData, setFailStationsData] = useState([]);
   const [defectCodesData, setDefectCodesData] = useState([]);
   const [startDate, setStartDate] = useState(() => {
-    // Default to last 7 days
     const date = new Date();
     date.setDate(date.getDate() - 7);
     return date;
   });
-  const [endDate, setEndDate] = useState(new Date()); // Default to today
-  const [loading, setLoading] = useState(true); // Loading state
+  const [endDate, setEndDate] = useState(new Date()); 
+  const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
-    // Set loading state at the beginning of data fetch
     setLoading(true);
 
-    // Convert fetch functions to return their promises so we can use Promise.all
     const fetchSXM5 = () => {
       const params = new URLSearchParams();
       params.append('model', 'Tesla SXM5');
@@ -51,17 +48,14 @@ export const Dashboard = () => {
         params.append('endDate', utcEndDate.toISOString());
       }
 
-      // Generate cache key based on parameters
       const cacheKey = `sxm5_${params.toString()}`;
 
-      // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
         setTestStationData(cachedData);
         return Promise.resolve(cachedData);
       }
 
-      // If not in cache, fetch from API
       return fetch(`${API_BASE}/api/functional-testing/station-performance?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
@@ -97,10 +91,8 @@ export const Dashboard = () => {
         params.append('endDate', utcEndDate.toISOString());
       }
 
-      // Generate cache key based on parameters
       const cacheKey = `sxm4_${params.toString()}`;
 
-      // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
         setTestStationDataSXM4(cachedData);
@@ -141,10 +133,8 @@ export const Dashboard = () => {
         params.append('endDate', utcEndDate.toISOString());
       }
 
-      // Generate cache key based on parameters
       const cacheKey = `fixtures_${params.toString()}`;
 
-      // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
         setTopFixturesData(cachedData);
@@ -164,7 +154,6 @@ export const Dashboard = () => {
               }))
             : [];
           setTopFixturesData(mapped);
-          // Store in cache
           dataCache.set(cacheKey, mapped);
           return mapped;
         })
@@ -187,10 +176,8 @@ export const Dashboard = () => {
         params.append('endDate', utcEndDate.toISOString());
       }
 
-      // Generate cache key based on parameters
       const cacheKey = `failStations_${params.toString()}`;
 
-      // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
         setFailStationsData(cachedData);
@@ -201,7 +188,6 @@ export const Dashboard = () => {
         .then(res => res.json())
         .then(data => {
           setFailStationsData(data);
-          // Store in cache
           dataCache.set(cacheKey, data);
           return data;
         })
@@ -224,10 +210,8 @@ export const Dashboard = () => {
         params.append('endDate', utcEndDate.toISOString());
       }
 
-      // Generate cache key based on parameters
       const cacheKey = `defectCodes_${params.toString()}`;
 
-      // Check cache first
       const cachedData = dataCache.get(cacheKey);
       if (cachedData) {
         setDefectCodesData(cachedData);
@@ -238,7 +222,6 @@ export const Dashboard = () => {
         .then(res => res.json())
         .then(data => {
           setDefectCodesData(data);
-          // Store in cache
           dataCache.set(cacheKey, data);
           return data;
         })
@@ -248,27 +231,21 @@ export const Dashboard = () => {
         });
     };
 
-    // Initial data load - fetch all data in parallel
     Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures(), fetchFailStations(), fetchDefectCodes()])
-      .then(() => setLoading(false)) // Turn off loading state when done
+      .then(() => setLoading(false)) 
       .catch(error => {
         console.error("Error fetching dashboard data:", error);
-        setLoading(false); // Turn off loading even on error
+        setLoading(false); 
       });
 
-    // Set up refresh interval
     const interval = setInterval(() => {
-      // Don't show loading indicator on background refresh
-      // Clear cache and re-fetch on interval
       dataCache.clear();
 
-      // Refresh all data in parallel
       Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures(), fetchFailStations(), fetchDefectCodes()])
         .catch(error => console.error("Error refreshing dashboard data:", error));
     }, 60000);
 
-    return () => clearInterval(interval);
-    // eslint-disable-next-line
+    return () => clearInterval(interval); 
   }, [startDate, endDate]);
 
   return (

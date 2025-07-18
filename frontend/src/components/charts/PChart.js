@@ -15,7 +15,6 @@ import {
 export const PChart = ({ data = [], title = "P-Chart - Performance Monitoring" }) => {
     const theme = useTheme();
     
-    // Mock data structure for template - this will be replaced with real data later
     const mockData = [
         { date: '2024-01-01', proportion: 0.95, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
         { date: '2024-01-02', proportion: 0.94, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
@@ -26,7 +25,6 @@ export const PChart = ({ data = [], title = "P-Chart - Performance Monitoring" }
         { date: '2024-01-07', proportion: 0.94, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
     ];
     
-    // Use provided data or fall back to mock data for template
     const chartData = data.length > 0 ? data : mockData;
     
     return (

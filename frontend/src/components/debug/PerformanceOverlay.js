@@ -7,20 +7,14 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 
-// Only show in development mode
 const isDev = process.env.NODE_ENV === 'development';
 
-/**
- * A floating overlay that displays performance metrics
- * Only visible in development mode
- */
 export const PerformanceOverlay = () => {
-  // Skip rendering in production
   if (!isDev) return null;
   
-  const [isVisible, setIsVisible] = useState(true); // Start visible by default
-  const [isExpanded, setIsExpanded] = useState(true); // Start expanded by default
-  const [isRecording, setIsRecording] = useState(false); // Start NOT recording by default
+  const [isVisible, setIsVisible] = useState(true); 
+  const [isExpanded, setIsExpanded] = useState(true); 
+  const [isRecording, setIsRecording] = useState(false); 
   const [metrics, setMetrics] = useState({
     fps: 0,
     memory: 0,
@@ -37,13 +31,10 @@ export const PerformanceOverlay = () => {
   const originalCreateElementRef = useRef(null);
   const originalAddEventListenerRef = useRef(null);
   
-  // Toggle visibility
   const toggleVisibility = () => setIsVisible(!isVisible);
   
-  // Toggle expanded state
   const toggleExpanded = () => setIsExpanded(!isExpanded);
   
-  // Toggle recording state
   const toggleRecording = () => {
     if (isRecording) {
       setIsRecording(false);
@@ -52,7 +43,6 @@ export const PerformanceOverlay = () => {
         rafIdRef.current = null;
       }
       
-      // Restore original methods if they were saved
       if (originalCreateElementRef.current) {
         React.createElement = originalCreateElementRef.current;
       }
@@ -65,7 +55,6 @@ export const PerformanceOverlay = () => {
     }
   };
   
-  // Clear metrics
   const clearMetrics = () => {
     setMetrics({
       fps: 0,
@@ -78,19 +67,15 @@ export const PerformanceOverlay = () => {
     eventCountRef.current = 0;
   };
   
-  // Start performance recording
   const startRecording = () => {
-    // Start counting frames for FPS
     const updateMetrics = () => {
       frameCountRef.current++;
       const now = performance.now();
       const elapsed = now - lastFrameTimeRef.current;
       
-      // Update metrics every second
       if (elapsed >= 1000) {
         const fps = Math.round((frameCountRef.current * 1000) / elapsed);
         
-        // Get memory usage if available
         let memory = 0;
         if (window.performance && window.performance.memory) {
           memory = Math.round(window.performance.memory.usedJSHeapSize / (1024 * 1024));
@@ -108,8 +93,7 @@ export const PerformanceOverlay = () => {
         lastFrameTimeRef.current = now;
       }
       
-      // Check for large gaps between frames (lag)
-      if (elapsed > 50) { // Anything over 50ms is considered lag (less than 20fps)
+        if (elapsed > 50) { 
         setMetrics(prev => ({
           ...prev,
           lastLagDuration: Math.round(elapsed)
@@ -121,17 +105,13 @@ export const PerformanceOverlay = () => {
     
     rafIdRef.current = requestAnimationFrame(updateMetrics);
     
-    // Only patch React.createElement if it hasn't been patched yet
     if (!originalCreateElementRef.current) {
-      // Save original method
       originalCreateElementRef.current = React.createElement;
       
-      // Track component renders - safer implementation
       React.createElement = function(type, props, ...children) {
         if (typeof type === 'function') {
           const componentName = type.displayName || type.name || 'AnonymousComponent';
           
-          // Create a safer wrapped component that handles null props
           const wrappedComponent = function(props = {}) {
             if (!renderCountsRef.current[componentName]) {
               renderCountsRef.current[componentName] = 0;
@@ -149,14 +129,10 @@ export const PerformanceOverlay = () => {
       };
     }
     
-    // Only patch addEventListener if it hasn't been patched yet
     if (!originalAddEventListenerRef.current) {
-      // Save original method
       originalAddEventListenerRef.current = EventTarget.prototype.addEventListener;
       
-      // Track events
       EventTarget.prototype.addEventListener = function(type, listener, options) {
-        // Handle null listener
         if (!listener) return originalAddEventListenerRef.current.call(this, type, listener, options);
         
         const wrappedListener = function(...args) {
@@ -169,19 +145,16 @@ export const PerformanceOverlay = () => {
     }
   };
   
-  // Start recording when component mounts or when isRecording changes
   useEffect(() => {
     if (isRecording) {
       startRecording();
       
-      // Cleanup function
       return () => {
         if (rafIdRef.current) {
           cancelAnimationFrame(rafIdRef.current);
           rafIdRef.current = null;
         }
         
-        // Restore original methods when unmounting
         if (originalCreateElementRef.current) {
           React.createElement = originalCreateElementRef.current;
           originalCreateElementRef.current = null;
@@ -195,14 +168,12 @@ export const PerformanceOverlay = () => {
     }
   }, [isRecording]);
   
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (rafIdRef.current) {
         cancelAnimationFrame(rafIdRef.current);
       }
       
-      // Restore original methods when unmounting
       if (originalCreateElementRef.current) {
         React.createElement = originalCreateElementRef.current;
       }
@@ -218,8 +189,7 @@ export const PerformanceOverlay = () => {
   
   const memoryColor = metrics.memory < 100 ? 'success.main' :
                      metrics.memory < 200 ? 'warning.main' : 'error.main';
-  
-  // Get the top 3 most frequently rendering components
+    
   const topRenderingComponents = Object.entries(metrics.renders)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3);

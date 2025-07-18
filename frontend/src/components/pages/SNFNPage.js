@@ -40,6 +40,7 @@ const SnFnPage = () => {
   const [errorCodeFilter, setErrorCodeFilter] = useState([]); // Array holding codes to filter for
   const [allErrorCodes, setAllErrorCodes] = useState([]); // Array holding error codes for filter list
   const [allCodeDesc, setCodeDesc] = useState([]); // Placeholder incase we need to read in desc vs static table
+  const codeDescMap = useMemo(() => new Map(allCodeDesc), [allCodeDesc]);
   const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
   const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
   const [modelFilter, setModelFilter] = useState([]); // 
@@ -60,6 +61,8 @@ const SnFnPage = () => {
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const sortMenuOpen = (e) => setSortAnchorEl(e.currentTarget);
   const sortMenuClose = () => setSortAnchorEl(null);
+  const scrollThreshold = 5;
+  const autoRefreshInterval = 300000; // in ms, 5 min
 
   // Theme and style objects for consistent UI
   const theme = useTheme();
@@ -145,7 +148,7 @@ const SnFnPage = () => {
             </Box>
            <Box sx={{ 
               maxHeight: 300, // adjust as needed
-              overflowY: codeData[2].length > 5 ? 'auto' : 'visible',
+              overflowY: codeData[2].length > scrollThreshold ? 'auto' : 'visible',
               mt: 2,
               pr: 1 // optional: avoid scrollbar overlap
             }}>
@@ -414,7 +417,7 @@ const SnFnPage = () => {
 
         codeSet.add(EC); // Collect unique error codes
         stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        modelSet.add(MD); // Collect unique models
+        if(MD)modelSet.add(MD); // Collect unique models
 
         const dKey = groupKey+EC;
         if (!discMap.has(dKey)) {
@@ -457,13 +460,16 @@ const SnFnPage = () => {
       setCodeDesc(combinedCodeDesc.sort());
 
 
-      setData(JSON.parse(JSON.stringify(data))); // Set main data
+      //setData(JSON.parse(JSON.stringify(data))); // Switch to this if dealing with circular refs or mutations
+      setData([...data]);
     };
 
     if (document.visibilityState === 'visible'){
       fetchAndSortData();
     }
+    
     const intervalId = setInterval(() => fetchAndSortData(), 300000); // Refresh every 5 min
+
     return () => clearInterval(intervalId);
   }, [startDate,endDate, groupByWorkstation]);
  
