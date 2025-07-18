@@ -17,8 +17,6 @@ mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
 
 // API Routes
 app.use('/api', routes);
@@ -34,7 +32,6 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 

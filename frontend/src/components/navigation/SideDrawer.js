@@ -20,6 +20,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import GridViewIcon from '@mui/icons-material/GridView';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -40,6 +41,7 @@ const MENU_ITEMS = [
   { text: 'Packing', icon: <Inventory2Icon />, route: '/packing' },
   { text: 'Performance', icon: <SpeedIcon />, route: '/performance' },
   { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
+  { text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
 ];
 
 // Add development-only menu items

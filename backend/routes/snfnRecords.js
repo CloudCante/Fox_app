@@ -31,7 +31,6 @@ router.get('/station-errors', async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching snfn station performance:', error);
         res.status(500).json({ error: error.message });
     }
 });

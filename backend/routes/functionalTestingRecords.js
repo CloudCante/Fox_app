@@ -26,7 +26,6 @@ router.get('/station-performance', async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching testboard station performance:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -96,7 +95,6 @@ router.get('/fixture-performance', async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching fixture performance:', error);
         res.status(500).json({ error: error.message });
     }
 });
