@@ -1,5 +1,5 @@
 // Import required dependencies and components
-import { useEffect, useState, useMemo, use } from 'react';
+import { useEffect, useState, useMemo} from 'react';
 import {
   Box, Paper, Typography, Modal, Pagination,
   Select, MenuItem, InputLabel, FormControl,
@@ -8,7 +8,6 @@ import {
 } from '@mui/material';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { testSnFnData,codeDB } from '../../data/sampleData';
 import { useTheme } from '@mui/material';
 
 
@@ -18,6 +17,7 @@ if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
 
+// Page Details
 const SnFnPage = () => {
   // State initialization for date range, modal, data, pagination, and filters
   const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
@@ -33,6 +33,7 @@ const SnFnPage = () => {
   const [modalInfo, setModalInfo] = useState([]); // Station data, Error data
   const [open, setOpen] = useState(false); // Modal closed/open state
   const [page, setPage] = useState(1); // Current pagination page
+  const [exportCooldown,setExportCooldown] = useState(false);
 
   // Data consts
   const [dataBase, setData] = useState([]); // Database of pulled data on staions and error codes
@@ -44,6 +45,9 @@ const SnFnPage = () => {
   const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
   const [modelFilter, setModelFilter] = useState([]); // 
   const [allModels, setAllModels] = useState([]); // 
+  const [searchStations, setSearchStations] = useState('');
+  const [searchErrorCodes, setSearchErrorCodes] = useState('');
+  const [searchModels, setSearchModels] = useState('');
 
   // UI consts
   const [itemsPerPage,setItemsPer] = useState(6); // Number of stations per page
@@ -104,6 +108,12 @@ const SnFnPage = () => {
     handleOpen();
   };
 
+  const truncateText = (text, maxLength) => {
+    if (typeof text !== 'string') return '';
+    return text.length > maxLength ? text.slice(0, maxLength - 1) + '…' : text;
+  };
+  const sanitizeText = (text)=> text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
   // Modal rendering selected station and error code details
   const ModalContent = () => {
     const [stationData,codeData]=modalInfo;
@@ -133,7 +143,7 @@ const SnFnPage = () => {
               pr: 1 // optional: avoid scrollbar overlap
               }}>
               <Typography id="modal-desc-detail" variant="body2">
-              Error Description: {codeDisc}
+              Error Description: {sanitizeText(codeDisc)}
               </Typography>
             </Box>
            <Box sx={{ 
@@ -154,6 +164,7 @@ const SnFnPage = () => {
     );
   };
 
+  // Reset Filters to default
   const clearFilters = () => {
     const newStart = new Date();
     newStart.setDate(newStart.getDate() - 7);
@@ -170,41 +181,139 @@ const SnFnPage = () => {
     const now = new Date();
     return now.toISOString().replace(/:/g, '-').replace(/\..+/, '');
   };
+  
   // Exporting
-  const exportToCSV = () => {
-    const rows = [];
-
-    filteredData.forEach((station) => {
-        const stationId = station[0][0];
-        const stationSecondaryId = station[0][1];
-        station.slice(1).forEach(([errorCode, count, snList]) => {
-        snList.forEach((sn) => {
-            rows.push([stationId,stationSecondaryId, errorCode, count, sn[0],sn[1],sn[2]]);
-        });
-        });
+  // Sanitizes a cell value to prevent CSV injection attacks
+  const sanitizeCSVCell = (value) => {
+    if (value === null || value === undefined) {return '';}
+    let cellValue = String(value);
+    // Remove or escape dangerous formula characters
+    // Characters that can start formulas: =, +, -, @, \t, \r
+    const dangerousChars = /^[\=\+\-\@\t\r]/;
+    if (dangerousChars.test(cellValue)) {cellValue = "'" + cellValue;}
+    
+    // Handle quotes and newlines
+    if (cellValue.includes('"') || cellValue.includes(',') || cellValue.includes('\n')) {
+      // Escape existing quotes by doubling them
+      cellValue = cellValue.replace(/"/g, '""');
+      // Wrap in quotes
+      cellValue = `"${cellValue}"`;
+    }
+    return cellValue;
+  };
+  // Validates data before export to prevent malicious content
+  const validateExportData = (data) => {
+    return data.map(row => {
+      if (!Array.isArray(row)) {
+        console.warn('Invalid row data:', row);
+        return [];
+      }
+      
+      return row.map(cell => {
+        const cellStr = String(cell);
+        // Check for suspicious patterns
+        const suspiciousPatterns = [
+          /cmd/i,                    // Command execution
+          /powershell/i,             // PowerShell execution
+          /javascript:/i,            // JavaScript URLs
+          /data:text\/html/i,        // Data URLs
+          /vbscript:/i,              // VBScript URLs
+          /<script/i,                // Script tags
+          /document\.cookie/i,       // Cookie theft
+          /window\.location/i,       // Redirection
+        ];
+        
+        const hasSuspiciousContent = suspiciousPatterns.some(pattern => pattern.test(cellStr));
+        
+        if (hasSuspiciousContent) {
+          console.warn('Suspicious content detected and sanitized:', cellStr);
+          // Replace with safe placeholder
+          return '[CONTENT_SANITIZED]';
+        }
+        
+        return sanitizeCSVCell(cell);
+      });
     });
-
-    const header = [
-      groupByWorkstation ? 'Workstation' : 'Fixture',
-      groupByWorkstation ? 'Fixture' : 'Workstation',
-      'Error Code',
-      'Error Count',
-      'Serial Number',
-      'Part Number',
-      'Model'
-    ];
-    const csvContent =
-        [header, ...rows]
-        .map((row) => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+  };
+  // Secure CSV export
+  const exportSecureCSV = (data, headers, filename) => {
+    try {
+      // Validate and sanitize all data
+      const sanitizedHeaders = headers.map(header => sanitizeCSVCell(header));
+      const sanitizedData = validateExportData(data);
+      
+      // Create CSV content
+      const csvRows = [sanitizedHeaders, ...sanitizedData];
+      const csvContent = csvRows
+        .map(row => row.join(','))
         .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `snfn_filtered_data_${getTimestamp()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      
+      // Add BOM for Excel compatibility (optional)
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+      
+      // Create and download file
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+      
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.href = url;
+      link.setAttribute('download', sanitizeFilename(filename));
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up object URL
+      URL.revokeObjectURL(url);
+      
+      console.log('CSV exported successfully:', filename);
+      
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      throw new Error('Failed to export CSV file');
+    }
+  };
+  // Sanitizes filename to prevent directory traversal
+  const sanitizeFilename = (filename) => {
+    return filename
+      .replace(/[^\w\s.-]/gi, '_') // Replace special chars with underscore
+      .replace(/\s+/g, '_')        // Replace spaces with underscore
+      .replace(/_{2,}/g, '_')      // Replace multiple underscores with single
+      .substring(0, 255);          // Limit length
+  };
+  // Main export
+  const exportToCSV = () => {
+    try {
+      const rows = [];
+  
+      filteredData.forEach((station) => {
+          const stationId = station[0][0];
+          const stationSecondaryId = station[0][1];
+          station.slice(1).forEach(([errorCode, count, snList]) => {
+          snList.forEach((sn) => {
+              rows.push([`'${stationId}'`,`'${stationSecondaryId}'`, errorCode, count, sn[0],sn[1],sn[2]]);
+          });
+          });
+      });
+      const headers = [
+        groupByWorkstation ? 'Workstation' : 'Fixture',
+        groupByWorkstation ? 'Fixture' : 'Workstation',
+        'Error Code',
+        'Error Count',
+        'Serial Number',
+        'Part Number',
+        'Model'
+      ];
+      const filename = `snfn_filtered_data_${getTimestamp()}.csv`;
+      // Use secure export function
+      exportSecureCSV(rows, headers, filename);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    }
   };
   const exportToJSON = () => {
     const jsonData = [];
@@ -232,11 +341,18 @@ const SnFnPage = () => {
     link.click();
     document.body.removeChild(link);
   };
+  // Export handlers
   const handleExportCSV = () => {
+    if (exportCooldown) return;
+    setExportCooldown(true);
+    setTimeout(()=>setExportCooldown(false),3000);
     exportToCSV();
     handleMenuClose();
   };
   const handleExportJSON = () => {
+    if (exportCooldown) return;
+    setExportCooldown(true);
+    setTimeout(()=>setExportCooldown(false),3000);
     exportToJSON();
     handleMenuClose();
   };
@@ -277,18 +393,16 @@ const SnFnPage = () => {
 
       dataSet.forEach((d) => {
         const {
-        fixture_no: FN,
-        sn: SN,
-        error_code: EC,
-        code_count: TN,
-        pn: PN,
-        workstation_name: BT,
-        normalized_end_time: DT,
-        model:MD,
-        error_disc:ED
-      } = d;
-        //console.log(d)
-        //const MD = "NAN";
+          fixture_no: FN,
+          sn: SN,
+          error_code: EC,
+          code_count: TN,
+          pn: PN,
+          workstation_name: BT,
+          normalized_end_time: DT,
+          model:MD,
+          error_disc:ED
+        } = d;
         // Validate date range
         const recordDate = new Date(DT);
         if (isNaN(recordDate) || recordDate < startDate || recordDate > endDate) {
@@ -350,13 +464,20 @@ const SnFnPage = () => {
       setData([...data]);
     };
 
-    fetchAndSortData();
-    const intervalId = setInterval(() => fetchAndSortData(), autoRefreshInterval); // Refresh every 5 min
+    if (document.visibilityState === 'visible'){
+      fetchAndSortData();
+    }
+    
+    const intervalId = setInterval(() => fetchAndSortData(), 300000); // Refresh every 5 min
+
     return () => clearInterval(intervalId);
   }, [startDate,endDate, groupByWorkstation]);
+ 
+  // Reset station Filter on togle
   useEffect(() => {
     setStationFilter([]); // Reset station filter on toggle
   }, [groupByWorkstation]);
+  
   // Handle page change
   const handleChangePage = (event, value) => {
     setPage(value);
@@ -401,6 +522,7 @@ const SnFnPage = () => {
     return filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   }, [filteredData, page, itemsPerPage]);
 
+  // UI
   return (
     <Box p={1}>
       {/* Page Header */}
@@ -452,32 +574,61 @@ const SnFnPage = () => {
           />
         </Box>
         {/* Multi-select station filter */}
-        <FormControl sx={{ minWidth: 200 }} size='small'>
-        <InputLabel sx={{ fontSize: 14 }}>{groupByWorkstation ? 'Workstations' : 'Fixtures'}</InputLabel>
-            <Select
-                multiple
-                value={stationFilter}
-                onChange={(e) => {
-                const value = e.target.value;
-                if (value.includes('__CLEAR__')) {
-                    setStationFilter([]);
-                } else {
-                    setStationFilter(value);
-                }
-                }}
-                input={<OutlinedInput label="Stations" />}
-                renderValue={(selected) => selected.join(', ')}
-            >
-                <MenuItem value="__CLEAR__">
-                <em>Clear All</em>
-                </MenuItem>
-                {allStationsCodes.map((code) => (
+        <FormControl sx={{ minWidth: 200 }} size="small">
+          <InputLabel>{groupByWorkstation ? 'Workstations' : 'Fixtures'}</InputLabel>
+          <Select
+            multiple
+            value={stationFilter}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (!Array.isArray(value)) return;
+              if (value.includes('__CLEAR__')) {
+                setStationFilter([]);
+              } else {
+                setStationFilter(value);
+              }
+            }}
+            input={<OutlinedInput label="Stations" />}
+            renderValue={(selected) => selected.join(', ')}
+            MenuProps={{
+              PaperProps: {
+                sx: { maxHeight: 300, overflowY: 'auto' },
+                // no custom onClose here for now
+              },
+              // prevent menu from closing when typing
+              disableAutoFocusItem: true,
+            }}
+          >
+            {/* Insert a non-selectable search box */}
+            {allStationsCodes.length > 10 ? (
+              <Box sx={{ px: 1, pt: 1 }}>
+                <TextField
+                  size="small"
+                  variant="standard"
+                  placeholder="Search..."
+                  value={searchStations}
+                  onChange={(e) => setSearchStations(e.target.value)}
+                  fullWidth
+                  onClick={(e) => e.stopPropagation()} // prevent Select open/close toggle
+                  onKeyDown={(e) => e.stopPropagation()} // prevent key events bubbling
+                  autoFocus
+                />
+              </Box>
+            ):null}
+            <MenuItem value="__CLEAR__">
+              <em>Clear All</em>
+            </MenuItem>
+            {allStationsCodes
+              .filter((code) =>
+                code.toLowerCase().includes((searchStations || '').toLowerCase())
+              )
+              .map((code) => (
                 <MenuItem key={code} value={code}>
-                    <Checkbox checked={stationFilter.includes(code)} />
-                    <ListItemText primary={code} />
+                  <Checkbox checked={stationFilter.includes(code)} />
+                  <ListItemText primary={code} />
                 </MenuItem>
-                ))}
-            </Select>
+              ))}
+          </Select>
         </FormControl>
         {/* Multi-select error code filter */}
         <FormControl sx={{ minWidth: 200 }} size='small'>
@@ -486,25 +637,54 @@ const SnFnPage = () => {
                 multiple
                 value={errorCodeFilter}
                 onChange={(e) => {
-                const value = e.target.value;
-                if (value.includes('__CLEAR__')) {
-                    setErrorCodeFilter([]);
-                } else {
-                    setErrorCodeFilter(value);
-                }
+                  const value = e.target.value;
+                  if (!Array.isArray(value)) return;
+                  if (value.includes('__CLEAR__')) {
+                      setErrorCodeFilter([]);
+                  } else {
+                      setErrorCodeFilter(value);
+                  }
                 }}
                 input={<OutlinedInput label="Error Codes" />}
                 renderValue={(selected) => selected.join(', ')}
+                MenuProps={{
+                  PaperProps: {
+                    sx: { maxHeight: 300, overflowY: 'auto' },
+                    // no custom onClose here for now
+                  },
+                  // prevent menu from closing when typing
+                  disableAutoFocusItem: true,
+                }}
             >
+              {/* Insert a non-selectable search box */}
+              {allErrorCodes.length > 10 ? (
+                <Box sx={{ px: 1, pt: 1 }}>
+                  <TextField
+                    size="small"
+                    variant="standard"
+                    placeholder="Search..."
+                    value={searchErrorCodes}
+                    onChange={(e) => setSearchErrorCodes(e.target.value)}
+                    fullWidth
+                    onClick={(e) => e.stopPropagation()} // prevent Select open/close toggle
+                    onKeyDown={(e) => e.stopPropagation()} // prevent key events bubbling
+                    autoFocus
+                  />
+                </Box>
+              ):null}
                 <MenuItem value="__CLEAR__">
                 <em>Clear All</em>
                 </MenuItem>
-                {allErrorCodes.map((code) => (
-                <MenuItem key={code} value={code}>
-                    <Checkbox checked={errorCodeFilter.includes(code)} />
-                    <ListItemText primary={code} />
-                </MenuItem>
-                ))}
+                {allErrorCodes
+                  .filter((code) =>
+                    code.toLowerCase().includes((searchErrorCodes || '').toLowerCase())
+                  )
+                  .map((code) => (
+                    <MenuItem key={code} value={code}>
+                      <Checkbox checked={errorCodeFilter.includes(code)} />
+                      <ListItemText primary={code} />
+                    </MenuItem>
+                  ))}
             </Select>
         </FormControl>
         {/* Multi-select model filter */}
@@ -516,6 +696,7 @@ const SnFnPage = () => {
               value={modelFilter}
               onChange={(e) => {
                 const value = e.target.value;
+                if (!Array.isArray(value)) return;
                 if (value.includes('__CLEAR__')) {
                   setModelFilter([]);
                 } else {
@@ -524,16 +705,43 @@ const SnFnPage = () => {
               }}
               input={<OutlinedInput label="Models" />}
               renderValue={(selected) => selected.join(', ')}
+              MenuProps={{
+                PaperProps: {
+                  sx: { maxHeight: 300, overflowY: 'auto' },
+                  // no custom onClose here for now
+                },
+                // prevent menu from closing when typing
+                disableAutoFocusItem: true,
+              }}
             >
+              {/* Insert a non-selectable search box */}
+              {allModels.length > 10 ? (
+                <Box sx={{ px: 1, pt: 1 }}>
+                  <TextField
+                    size="small"
+                    variant="standard"
+                    placeholder="Search..."
+                    value={searchModels}
+                    onChange={(e) => setSearchModels(e.target.value)}
+                    fullWidth
+                    onClick={(e) => e.stopPropagation()} // prevent Select open/close toggle
+                    onKeyDown={(e) => e.stopPropagation()} // prevent key events bubbling
+                  />
+                </Box>
+              ):null}
               <MenuItem value="__CLEAR__">
                 <em>Clear All</em>
               </MenuItem>
-              {allModels.map((code) => (
-                <MenuItem key={code} value={code}>
-                  <Checkbox checked={modelFilter.includes(code)} />
-                  <ListItemText primary={code} />
-                </MenuItem>
-              ))}
+              {allModels
+                .filter((code) =>
+                  code.toLowerCase().includes((searchModels || '').toLowerCase())
+                )
+                .map((code) => (
+                  <MenuItem key={code} value={code}>
+                    <Checkbox checked={modelFilter.includes(code)} />
+                    <ListItemText primary={code} />
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
         )}
@@ -560,6 +768,7 @@ const SnFnPage = () => {
                 setMaxErrors(value);
                 }
             }}/>
+        {/* Buttons */}
         <Box sx={{ display: 'flex', gap: 2 }}>
             {/* Sort Menu */}
             <Button
@@ -636,6 +845,7 @@ const SnFnPage = () => {
         {paginatedData.map((station, idx) => (
           <Paper key={station[0]} sx={{ p: 2 }}>
             <table>
+              {/* Table Header */}
               <thead>
                 <tr
                   title={`${groupByWorkstation ? 'Fixture' : 'Workstation'}: "${station[0][1]}" — ${(station?.length ?? 0) - 1} unique error codes`}>
@@ -643,11 +853,12 @@ const SnFnPage = () => {
                   <th style={style}>Count of Error Codes</th>
                 </tr>
               </thead>
+              {/* Table Body */}
               <tbody>
                 {station.slice(1, maxErrorCodes+1).map((codes, jdx) => (
                   <tr key={jdx} 
                   onClick={() => getClick([station, codes])}
-                  title={`Error ${codes[0]} — ${allCodeDesc.find((x) => x[0] === station[0][0]+codes[0])?.[1] ?? "NAN"}`}>
+                  title={`Error ${codes[0]} — ${truncateText(sanitizeText(allCodeDesc.find((x) => x[0] === station[0][0]+codes[0])?.[1] ?? "NAN"),75)}`}>
                     <td style={style}>{codes[0]}</td>
                     <td style={style}>{codes[1]}</td>
                   </tr>
