@@ -4,13 +4,11 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-// Configure multer for file upload
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
 }).single('file');
 
-// Simple catch endpoint with error handling and file saving
 router.post('/catch-file', (req, res) => {
     
     upload(req, res, function(err) {
@@ -28,7 +26,7 @@ router.post('/catch-file', (req, res) => {
         }
         
         
-        //Transfer file to input for file monitor
+        
         const targetDir = '/home/darvin/Fox_ETL/input/';
         const targetPath = path.join(targetDir, req.file.originalname);
 

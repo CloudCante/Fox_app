@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db.js');
 
-// Get daily TPY metrics for a date range
 router.get('/daily', async (req, res) => {
     try {
         const { startDate, endDate, model } = req.query;
@@ -35,7 +34,6 @@ router.get('/daily', async (req, res) => {
         
         const result = await pool.query(query, params);
         
-        // Group by date for frontend compatibility
         const groupedData = {};
         result.rows.forEach(row => {
             const dateStr = row.date_id.toISOString().split('T')[0];
@@ -64,12 +62,9 @@ router.get('/daily', async (req, res) => {
         
         res.json(Object.values(groupedData));
     } catch (error) {
-        console.error('Error fetching daily TPY metrics:', error);
-        res.status(500).json({ error: error.message });
     }
 });
 
-// Get daily TPY metrics for a date range (for chart aggregation)
 router.get('/daily', async (req, res) => {
     try {
         const { startDate, endDate, model } = req.query;
@@ -97,12 +92,10 @@ router.get('/daily', async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching daily TPY metrics:', error);
-        res.status(500).json({ error: error.message });
     }
 });
 
-// Get weekly TPY metrics for a date range
+
 router.get('/weekly', async (req, res) => {
     try {
         const { startWeek, endWeek } = req.query;
@@ -135,7 +128,6 @@ router.get('/weekly', async (req, res) => {
         
         const result = await pool.query(query, [startWeek, endWeek]);
         
-        // Transform data for frontend compatibility
         const transformedData = result.rows.map(row => ({
             weekId: row.week_id,
             weekStart: row.week_start,
@@ -169,10 +161,8 @@ router.get('/weekly', async (req, res) => {
     }
 });
 
-// Get TPY summary for dashboard
 router.get('/summary', async (req, res) => {
     try {
-        // Get latest daily metrics
         const dailyQuery = `
             SELECT 
                 COUNT(*) as total_records,
@@ -185,7 +175,6 @@ router.get('/summary', async (req, res) => {
         const dailyResult = await pool.query(dailyQuery);
         const dailySummary = dailyResult.rows[0];
         
-        // Get latest weekly metrics
         const weeklyQuery = `
             SELECT 
                 COUNT(*) as total_records,
@@ -198,7 +187,6 @@ router.get('/summary', async (req, res) => {
         const weeklyResult = await pool.query(weeklyQuery);
         const weeklySummary = weeklyResult.rows[0];
         
-        // Get recent performance
         const recentQuery = `
             SELECT 
                 date_id,
@@ -234,7 +222,6 @@ router.get('/summary', async (req, res) => {
     }
 });
 
-// Get station performance for a specific date
 router.get('/station-performance', async (req, res) => {
     try {
         const { date, model } = req.query;
