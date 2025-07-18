@@ -20,7 +20,6 @@ router.get('/hulk-smash', async (req, res) => {
         
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 
