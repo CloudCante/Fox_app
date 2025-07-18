@@ -2,17 +2,14 @@ import React, { useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList } from 'recharts';
 import { useTheme } from '@mui/material';
 
-// Memoized chart component for maximum performance
 export const ThroughputBarChart = React.memo(({ data }) => {
   const theme = useTheme();
   
-  // Memoized style calculations
   const chartStyles = useMemo(() => ({
     textColor: theme.palette.mode === 'dark' ? '#fff' : '#000',
     labelFill: theme.palette.mode === 'dark' ? '#fff' : '#000'
   }), [theme.palette.mode]);
 
-  // Memoized data transformation - only recalculate when data actually changes
   const chartData = useMemo(() => {
     return data.map(station => ({
       station: station.station,
@@ -21,7 +18,6 @@ export const ThroughputBarChart = React.memo(({ data }) => {
     }));
   }, [data]);
 
-  // Optimized label formatter - no inline functions
   const passedLabelFormatter = useMemo(() => (value) => {
     return value > 30 ? value.toLocaleString() : '';
   }, []);
@@ -30,12 +26,10 @@ export const ThroughputBarChart = React.memo(({ data }) => {
     return value > 10 ? value.toLocaleString() : '';
   }, []);
 
-  // Memoized chart configuration for performance
   const chartConfig = useMemo(() => ({
     margin: { top: 50, right: 30, left: 20, bottom: 60 },
-    // Performance optimizations
     animationBegin: 0,
-    animationDuration: 0, // Disable animations for speed
+    animationDuration: 0, 
     isAnimationActive: false
   }), []);
 
@@ -43,7 +37,7 @@ export const ThroughputBarChart = React.memo(({ data }) => {
     <ResponsiveContainer 
       width="100%" 
       height="100%"
-      debounceMs={50} // Debounce resize events
+      debounceMs={50} 
     >
       <BarChart 
         data={chartData} 
@@ -53,7 +47,7 @@ export const ThroughputBarChart = React.memo(({ data }) => {
       >
         <CartesianGrid 
           strokeDasharray="3 3" 
-          animationDuration={0} // Disable grid animations
+          animationDuration={0} 
         />
         <XAxis 
           dataKey="station" 
@@ -63,15 +57,15 @@ export const ThroughputBarChart = React.memo(({ data }) => {
           interval={0}
           stroke={chartStyles.textColor}
           tick={{ fill: chartStyles.textColor }}
-          animationDuration={0} // Disable axis animations
+          animationDuration={0} 
         />
         <YAxis 
           stroke={chartStyles.textColor}
           tick={{ fill: chartStyles.textColor }}
-          animationDuration={0} // Disable axis animations
+          animationDuration={0} 
         />
         <Tooltip 
-          animationDuration={0} // Disable tooltip animations
+          animationDuration={0} 
           isAnimationActive={false}
         />
         <Legend 
@@ -89,7 +83,7 @@ export const ThroughputBarChart = React.memo(({ data }) => {
           stackId="parts" 
           fill="#4caf50" 
           name="Good Parts"
-          animationDuration={0} // Disable bar animations
+          animationDuration={0} 
           animationBegin={0}
           isAnimationActive={false}
         >
@@ -106,7 +100,7 @@ export const ThroughputBarChart = React.memo(({ data }) => {
           stackId="parts" 
           fill="#f44336" 
           name="Defective Parts"
-          animationDuration={0} // Disable bar animations
+          animationDuration={0} 
           animationBegin={0}
           isAnimationActive={false}
         >
@@ -122,8 +116,6 @@ export const ThroughputBarChart = React.memo(({ data }) => {
     </ResponsiveContainer>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison function for React.memo
-  // Only re-render if data actually changed (deep comparison of relevant fields)
   if (prevProps.data.length !== nextProps.data.length) return false;
   
   for (let i = 0; i < prevProps.data.length; i++) {
@@ -137,5 +129,5 @@ export const ThroughputBarChart = React.memo(({ data }) => {
     }
   }
   
-  return true; // Props are equal, skip re-render
+  return true; 
 }); 

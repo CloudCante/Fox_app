@@ -14,11 +14,8 @@ import UploadPage from './components/pages/uploadPage';
 import StationHourlySummaryPage from './components/pages/StationHourlySummaryPage';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
-// Import CSS for optimized theme switching
 import './components/theme/theme.css';
 
-// Main content layout extracted as a separate component for targeted memoization
-// This prevents the main content from re-rendering when only the drawer state changes
 const MainContent = React.memo(({ children }) => {
   const mainContentStyle = useMemo(() => ({ 
     flexGrow: 1, 
@@ -35,8 +32,6 @@ const MainContent = React.memo(({ children }) => {
   );
 });
 
-// Routes component separated to prevent unnecessary re-renders
-// Routes should only re-render when the actual routes change, not on drawer toggle
 const AppRoutes = React.memo(() => (
   <Routes>
     <Route path="/" element={<Dashboard />} />
@@ -56,20 +51,15 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isLowEnd, setIsLowEnd] = useState(false);
   
-  // Check device capabilities once on mount to optimize for device
   useEffect(() => {
     setIsLowEnd(isLowEndDevice());
   }, []);
 
-  // Create persistent handler functions with stable references
-  // This is better than useCallback because the references never change
   const handlersRef = useRef({
     toggleDrawer: () => setDrawerOpen(prev => !prev),
     closeDrawer: () => setDrawerOpen(false)
   });
 
-  // Use lightweight backdrop for low-end devices
-  // This is a performance optimization that avoids expensive MUI backdrop
   const backdrop = useMemo(() => {
     if (isLowEnd && drawerOpen) {
       return <LightweightBackdrop open={drawerOpen} onClose={handlersRef.current.closeDrawer} />;

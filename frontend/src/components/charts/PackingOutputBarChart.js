@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, ReferenceLine, Line } from 'recharts';
 import { Typography } from '@mui/material';
 
-// Helper to compute linear regression points for the trend line
 function getLinearRegressionLine(data) {
   if (!data || data.length < 2) return [];
   const n = data.length;
@@ -17,14 +16,12 @@ function getLinearRegressionLine(data) {
 }
 
 const PackingOutputBarChart = ({ data, title, color = '#1976d2', showTrendLine = false, showAvgLine = true }) => {
-  // Calculate average of nonzero values
   const avg = useMemo(() => {
     const nonZero = data.filter(d => d.value > 0);
     if (nonZero.length === 0) return 0;
     return Math.round(nonZero.reduce((sum, d) => sum + d.value, 0) / nonZero.length);
   }, [data]);
 
-  // For weekly chart, merge trend line into main data array
   const dataWithTrend = useMemo(() => {
     if (!title || !title.toLowerCase().includes('weekly') || !showTrendLine || data.length < 2) return data;
     const trendLine = getLinearRegressionLine(data);

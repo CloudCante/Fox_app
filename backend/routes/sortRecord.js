@@ -36,8 +36,6 @@ router.get('/sort-data', async (req, res) => {
             ORDER BY sort_code, test_date;`,
             params
         );
-        
-        // Format the data as expected by frontend: { '506': {date: count, ...}, '520': {date: count, ...} }
         const sortData = { '506': {}, '520': {} };
         
         result.rows.forEach(row => {

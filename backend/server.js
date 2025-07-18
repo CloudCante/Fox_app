@@ -8,12 +8,12 @@ dotenv.config();
 const app = express();
 
 process.on('uncaughtException', (error) => {
-    console.error('❌ Uncaught Exception:', error);
+    console.error('Uncaught Exception:', error);
     console.error('Stack trace:', error.stack);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Unhandled Rejection at:', promise);
+    console.error('Unhandled Rejection at:', promise);
     console.error('Reason:', reason);
 });
 

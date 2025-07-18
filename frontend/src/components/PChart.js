@@ -47,7 +47,6 @@ const PChart = ({
     );
   }
 
-  // Prepare chart data for defect rates
   const labels = data.map(point => {
     const date = new Date(point.date);
     return date.toLocaleDateString('en-US', { 
@@ -57,20 +56,17 @@ const PChart = ({
     });
   });
 
-  // Convert proportions to percentages for display
   const defectRatePoints = data.map(point => point.defectRate);
   const uclPoints = data.map(point => point.ucl * 100);
   const lclPoints = data.map(point => point.lcl * 100);
   const centerLinePoints = data.map(point => point.centerLine * 100);
   
-  // Color points based on control status
   const pointColors = data.map(point => point.inControl ? '#1976d2' : '#d32f2f');
   const pointBorderColors = data.map(point => point.inControl ? '#1976d2' : '#d32f2f');
 
   const chartData = {
     labels: labels,
     datasets: [
-      // Defect Rate Points
       {
         label: 'Daily Defect Rate',
         data: defectRatePoints,
@@ -82,9 +78,8 @@ const PChart = ({
         pointBorderWidth: 2,
         fill: false,
         tension: 0,
-        showLine: false, // Show only points, no connecting line
+        showLine: false, 
       },
-      // Upper Control Limit
       {
         label: 'Upper Control Limit (UCL)',
         data: uclPoints,
@@ -96,7 +91,6 @@ const PChart = ({
         fill: false,
         tension: 0.1,
       },
-      // Center Line
       {
         label: 'Center Line (p̄)',
         data: centerLinePoints,
@@ -107,7 +101,6 @@ const PChart = ({
         fill: false,
         tension: 0,
       },
-      // Lower Control Limit
       {
         label: 'Lower Control Limit (LCL)',
         data: lclPoints,
