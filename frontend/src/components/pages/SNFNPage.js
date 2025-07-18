@@ -33,6 +33,7 @@ const SnFnPage = () => {
   const [modalInfo, setModalInfo] = useState([]); // Station data, Error data
   const [open, setOpen] = useState(false); // Modal closed/open state
   const [page, setPage] = useState(1); // Current pagination page
+  const [exportCooldown,setExportCooldown] = useState(false);
 
   // Data consts
   const [dataBase, setData] = useState([]); // Database of pulled data on staions and error codes
@@ -104,6 +105,12 @@ const SnFnPage = () => {
     handleOpen();
   };
 
+  const truncateText = (text, maxLength) => {
+    if (typeof text !== 'string') return '';
+    return text.length > maxLength ? text.slice(0, maxLength - 1) + '…' : text;
+  };
+  const sanitizeText = (text)=> text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
   // Modal rendering selected station and error code details
   const ModalContent = () => {
     const [stationData,codeData]=modalInfo;
@@ -133,7 +140,7 @@ const SnFnPage = () => {
               pr: 1 // optional: avoid scrollbar overlap
               }}>
               <Typography id="modal-desc-detail" variant="body2">
-              Error Description: {codeDisc}
+              Error Description: {sanitizeText(codeDisc)}
               </Typography>
             </Box>
            <Box sx={{ 
@@ -333,10 +340,16 @@ const SnFnPage = () => {
   };
   // Export handlers
   const handleExportCSV = () => {
+    if (exportCooldown) return;
+    setExportCooldown(true);
+    setTimeout(()=>setExportCooldown(false),3000);
     exportToCSV();
     handleMenuClose();
   };
   const handleExportJSON = () => {
+    if (exportCooldown) return;
+    setExportCooldown(true);
+    setTimeout(()=>setExportCooldown(false),3000);
     exportToJSON();
     handleMenuClose();
   };
@@ -447,7 +460,9 @@ const SnFnPage = () => {
       setData(JSON.parse(JSON.stringify(data))); // Set main data
     };
 
-    fetchAndSortData();
+    if (document.visibilityState === 'visible'){
+      fetchAndSortData();
+    }
     const intervalId = setInterval(() => fetchAndSortData(), 300000); // Refresh every 5 min
     return () => clearInterval(intervalId);
   }, [startDate,endDate, groupByWorkstation]);
@@ -837,7 +852,7 @@ const SnFnPage = () => {
                 {station.slice(1, maxErrorCodes+1).map((codes, jdx) => (
                   <tr key={jdx} 
                   onClick={() => getClick([station, codes])}
-                  title={`Error ${codes[0]} — ${allCodeDesc.find((x) => x[0] === station[0][0]+codes[0])?.[1] ?? "NAN"}`}>
+                  title={`Error ${codes[0]} — ${truncateText(sanitizeText(allCodeDesc.find((x) => x[0] === station[0][0]+codes[0])?.[1] ?? "NAN"),75)}`}>
                     <td style={style}>{codes[0]}</td>
                     <td style={style}>{codes[1]}</td>
                   </tr>
