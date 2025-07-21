@@ -1,10 +1,14 @@
+const stripPrefix = (s) => String(s).replace(/^[\uFEFF\u200B\s]+/, '');
+
 const sanitizeCSVCell = (value) => {
   if (value === null || value === undefined) {return '';}
   let cellValue = String(value);
   // Remove or escape dangerous formula characters
   // Characters that can start formulas: =, +, -, @, \t, \r
-  const dangerousChars = /^[\=\+\-\@\t\r]/;
-  if (dangerousChars.test(cellValue)) {cellValue = "'" + cellValue;}
+  let stripped = stripPrefix(cellValue);
+  if (/^[=+\-@]/.test(stripped)) {
+    cellValue = "'" + cellValue;
+  }
   
   // Handle quotes and newlines
   if (cellValue.includes('"') || cellValue.includes(',') || cellValue.includes('\n')) {
@@ -17,37 +21,35 @@ const sanitizeCSVCell = (value) => {
 };
 // Validates data before export to prevent malicious content
 const validateExportData = (data) => {
-  return data.map(row => {
-    if (!Array.isArray(row)) {
-      console.warn('Invalid row data:', row);
-      return [];
+  return data
+    .filter(row=>Array.isArray(row) && row.length >0)
+    .map(row => {
+      return row.map(cell => {
+        const cellStr = String(cell);
+        // Check for suspicious patterns
+        const suspiciousPatterns = [
+          /cmd/i,                    // Command execution
+          /powershell/i,             // PowerShell execution
+          /javascript:/i,            // JavaScript URLs
+          /data:text\/html/i,        // Data URLs
+          /vbscript:/i,              // VBScript URLs
+          /<script/i,                // Script tags
+          /document\.cookie/i,       // Cookie theft
+          /window\.location/i,       // Redirection
+        ];
+        
+        const hasSuspiciousContent = suspiciousPatterns.some(pattern => pattern.test(cellStr));
+        
+        if (hasSuspiciousContent) {
+          console.warn('Suspicious content detected and sanitized:', cellStr);
+          // Replace with safe placeholder
+          return '[CONTENT_SANITIZED]';
+        }
+        
+        return sanitizeCSVCell(cell);
+      });
     }
-    
-    return row.map(cell => {
-      const cellStr = String(cell);
-      // Check for suspicious patterns
-      const suspiciousPatterns = [
-        /cmd/i,                    // Command execution
-        /powershell/i,             // PowerShell execution
-        /javascript:/i,            // JavaScript URLs
-        /data:text\/html/i,        // Data URLs
-        /vbscript:/i,              // VBScript URLs
-        /<script/i,                // Script tags
-        /document\.cookie/i,       // Cookie theft
-        /window\.location/i,       // Redirection
-      ];
-      
-      const hasSuspiciousContent = suspiciousPatterns.some(pattern => pattern.test(cellStr));
-      
-      if (hasSuspiciousContent) {
-        console.warn('Suspicious content detected and sanitized:', cellStr);
-        // Replace with safe placeholder
-        return '[CONTENT_SANITIZED]';
-      }
-      
-      return sanitizeCSVCell(cell);
-    });
-  });
+  );
 };
 // Secure CSV export
 export function exportSecureCSV  (data, headers, filename) {
@@ -72,8 +74,11 @@ export function exportSecureCSV  (data, headers, filename) {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
+    let safename = sanitizeFilename(filename);
+    if(!safename.toLowerCase().endsWith('.csv')) safename += '.csv';
+
     link.href = url;
-    link.setAttribute('download', sanitizeFilename(filename));
+    link.setAttribute('download', safename);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
@@ -104,13 +109,17 @@ export function jsonExport(val, rep, spa, filename){
     const blob = new Blob([JSON.stringify(val, rep, spa)], {
         type: 'application/json;charset=utf-8;',
     });
+    const url = URL.createObjectURL(blobl);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.setAttribute('download', `${filename}`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  } catch(err){
+    URL.revokeObjectURL(url);
+    console.log("Json successfully downloaded")
+  } 
+  catch(err){
     console.error('Error exporting json:', err);
     throw new Error('Failed to export json file');
   }

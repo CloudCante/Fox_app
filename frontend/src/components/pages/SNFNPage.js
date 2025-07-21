@@ -11,6 +11,12 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useTheme } from '@mui/material';
 import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
 import { importQuery } from '../../utils/queryUtils';
+import { truncateText,sanitizeText } from '../../utils/textUtils.js';
+import { ExportMenu } from '../pagecomp/snfn/ExportMenu.jsx';
+import { SortMenu } from '../pagecomp/snfn/SortMenu.jsx';
+import { FilterBar } from '../pagecomp/snfn/FilterBar.jsx'
+import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
+import { useCallback } from 'react';
 
 
 // Check for environment variable for API base
@@ -56,13 +62,43 @@ const SnFnPage = () => {
   const [maxErrorCodes,setMaxErrors] = useState(5); // Number of error codes per station table
   const [sortAsc, setSortAsc] = useState(true); // true = ascending, false = descending
   const [sortByCount, setByCount] = useState(false); // sort by EC count or station ID
+  const [groupByWorkstation, setGroupByWorkstation] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [sortAnchorEl, setSortAnchorEl] = useState(null);
+  const [exportAnchor, setExportAnchor] = useState(null);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
-  const [groupByWorkstation, setGroupByWorkstation] = useState(false);
-  const [sortAnchorEl, setSortAnchorEl] = useState(null);
-  const sortMenuOpen = (e) => setSortAnchorEl(e.currentTarget);
-  const sortMenuClose = () => setSortAnchorEl(null);
+  const sortMenuOpen = useCallback(e => setSortAnchorEl(e.currentTarget), []);
+  const sortMenuClose = useCallback(() => setSortAnchorEl(null), []);
+  const openExport = useCallback(e => setExportAnchor(e.currentTarget),[]);
+  const closeExport = useCallback(() => setExportAnchor(null),[]);
+  const toggleGroup = useCallback(() => setGroupByWorkstation(x => !x),[])
+  const toggleAsc = useCallback(() => setSortAsc(x => !x),[])
+  const toggleByCount = useCallback(() => setByCount(x => !x),[])
+  const onStationChange = useCallback(e => {
+    const v = e.target.value;
+    if (v.includes('__CLEAR__')) setStationFilter([]);
+    else setStationFilter(v);
+  }, []);
+  const onSearchStations = useCallback(e => {
+    setSearchStations(e.target.value);
+  }, []);
+  const onErrorCodeChange = useCallback(e => {
+    const v = e.target.value;
+    if (v.includes('__CLEAR__')) setErrorCodeFilter([]);
+    else setErrorCodeFilter(v);
+  }, []);
+  const onSearchErrorCodes = useCallback(e => {
+    setSearchErrorCodes(e.target.value);
+  }, []);
+  const onModelChange = useCallback(e => {
+    const v = e.target.value;
+    if (v.includes('__CLEAR__')) setModelFilter([]);
+    else setModelFilter(v);
+  }, []);
+  const onSearchModels = useCallback(e => {
+    setSearchModels(e.target.value);
+  }, []);
   const scrollThreshold = 5;
   const autoRefreshInterval = 300000; // in ms, 5 min
 
@@ -109,12 +145,6 @@ const SnFnPage = () => {
     setModalInfo(row);
     handleOpen();
   };
-
-  const truncateText = (text, maxLength) => {
-    if (typeof text !== 'string') return '';
-    return text.length > maxLength ? text.slice(0, maxLength - 1) + '…' : text;
-  };
-  const sanitizeText = (text)=> text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   // Modal rendering selected station and error code details
   const ModalContent = () => {
@@ -242,9 +272,15 @@ const SnFnPage = () => {
   const handleExportCSV = () => {
     if (exportCooldown) return;
     setExportCooldown(true);
-    setTimeout(()=>setExportCooldown(false),3000);
-    exportToCSV();
-    handleMenuClose();
+    try {
+      exportToCSV();
+    } catch(err) {
+      console.error(err);
+      alert('Export failed');
+    } finally {
+      // always clear cooldown
+      setTimeout(()=>setExportCooldown(false),3000);
+    }
   };
   const handleExportJSON = () => {
     if (exportCooldown) return;
@@ -457,178 +493,24 @@ const SnFnPage = () => {
             maxDate={new Date()}
           />
         </Box>
-        {/* Multi-select station filter */}
-        <FormControl sx={{ minWidth: 200 }} size="small">
-          <InputLabel>{groupByWorkstation ? 'Workstations' : 'Fixtures'}</InputLabel>
-          <Select
-            multiple
-            value={stationFilter}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (!Array.isArray(value)) return;
-              if (value.includes('__CLEAR__')) {
-                setStationFilter([]);
-              } else {
-                setStationFilter(value);
-              }
-            }}
-            input={<OutlinedInput label="Stations" />}
-            renderValue={(selected) => selected.join(', ')}
-            MenuProps={{
-              PaperProps: {
-                sx: { maxHeight: 300, overflowY: 'auto' },
-                // no custom onClose here for now
-              },
-              // prevent menu from closing when typing
-              disableAutoFocusItem: true,
-            }}
-          >
-            {/* Insert a non-selectable search box */}
-            {allStationsCodes.length > 10 ? (
-              <Box sx={{ px: 1, pt: 1 }}>
-                <TextField
-                  size="small"
-                  variant="standard"
-                  placeholder="Search..."
-                  value={searchStations}
-                  onChange={(e) => setSearchStations(e.target.value)}
-                  fullWidth
-                  onClick={(e) => e.stopPropagation()} // prevent Select open/close toggle
-                  onKeyDown={(e) => e.stopPropagation()} // prevent key events bubbling
-                  autoFocus
-                />
-              </Box>
-            ):null}
-            <MenuItem value="__CLEAR__">
-              <em>Clear All</em>
-            </MenuItem>
-            {allStationsCodes
-              .filter((code) =>
-                code.toLowerCase().includes((searchStations || '').toLowerCase())
-              )
-              .map((code) => (
-                <MenuItem key={code} value={code}>
-                  <Checkbox checked={stationFilter.includes(code)} />
-                  <ListItemText primary={code} />
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-        {/* Multi-select error code filter */}
-        <FormControl sx={{ minWidth: 200 }} size='small'>
-        <InputLabel sx={{ fontSize: 14 }}>Error Codes</InputLabel>
-            <Select
-                multiple
-                value={errorCodeFilter}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (!Array.isArray(value)) return;
-                  if (value.includes('__CLEAR__')) {
-                      setErrorCodeFilter([]);
-                  } else {
-                      setErrorCodeFilter(value);
-                  }
-                }}
-                input={<OutlinedInput label="Error Codes" />}
-                renderValue={(selected) => selected.join(', ')}
-                MenuProps={{
-                  PaperProps: {
-                    sx: { maxHeight: 300, overflowY: 'auto' },
-                    // no custom onClose here for now
-                  },
-                  // prevent menu from closing when typing
-                  disableAutoFocusItem: true,
-                }}
-            >
-              {/* Insert a non-selectable search box */}
-              {allErrorCodes.length > 10 ? (
-                <Box sx={{ px: 1, pt: 1 }}>
-                  <TextField
-                    size="small"
-                    variant="standard"
-                    placeholder="Search..."
-                    value={searchErrorCodes}
-                    onChange={(e) => setSearchErrorCodes(e.target.value)}
-                    fullWidth
-                    onClick={(e) => e.stopPropagation()} // prevent Select open/close toggle
-                    onKeyDown={(e) => e.stopPropagation()} // prevent key events bubbling
-                    autoFocus
-                  />
-                </Box>
-              ):null}
-                <MenuItem value="__CLEAR__">
-                <em>Clear All</em>
-                </MenuItem>
-                {allErrorCodes
-                  .filter((code) =>
-                    code.toLowerCase().includes((searchErrorCodes || '').toLowerCase())
-                  )
-                  .map((code) => (
-                    <MenuItem key={code} value={code}>
-                      <Checkbox checked={errorCodeFilter.includes(code)} />
-                      <ListItemText primary={code} />
-                    </MenuItem>
-                  ))}
-            </Select>
-        </FormControl>
-        {/* Multi-select model filter */}
-        {allModels.length > 0 && (
-          <FormControl sx={{ minWidth: 200 }} size='small'>
-            <InputLabel sx={{ fontSize: 14 }}>Models</InputLabel>
-            <Select
-              multiple
-              value={modelFilter}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (!Array.isArray(value)) return;
-                if (value.includes('__CLEAR__')) {
-                  setModelFilter([]);
-                } else {
-                  setModelFilter(value);
-                }
-              }}
-              input={<OutlinedInput label="Models" />}
-              renderValue={(selected) => selected.join(', ')}
-              MenuProps={{
-                PaperProps: {
-                  sx: { maxHeight: 300, overflowY: 'auto' },
-                  // no custom onClose here for now
-                },
-                // prevent menu from closing when typing
-                disableAutoFocusItem: true,
-              }}
-            >
-              {/* Insert a non-selectable search box */}
-              {allModels.length > 10 ? (
-                <Box sx={{ px: 1, pt: 1 }}>
-                  <TextField
-                    size="small"
-                    variant="standard"
-                    placeholder="Search..."
-                    value={searchModels}
-                    onChange={(e) => setSearchModels(e.target.value)}
-                    fullWidth
-                    onClick={(e) => e.stopPropagation()} // prevent Select open/close toggle
-                    onKeyDown={(e) => e.stopPropagation()} // prevent key events bubbling
-                  />
-                </Box>
-              ):null}
-              <MenuItem value="__CLEAR__">
-                <em>Clear All</em>
-              </MenuItem>
-              {allModels
-                .filter((code) =>
-                  code.toLowerCase().includes((searchModels || '').toLowerCase())
-                )
-                .map((code) => (
-                  <MenuItem key={code} value={code}>
-                    <Checkbox checked={modelFilter.includes(code)} />
-                    <ListItemText primary={code} />
-                  </MenuItem>
-                ))}
-            </Select>
-          </FormControl>
-        )}
+        {/* Filters on Fixtures/ErrorCodes/Models */}
+        <FilterBar
+          allStations = {allStationsCodes}
+          stationFilter = {stationFilter}
+          onStationChange = {onStationChange}
+          searchStations = {searchStations}
+          onSearchStations = {onSearchStations}
+          allModels = {allModels}
+          modelFilter = {modelFilter}
+          onModelChange = {onModelChange}
+          searchModels = {searchModels}
+          onSearchModels = {onSearchModels}
+          allErrorCodes = {allErrorCodes}
+          errorCodeFilter = {errorCodeFilter}
+          onErrorCodeChange = {onErrorCodeChange}
+          searchErrorCodes = {searchErrorCodes}
+          onSearchErrorCodes = {onSearchErrorCodes}
+        />
         {/* Fields to set tables per page and error codes per table */}
         <TextField size='small' type='number' label='# Tables'
             slotProps={{
@@ -654,7 +536,7 @@ const SnFnPage = () => {
             }}/>
         {/* Buttons */}
         <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* Sort Menu */}
+            {/* Sort Menu Button*/}
             <Button
               variant="outlined"
               sx={{ fontSize: 14 }}
@@ -662,96 +544,54 @@ const SnFnPage = () => {
             >
               Sort Options
             </Button>
-
             {/* Reset Filters */}
             <Button variant='outlined' sx={{ fontSize: 14 }} onClick={clearFilters}>Reset Filters</Button>
             {/* Exports */}
             <Button
               variant='outlined'
               id="export-button"
-              aria-controls={Boolean(anchorEl) ? 'export-menu' : undefined}
+              aria-controls={Boolean(exportAnchor) ? 'export-menu' : undefined}
               aria-haspopup="true"
-              aria-expanded={Boolean(anchorEl)}
-              onClick={handleMenuOpen}
+              aria-expanded={Boolean(exportAnchor)}
+              onClick={openExport}
               disabled={exportCooldown}
               >
               Export
             </Button>
             {/* Exports Menu */}
-            <Menu
-                id="export-menu"
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                MenuListProps={{
-                    'aria-labelledby': 'export-button',
-                }}
-                >
-                <MenuItem onClick={handleExportCSV}>Export CSV</MenuItem>
-                <MenuItem onClick={handleExportJSON}>Export JSON</MenuItem>
-            </Menu>
+            <ExportMenu
+              anchorEl={exportAnchor}
+              open={Boolean(exportAnchor)}
+              onClose={closeExport}
+              onExportCSV={handleExportCSV}
+              onExportJSON={handleExportJSON}
+              disabled={exportCooldown}
+            />
             {/* Sort Menu */}
-            <Menu
-              id="sort-menu"
+            <SortMenu
               anchorEl={sortAnchorEl}
               open={Boolean(sortAnchorEl)}
               onClose={sortMenuClose}
-              MenuListProps={{
-                'aria-labelledby': 'sort-options-button',
-              }}
-            >
-              <MenuItem onClick={() => {
-                setGroupByWorkstation(prev => !prev);
-                sortMenuClose();
-              }}>
-                Sort by: {groupByWorkstation ? 'Workstation' : 'Fixture'}
-              </MenuItem>
-
-              <MenuItem onClick={() => {
-                setSortAsc(prev => !prev);
-                sortMenuClose();
-              }}>
-                Sort Order: {sortAsc ? 'Asc' : 'Dec'}
-              </MenuItem>
-
-              <MenuItem onClick={() => {
-                setByCount(prev => !prev);
-                sortMenuClose();
-              }}>
-                Sort by Count: {sortByCount ? 'ON' : 'OFF'}
-              </MenuItem>
-            </Menu>
+              groupByWorkstation={groupByWorkstation}
+              onToggleGroup={toggleGroup}
+              sortAsc={sortAsc}
+              onToggleAsc={toggleAsc}
+              sortByCount={sortByCount}
+              onToggleByCount={toggleByCount}
+            />
         </Box>
       </Box>
 
       {/* Error code table for each station */}
-      <Box sx={tableStyle}>
-        {paginatedData.map((station, idx) => (
-          <Paper key={station[0]} sx={{ p: 2 }}>
-            <table>
-              {/* Table Header */}
-              <thead>
-                <tr
-                  title={`${groupByWorkstation ? 'Fixture' : 'Workstation'}: "${station[0][1]}" — ${(station?.length ?? 0) - 1} unique error codes`}>
-                  <th style={style}>{groupByWorkstation ? 'Workstation' : 'Fixture'} {station[0][0]}</th>
-                  <th style={style}>Count of Error Codes</th>
-                </tr>
-              </thead>
-              {/* Table Body */}
-              <tbody>
-                {station.slice(1, maxErrorCodes+1).map((codes, jdx) => (
-                  <tr key={jdx} 
-                  onClick={() => getClick([station, codes])}
-                  title={`Error ${codes[0]} — ${truncateText(sanitizeText(allCodeDesc.find((x) => x[0] === station[0][0]+codes[0])?.[1] ?? "NAN"),75)}`}>
-                    <td style={style}>{codes[0]}</td>
-                    <td style={style}>{codes[1]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Paper>
-        ))}
-      </Box>
+      <DataTable
+        paginatedData={paginatedData}
+        maxErrorCodes={maxErrorCodes}
+        codeDescMap={codeDescMap}
+        onRowClick={getClick}
+        groupByWorkstation={groupByWorkstation}
+        style={style}
+      />
+
 
       {/* Pagination Controls */}
       <Box display="flex" justifyContent="center" mt={4}>
