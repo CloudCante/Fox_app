@@ -13,6 +13,7 @@ import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
 import { importQuery } from '../../utils/queryUtils';
 import { sanitizeText } from '../../utils/textUtils.js';
 import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
+import { MultiFilter } from '../pagecomp/MultiFilter.jsx';
 import { FilterBar } from '../pagecomp/snfn/FilterBar.jsx'
 import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
 import { useCallback } from 'react';
@@ -98,6 +99,32 @@ const SnFnPage = () => {
   const onSearchModels = useCallback(e => {
     setSearchModels(e.target.value);
   }, []);
+  const filters = [
+    [
+      groupByWorkstation ? 'Workstations' : 'Fixtures',
+      allStationsCodes,
+      stationFilter,
+      onStationChange,
+      searchStations,
+      onSearchStations
+    ],
+    [
+      'Error Codes',
+      allErrorCodes,
+      errorCodeFilter,
+      onErrorCodeChange,
+      searchErrorCodes,
+      onSearchErrorCodes
+    ],
+    [
+      'Models',
+      allModels,
+      modelFilter,
+      onModelChange,
+      searchModels,
+      onSearchModels
+    ]
+  ];
   const scrollThreshold = 5;
   const autoRefreshInterval = 300000; // in ms, 5 min
 
@@ -493,22 +520,10 @@ const SnFnPage = () => {
           />
         </Box>
         {/* Filters on Fixtures/ErrorCodes/Models */}
-        <FilterBar
-          allStations = {allStationsCodes}
-          stationFilter = {stationFilter}
-          onStationChange = {onStationChange}
-          searchStations = {searchStations}
-          onSearchStations = {onSearchStations}
-          allModels = {allModels}
-          modelFilter = {modelFilter}
-          onModelChange = {onModelChange}
-          searchModels = {searchModels}
-          onSearchModels = {onSearchModels}
-          allErrorCodes = {allErrorCodes}
-          errorCodeFilter = {errorCodeFilter}
-          onErrorCodeChange = {onErrorCodeChange}
-          searchErrorCodes = {searchErrorCodes}
-          onSearchErrorCodes = {onSearchErrorCodes}
+        <MultiFilter
+          filters={filters}
+          limit={0}            // show all
+          searchThreshold={10} // show search when >10 options
         />
         {/* Fields to set tables per page and error codes per table */}
         <TextField size='small' type='number' label='# Tables'
