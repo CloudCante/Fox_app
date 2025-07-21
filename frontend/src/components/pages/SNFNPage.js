@@ -11,9 +11,8 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useTheme } from '@mui/material';
 import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
 import { importQuery } from '../../utils/queryUtils';
-import { truncateText,sanitizeText } from '../../utils/textUtils.js';
-import { ExportMenu } from '../pagecomp/snfn/ExportMenu.jsx';
-import { SortMenu } from '../pagecomp/snfn/SortMenu.jsx';
+import { sanitizeText } from '../../utils/textUtils.js';
+import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
 import { FilterBar } from '../pagecomp/snfn/FilterBar.jsx'
 import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
 import { useCallback } from 'react';
@@ -559,25 +558,26 @@ const SnFnPage = () => {
               Export
             </Button>
             {/* Exports Menu */}
-            <ExportMenu
+            <MultiMenu
               anchorEl={exportAnchor}
               open={Boolean(exportAnchor)}
               onClose={closeExport}
-              onExportCSV={handleExportCSV}
-              onExportJSON={handleExportJSON}
+              buttonData={[
+                [handleExportCSV,"Export CSV"],
+                [handleExportJSON,"Export Json"]
+              ]}
               disabled={exportCooldown}
             />
             {/* Sort Menu */}
-            <SortMenu
+            <MultiMenu
               anchorEl={sortAnchorEl}
               open={Boolean(sortAnchorEl)}
               onClose={sortMenuClose}
-              groupByWorkstation={groupByWorkstation}
-              onToggleGroup={toggleGroup}
-              sortAsc={sortAsc}
-              onToggleAsc={toggleAsc}
-              sortByCount={sortByCount}
-              onToggleByCount={toggleByCount}
+              buttonData={[
+                [toggleGroup,(groupByWorkstation ? 'Workstation' : 'Fixture')],
+                [toggleAsc,(sortAsc ? 'Asc' : 'Dec')],
+                [toggleByCount,(sortByCount ? 'ON' : 'OFF')]
+              ]}
             />
         </Box>
       </Box>
