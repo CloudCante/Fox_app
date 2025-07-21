@@ -9,6 +9,8 @@ import {
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useTheme } from '@mui/material';
+import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
+import { importQuery } from '../../utils/queryUtils';
 
 
 // Check for environment variable for API base
@@ -183,112 +185,9 @@ const SnFnPage = () => {
   };
   
   // Exporting
-  // Sanitizes a cell value to prevent CSV injection attacks
-  const sanitizeCSVCell = (value) => {
-    if (value === null || value === undefined) {return '';}
-    let cellValue = String(value);
-    // Remove or escape dangerous formula characters
-    // Characters that can start formulas: =, +, -, @, \t, \r
-    const dangerousChars = /^[\=\+\-\@\t\r]/;
-    if (dangerousChars.test(cellValue)) {cellValue = "'" + cellValue;}
-    
-    // Handle quotes and newlines
-    if (cellValue.includes('"') || cellValue.includes(',') || cellValue.includes('\n')) {
-      // Escape existing quotes by doubling them
-      cellValue = cellValue.replace(/"/g, '""');
-      // Wrap in quotes
-      cellValue = `"${cellValue}"`;
-    }
-    return cellValue;
-  };
-  // Validates data before export to prevent malicious content
-  const validateExportData = (data) => {
-    return data.map(row => {
-      if (!Array.isArray(row)) {
-        console.warn('Invalid row data:', row);
-        return [];
-      }
-      
-      return row.map(cell => {
-        const cellStr = String(cell);
-        // Check for suspicious patterns
-        const suspiciousPatterns = [
-          /cmd/i,                    // Command execution
-          /powershell/i,             // PowerShell execution
-          /javascript:/i,            // JavaScript URLs
-          /data:text\/html/i,        // Data URLs
-          /vbscript:/i,              // VBScript URLs
-          /<script/i,                // Script tags
-          /document\.cookie/i,       // Cookie theft
-          /window\.location/i,       // Redirection
-        ];
-        
-        const hasSuspiciousContent = suspiciousPatterns.some(pattern => pattern.test(cellStr));
-        
-        if (hasSuspiciousContent) {
-          console.warn('Suspicious content detected and sanitized:', cellStr);
-          // Replace with safe placeholder
-          return '[CONTENT_SANITIZED]';
-        }
-        
-        return sanitizeCSVCell(cell);
-      });
-    });
-  };
-  // Secure CSV export
-  const exportSecureCSV = (data, headers, filename) => {
-    try {
-      // Validate and sanitize all data
-      const sanitizedHeaders = headers.map(header => sanitizeCSVCell(header));
-      const sanitizedData = validateExportData(data);
-      
-      // Create CSV content
-      const csvRows = [sanitizedHeaders, ...sanitizedData];
-      const csvContent = csvRows
-        .map(row => row.join(','))
-        .join('\n');
-      
-      // Add BOM for Excel compatibility (optional)
-      const BOM = '\uFEFF';
-      const csvWithBOM = BOM + csvContent;
-      
-      // Create and download file
-      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
-      
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      
-      link.href = url;
-      link.setAttribute('download', sanitizeFilename(filename));
-      link.style.visibility = 'hidden';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up object URL
-      URL.revokeObjectURL(url);
-      
-      console.log('CSV exported successfully:', filename);
-      
-    } catch (error) {
-      console.error('Error exporting CSV:', error);
-      throw new Error('Failed to export CSV file');
-    }
-  };
-  // Sanitizes filename to prevent directory traversal
-  const sanitizeFilename = (filename) => {
-    return filename
-      .replace(/[^\w\s.-]/gi, '_') // Replace special chars with underscore
-      .replace(/\s+/g, '_')        // Replace spaces with underscore
-      .replace(/_{2,}/g, '_')      // Replace multiple underscores with single
-      .substring(0, 255);          // Limit length
-  };
-  // Main export
   const exportToCSV = () => {
     try {
       const rows = [];
-  
       filteredData.forEach((station) => {
           const stationId = station[0][0];
           const stationSecondaryId = station[0][1];
@@ -310,36 +209,34 @@ const SnFnPage = () => {
       const filename = `snfn_filtered_data_${getTimestamp()}.csv`;
       // Use secure export function
       exportSecureCSV(rows, headers, filename);
-    } catch (error) {
+    } 
+    catch (error) {
       console.error('Export failed:', error);
       alert('Export failed. Please try again.');
-    }
+    };
   };
   const exportToJSON = () => {
-    const jsonData = [];
-
-    filteredData.forEach((station) => {
-        const stationId = station[0];
-        const errors = station.slice(1).map(([errorCode, count, snList]) => ({
-        errorCode,
-        count,
-        serialNumbers: snList,
-        }));
-        jsonData.push({
-          [groupByWorkstation ? 'workstation' : 'fixture']: stationId,
-          errors
-        });
-    });
-
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
-        type: 'application/json;charset=utf-8;',
-    });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `snfn_filtered_data_${getTimestamp()}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try{
+      const jsonData = [];
+      filteredData.forEach((station) => {
+          const stationId = station[0];
+          const errors = station.slice(1).map(([errorCode, count, snList]) => ({
+          errorCode,
+          count,
+          serialNumbers: snList,
+          }));
+          jsonData.push({
+            [groupByWorkstation ? 'workstation' : 'fixture']: stationId,
+            errors
+          });
+      });
+      const filename = `snfn_filtered_data_${getTimestamp()}.json`
+      jsonExport(jsonData,null,2,filename);
+    } 
+    catch(error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    };
   };
   // Export handlers
   const handleExportCSV = () => {
@@ -363,23 +260,15 @@ const SnFnPage = () => {
       //const dataSet = testSnFnData; // Placeholder data
       let dataSet = [];
       try {
-        const queryParams = new URLSearchParams({
+        dataSet = await importQuery(API_BASE,'/api/snfn/station-errors?',{
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
         });
-        const res = await fetch(`${API_BASE}/api/snfn/station-errors?${queryParams}`);
-
-        if (!res.ok) {
-          // Optional: Log or handle HTTP error responses
-          console.error(`Server error: ${res.status} ${res.statusText}`);
-          return;
-        }
-
-        dataSet = await res.json();
       } catch (err) {
         console.error('Failed to fetch SNFN data:', err);
         return; // exit the function early or set fallback data
       }
+      // consts for data and sets
       const data = [];
       const codeSet = new Set();
       const stationSet = new Set();
@@ -405,9 +294,7 @@ const SnFnPage = () => {
         } = d;
         // Validate date range
         const recordDate = new Date(DT);
-        if (isNaN(recordDate) || recordDate < startDate || recordDate > endDate) {
-            return;
-        }
+        if (isNaN(recordDate) || recordDate < startDate || recordDate > endDate) {return;}
 
         if (TN == 0) return; // Skip if count is zero
 
@@ -449,7 +336,8 @@ const SnFnPage = () => {
         group.splice(1, group.length - 1, ...group.slice(1).sort((a, b) => b[1] - a[1]));
       });
 
-      setAllErrorCodes(Array.from(codeSet).sort()); // Populate filter list
+      // Populate filter list
+      setAllErrorCodes(Array.from(codeSet).sort());
       setAllStations(Array.from(stationSet).sort());
       setAllModels(Array.from(modelSet).sort());
 
@@ -459,16 +347,12 @@ const SnFnPage = () => {
       ]);
       setCodeDesc(combinedCodeDesc.sort());
 
-
-      //setData(JSON.parse(JSON.stringify(data))); // Switch to this if dealing with circular refs or mutations
       setData([...data]);
     };
 
-    if (document.visibilityState === 'visible'){
-      fetchAndSortData();
-    }
+    if (document.visibilityState === 'visible'){fetchAndSortData();}
     
-    const intervalId = setInterval(() => fetchAndSortData(), 300000); // Refresh every 5 min
+    const intervalId = setInterval(() => fetchAndSortData(), autoRefreshInterval); // Refresh every 5 min
 
     return () => clearInterval(intervalId);
   }, [startDate,endDate, groupByWorkstation]);
@@ -789,6 +673,7 @@ const SnFnPage = () => {
               aria-haspopup="true"
               aria-expanded={Boolean(anchorEl)}
               onClick={handleMenuOpen}
+              disabled={exportCooldown}
               >
               Export
             </Button>
@@ -836,7 +721,6 @@ const SnFnPage = () => {
                 Sort by Count: {sortByCount ? 'ON' : 'OFF'}
               </MenuItem>
             </Menu>
-
         </Box>
       </Box>
 
