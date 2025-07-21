@@ -1,10 +1,7 @@
 // Import required dependencies and components
 import { useEffect, useState, useMemo} from 'react';
 import {
-  Box, Paper, Typography, Modal, Pagination,
-  Select, MenuItem, InputLabel, FormControl,
-  OutlinedInput, Checkbox, ListItemText, TextField,
-  Button, Menu,
+  Box, Paper, Typography, Modal, Pagination, Select, MenuItem, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText, TextField, Button, Menu,
 } from '@mui/material';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -14,7 +11,6 @@ import { importQuery } from '../../utils/queryUtils';
 import { sanitizeText } from '../../utils/textUtils.js';
 import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
 import { MultiFilter } from '../pagecomp/MultiFilter.jsx';
-import { FilterBar } from '../pagecomp/snfn/FilterBar.jsx'
 import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
 import { useCallback } from 'react';
 
@@ -124,6 +120,15 @@ const SnFnPage = () => {
       searchModels,
       onSearchModels
     ]
+  ];
+  const sortOptions = [
+    [toggleGroup,(groupByWorkstation ? 'Workstation' : 'Fixture')],
+    [toggleAsc,(sortAsc ? 'Asc' : 'Dec')],
+    [toggleByCount,(sortByCount ? 'Count' : 'Station')]
+  ];
+  const exportOptions = [
+    [handleExportCSV,"Export CSV"],
+    [handleExportJSON,"Export Json"]
   ];
   const scrollThreshold = 5;
   const autoRefreshInterval = 300000; // in ms, 5 min
@@ -385,8 +390,8 @@ const SnFnPage = () => {
                 data[idx].push([EC, Number(TN), [[SN,PN, MD]]]);
             }else{ // Update existing error code
                 const serials = data[idx][jdx][2]; // Array of SNs
-                if (!serials.includes([SN,PN, MD])) { // checking for duplicate ec sn combonation
-                    serials.push([SN,PN, MD]);
+                if (!serials.some(([a,b,c]) => a === SN && b === PN && c === MD)) {
+                  serials.push([SN,PN,MD]);
                 }
                 data[idx][jdx][1] += Number(TN); // currently still counts duplicate ec sn to tn
             }
@@ -405,7 +410,7 @@ const SnFnPage = () => {
 
       const combinedCodeDesc = Array.from(discMap.entries()).map(([code, descSet]) => [
         code,
-        Array.from(descSet).join('; '), // join multiple descriptions with semicolon or linebreak
+        Array.from(descSet).join('\n '), // join multiple descriptions with semicolon or linebreak
       ]);
       setCodeDesc(combinedCodeDesc.sort());
 
@@ -439,7 +444,7 @@ const SnFnPage = () => {
       const filteredCodes = station.slice(1)
         .map(([code, count, snList]) => {
           const filteredSNs = snList.filter(([sn, pn, md]) =>
-            modelFilter.length === 0 || modelFilter.includes(md)
+            modelFilter.length === 0 || modelFilter.includes(md??'')
           );
           return [code, filteredSNs.length, filteredSNs];
         })
@@ -577,10 +582,7 @@ const SnFnPage = () => {
               anchorEl={exportAnchor}
               open={Boolean(exportAnchor)}
               onClose={closeExport}
-              buttonData={[
-                [handleExportCSV,"Export CSV"],
-                [handleExportJSON,"Export Json"]
-              ]}
+              buttonData={exportOptions}
               disabled={exportCooldown}
             />
             {/* Sort Menu */}
@@ -588,11 +590,7 @@ const SnFnPage = () => {
               anchorEl={sortAnchorEl}
               open={Boolean(sortAnchorEl)}
               onClose={sortMenuClose}
-              buttonData={[
-                [toggleGroup,(groupByWorkstation ? 'Workstation' : 'Fixture')],
-                [toggleAsc,(sortAsc ? 'Asc' : 'Dec')],
-                [toggleByCount,(sortByCount ? 'ON' : 'OFF')]
-              ]}
+              buttonData={sortOptions}
             />
         </Box>
       </Box>

@@ -1,4 +1,4 @@
-// FilterBar.jsx
+// FilterBar.jsx depricated
 import React, { memo } from 'react';
 import { Box, FormControl, InputLabel, Select, OutlinedInput, MenuItem, Checkbox, ListItemText, TextField } from '@mui/material';
 

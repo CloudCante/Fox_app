@@ -1,7 +1,7 @@
 // DataTable.jsx
 import React, { memo } from 'react';
 import { Box, Paper } from '@mui/material';
-import { truncateText } from '../../../utils/textUtils';
+import { truncateText,sanitizeText } from '../../../utils/textUtils';
 
 const tableStyle = {
     display: 'grid',
@@ -25,16 +25,21 @@ export function DataTable({ paginatedData, maxErrorCodes, codeDescMap, onRowClic
                 </tr>
             </thead>
             <tbody>
-              {station.slice(1, maxErrorCodes+1).map(([code, count, snList]) => (
-                <tr
-                  key={code}
-                  onClick={() => onRowClick([station, [code, count, snList]])}
-                  title={truncateText(codeDescMap.get(station[0]+code) || '')}
-                >
-                  <td style={style}>{code}</td>
-                  <td style={style}>{count}</td>
-                </tr>
-              ))}
+              {station.slice(1, maxErrorCodes + 1).map(([code, count, snList]) => {
+                const codeKey = station[0][0] + code;
+                const desc = truncateText(sanitizeText(codeDescMap.get(codeKey) ?? "NAN"), 75);
+
+                return (
+                    <tr
+                    key={code}
+                    onClick={() => onRowClick([station, [code, count, snList]])}
+                    title={`Error ${code} — ${desc}`}
+                    >
+                    <td style={style}>{code}</td>
+                    <td style={style}>{count}</td>
+                    </tr>
+                );
+                })}
             </tbody>
           </table>
         </Paper>
