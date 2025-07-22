@@ -19,7 +19,7 @@ const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
-
+ 
 const CellThroughput = () => {
     return(
         <Box>
