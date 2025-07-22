@@ -130,8 +130,8 @@ const SnFnPage = () => {
     [toggleByCount,(sortByCount ? 'Count' : 'Station')]
   ];
   const exportOptions = [
-    [handleExportCSV,"Export CSV"],
-    [handleExportJSON,"Export Json"]
+    [handleExportCSV,"Export CSV",exportCooldown],
+    [handleExportJSON,"Export Json",exportCooldown]
   ];
   const scrollThreshold = 5;
   const autoRefreshInterval = 300000; // in ms, 5 min
@@ -303,7 +303,7 @@ const SnFnPage = () => {
     };
   };
   // Export handlers
-  const handleExportCSV = () => {
+  function handleExportCSV () {
     if (exportCooldown) return;
     setExportCooldown(true);
     try {
@@ -316,7 +316,7 @@ const SnFnPage = () => {
       setTimeout(()=>setExportCooldown(false),3000);
     }
   };
-  const handleExportJSON = () => {
+  function handleExportJSON () {
     if (exportCooldown) return;
     setExportCooldown(true);
     setTimeout(()=>setExportCooldown(false),3000);
@@ -586,7 +586,6 @@ const SnFnPage = () => {
               open={Boolean(exportAnchor)}
               onClose={closeExport}
               buttonData={exportOptions}
-              disabled={exportCooldown}
             />
             {/* Sort Menu */}
             <MultiMenu
