@@ -96,30 +96,33 @@ const SnFnPage = () => {
     setSearchModels(e.target.value);
   }, []);
   const filters = [
-    [
-      groupByWorkstation ? 'Workstations' : 'Fixtures',
-      allStationsCodes,
-      stationFilter,
-      onStationChange,
-      searchStations,
-      onSearchStations
-    ],
-    [
-      'Error Codes',
-      allErrorCodes,
-      errorCodeFilter,
-      onErrorCodeChange,
-      searchErrorCodes,
-      onSearchErrorCodes
-    ],
-    [
-      'Models',
-      allModels,
-      modelFilter,
-      onModelChange,
-      searchModels,
-      onSearchModels
-    ]
+    {
+      id:groupByWorkstation ? 'Workstations' : 'Fixtures',
+      label:groupByWorkstation ? 'Workstations' : 'Fixtures',
+      allOptions:allStationsCodes,
+      selectedOptions:stationFilter,
+      onChange:onStationChange,
+      searchValue:searchStations,
+      onSearchChange:onSearchStations
+    },
+    {
+      id:'Error Codes',
+      label:'Error Codes',
+      allOptions:allErrorCodes,
+      selectedOptions:errorCodeFilter,
+      onChange:onErrorCodeChange,
+      searchValue:searchErrorCodes,
+      onSearchChange:onSearchErrorCodes
+    },
+    {
+      id:'Models',
+      label:'Models',
+      allOptions:allModels,
+      selectedOptions:modelFilter,
+      onChange:onModelChange,
+      searchValue:searchModels,
+      onSearchChange:onSearchModels
+    }
   ];
   const sortOptions = [
     [toggleGroup,(groupByWorkstation ? 'Workstation' : 'Fixture')],
