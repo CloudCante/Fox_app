@@ -39,6 +39,7 @@ const MENU_ITEMS = [
   { text: 'Packing', icon: <Inventory2Icon />, route: '/packing' },
   { text: 'Performance', icon: <SpeedIcon />, route: '/performance' },
   { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
+  { text: 'Cells Throughput', icon: <GridViewIcon />, route: '/cellThroughput' },
   { text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
 ];
 

@@ -8,6 +8,7 @@ import { Dashboard } from './components/dashboard/Dashboard';
 import PackingPage from './components/pages/PackingPage';
 import PerformancePage from './components/pages/PerformancePage';
 import ThroughputPage from './components/pages/ThroughputPage';
+import CellThroughputPage from './components/pages/CellThroughputPage';
 import SNFNPage from './components/pages/SNFNPage';
 import PackingCharts from './components/pages/PackingCharts';
 import UploadPage from './components/pages/uploadPage';
@@ -38,6 +39,7 @@ const AppRoutes = React.memo(() => (
     <Route path="/packing" element={<PackingPage />} />
     <Route path="/performance" element={<PerformancePage />} />
     <Route path="/throughput" element={<ThroughputPage />} />
+    <Route path="/cellThroughput" element={<CellThroughputPage />} />
     <Route path="/snfn" element={<SNFNPage />} />
     <Route path="/packing-charts" element={<PackingCharts />} />
     <Route path="/station-hourly-summary" element={<StationHourlySummaryPage />} />
