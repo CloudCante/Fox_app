@@ -10,8 +10,8 @@ export async function importQuery  (base, route, params) {
 
         const data = await res.json();
         return Array.isArray(data) ? data : [];
-    } catch (error) {
-      console.error('Error importing query data:', error);
-      throw new Error('Failed to import query data');
-    }
+    } catch (err) {
+    console.error('importQuery error:', err);
+    throw new Error(`importQuery failed: ${err.message}`);
+  }
   };
