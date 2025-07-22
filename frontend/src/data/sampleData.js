@@ -27,7 +27,3 @@ export const testStationData = [
   { station: 'IST', pass: 801, fail: 19, failureRate: 0.023 }
 ]; 
 
-
-export const testCellData = [
-  
-];

@@ -27,11 +27,11 @@ if (!API_BASE) {
  
 const CellThroughputPage = () => {
   // State initialization for date and time
-  //const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
-  //const [startDate, setStartDate] = useState(normalizeStart(new Date()));
   const [startDate, setStartDate] = useState(() => dayjs().startOf('day').add(8,'hour'));
-  const [startTime, setStartTime] = useState(() => dayjs().startOf('day').add(8,'hour'));
   const [endTime, setEndTime] = useState(() => dayjs().startOf('day').add(16,'hour'));
+
+  // Cell Data
+  const [cellCount, setCellCount] = useState((5));
 
   function getOut(){
     console.log(startDate);
@@ -50,6 +50,7 @@ const CellThroughputPage = () => {
               Daily Cell Aggregates
               </Typography>
           </Box>
+          <Box>
           {/* Time and Date Selections */}
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
@@ -85,7 +86,21 @@ const CellThroughputPage = () => {
               renderInput={(params) => <TextField {...params} size="small" sx={{ ml: 2 }} />}
             />
           </LocalizationProvider>
+          {/* Field to set number of Cells */}
+          <TextField size='medium' type='number' label='# Cells'
+            slotProps={{
+                input: {min: 1, max:100 },
+                htmlInput: { min: 1, max: 100},
+            }} 
+            defaultValue={cellCount} onChange={(e) => {
+                const value = Number(e.target.value);
+                if (!isNaN(value) && value > 0) {
+                setCellCount(value);
+                }
+            }}/>
+        
           <Button onClick={getOut}>Test</Button>
+          </Box>
       </Box>
   );
 }
