@@ -44,7 +44,7 @@ const FilterSelect = memo(({ filter, searchThreshold }) => {
   
   const filteredOptions = useMemo(() => {
     if (!searchValue) return allOptions;
-    const search = searchValue.toLowerCase();
+    const search = sanitizeText(searchValue.toLowerCase());
     return allOptions.filter(opt => opt.toLowerCase().includes(search));
   }, [allOptions, searchValue]);
 
@@ -73,7 +73,12 @@ const FilterSelect = memo(({ filter, searchThreshold }) => {
               value={searchValue}
               onChange={onSearchChange}
               onClick={e => e.stopPropagation()}
-              onKeyDown={e => e.stopPropagation()}
+              onKeyDown={e => {
+                e.stopPropagation();
+                if(e.key==='Escape'){
+                  e.target.blur()
+                };
+              }}
             />
           </MenuItem>
         )}
@@ -88,6 +93,11 @@ const FilterSelect = memo(({ filter, searchThreshold }) => {
             <ListItemText primary={opt} />
           </MenuItem>
         ))}
+        {filteredOptions.length===0 && searchValue &&(
+          <MenuItem disabled>
+            <em>No options found</em>
+          </MenuItem>
+        )}
       </Select>
     </FormControl>
   );
