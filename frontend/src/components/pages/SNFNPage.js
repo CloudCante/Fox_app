@@ -125,15 +125,48 @@ const SnFnPage = () => {
       onSearchChange:onSearchModels
     }
   ];
-  const sortOptions = [
-    [toggleGroup,(groupByWorkstation ? 'Workstation' : 'Fixture')],
-    [toggleAsc,(sortAsc ? 'Asc' : 'Dec')],
-    [toggleByCount,(sortByCount ? 'Count' : 'Station')]
-  ];
-  const exportOptions = [
-    [handleExportCSV,"Export CSV",exportCooldown],
-    [handleExportJSON,"Export Json",exportCooldown]
-  ];
+  const sortOptions = useMemo(() => [
+    {
+      id: 'groupBy',
+      handleClick: toggleGroup,
+      label: groupByWorkstation ? 'Workstation' : 'Fixture',
+    },
+    {
+      id: 'sortOrder',
+      handleClick: toggleAsc,
+      label: sortAsc ? 'Asc' : 'Dec',
+    },
+    {
+      id: 'sortByCount',
+      handleClick: toggleByCount,
+      label: sortByCount ? 'Count' : 'Station',
+    },
+  ], [
+    toggleGroup,
+    groupByWorkstation,
+    toggleAsc,
+    sortAsc,
+    toggleByCount,
+    sortByCount,
+  ]);
+  const exportOptions = useMemo(() => [
+    {
+      id: 'exportCsv',
+      handleClick: handleExportCSV,
+      label: 'Export CSV',
+      disabled: exportCooldown,
+    },
+    {
+      divider:true,
+      id: 'divider1'
+    },
+    {
+      id: 'exportJson',
+      handleClick: handleExportJSON,
+      label: 'Export JSON',
+      disabled: exportCooldown,
+    },
+  ], [handleExportCSV, handleExportJSON, exportCooldown]);
   const scrollThreshold = 5;
   const autoRefreshInterval = 300000; // in ms, 5 min
 
@@ -569,6 +602,7 @@ const SnFnPage = () => {
               open={Boolean(exportAnchor)}
               onClose={closeExport}
               buttonData={exportOptions}
+              aria-label="Export options"
             />
             {/* Sort Menu */}
             <MultiMenu
@@ -576,6 +610,7 @@ const SnFnPage = () => {
               open={Boolean(sortAnchorEl)}
               onClose={sortMenuClose}
               buttonData={sortOptions}
+              aria-label="Sort options"
             />
         </Box>
       </Box>
