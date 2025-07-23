@@ -77,3 +77,27 @@ export const darkTheme = createTheme({
         divider: themeColors.dark.divider
     }
 }); 
+
+export const toolbarStyle = {
+    display: 'flex',
+    overflowX: 'auto',
+    flexWrap: { xs: 'wrap', md: 'nowrap' },
+    gap: 2,
+    mb: 2,
+    p: 1
+};
+
+export const modalStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    border: '2px solid',
+    boxShadow: 24,
+    pt: 2,
+    px: 4,
+    pb: 3,
+    outline: 0,
+};

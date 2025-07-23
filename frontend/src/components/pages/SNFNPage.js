@@ -1,22 +1,21 @@
 // Import required dependencies and components
-import { useEffect, useState, useMemo} from 'react';
-import {
-  Box, Paper, Typography, Modal, Pagination, Select, MenuItem, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText, TextField, Button, Menu,
-} from '@mui/material';
-import DatePicker from 'react-datepicker';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Box, Typography, Pagination, Button, } from '@mui/material';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useTheme } from '@mui/material';
-import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
-import { importQuery } from '../../utils/queryUtils';
-import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
-import { MultiFilter } from '../pagecomp/MultiFilter.jsx';
-import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
+// Import Page components
+import { Header } from '../pagecomp/Header.jsx';
+import { SnFnDataTable } from '../pagecomp/snfn/SnFnDataTable.jsx';
 import { SnfnModal } from '../pagecomp/snfn/SnFnModal.jsx';
-import { NumberRange } from '../pagecomp/NumberRange.jsx';
+import { SnFnToolbar } from '../pagecomp/snfn/SnFnToolbar.jsx';
+// Import Hooks
 import { useSnFnData } from '../hooks/snfn/useSnFnData.js';
-import { useCallback } from 'react';
-import { DateRange } from '../pagecomp/DateRange.jsx';
-import { processStationData } from '../../utils/snfn/dataUtils.js';
+import { useSnFnFilters } from '../hooks/snfn/useSnFnFilters.js';
+// Import Utilities
+import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
+import { processStationData } from '../../utils/snfn/snfnDataUtils.js';
+// Import Style
+import { modalStyle } from '../theme/themes.js';
 
 
 // Check for environment variable for API base
@@ -44,18 +43,13 @@ const SnFnPage = () => {
   const [exportCooldown,setExportCooldown] = useState(false);
 
   // Data consts
-  //const [dataBase, setData] = useState([]); // Database of pulled data on staions and error codes
-  const [errorCodeFilter, setErrorCodeFilter] = useState([]); // Array holding codes to filter for
-  //const [allErrorCodes, setAllErrorCodes] = useState([]); // Array holding error codes for filter list
-  //const [allCodeDesc, setCodeDesc] = useState([]); // Placeholder incase we need to read in desc vs static table
+  // const [errorCodeFilter, setErrorCodeFilter] = useState([]); // Array holding codes to filter for
   const codeDescMap = useMemo(() => new Map(allCodeDesc), [allCodeDesc]);
-  const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
-  //const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
-  const [modelFilter, setModelFilter] = useState([]); // 
-  //const [allModels, setAllModels] = useState([]); // 
-  const [searchStations, setSearchStations] = useState('');
-  const [searchErrorCodes, setSearchErrorCodes] = useState('');
-  const [searchModels, setSearchModels] = useState('');
+  // const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
+  // const [modelFilter, setModelFilter] = useState([]); // 
+  // const [searchStations, setSearchStations] = useState('');
+  // const [searchErrorCodes, setSearchErrorCodes] = useState('');
+  // const [searchModels, setSearchModels] = useState('');
 
   // UI consts
   const [itemsPerPage,setItemsPer] = useState(6); // Number of stations per page
@@ -70,6 +64,12 @@ const SnFnPage = () => {
     allModels,
     allCodeDesc,
   } = useSnFnData(API_BASE, startDate, endDate, groupByWorkstation);
+  const {
+    stationFilter, errorCodeFilter, modelFilter,
+    searchStations, searchErrorCodes, searchModels,
+    onStationChange, onSearchStations, onErrorCodeChange,onSearchErrorCodes, onSearchModels, onModelChange,
+    filters
+  } = useSnFnFilters(allStationsCodes, allErrorCodes, allModels);
   const [anchorEl, setAnchorEl] = useState(null);
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const [exportAnchor, setExportAnchor] = useState(null);
@@ -82,59 +82,59 @@ const SnFnPage = () => {
   const toggleGroup = useCallback(() => setGroupByWorkstation(x => !x),[])
   const toggleAsc = useCallback(() => setSortAsc(x => !x),[])
   const toggleByCount = useCallback(() => setByCount(x => !x),[])
-  const onStationChange = useCallback(e => {
-    const v = e.target.value;
-    if (v.includes('__CLEAR__')) setStationFilter([]);
-    else setStationFilter(v);
-  }, []);
-  const onSearchStations = useCallback(e => {
-    setSearchStations(e.target.value);
-  }, []);
-  const onErrorCodeChange = useCallback(e => {
-    const v = e.target.value;
-    if (v.includes('__CLEAR__')) setErrorCodeFilter([]);
-    else setErrorCodeFilter(v);
-  }, []);
-  const onSearchErrorCodes = useCallback(e => {
-    setSearchErrorCodes(e.target.value);
-  }, []);
-  const onModelChange = useCallback(e => {
-    const v = e.target.value;
-    if (v.includes('__CLEAR__')) setModelFilter([]);
-    else setModelFilter(v);
-  }, []);
-  const onSearchModels = useCallback(e => {
-    setSearchModels(e.target.value);
-  }, []);
-  const filters = [
-    {
-      id:groupByWorkstation ? 'Workstations' : 'Fixtures',
-      label:groupByWorkstation ? 'Workstations' : 'Fixtures',
-      allOptions:allStationsCodes,
-      selectedOptions:stationFilter,
-      onChange:onStationChange,
-      searchValue:searchStations,
-      onSearchChange:onSearchStations
-    },
-    {
-      id:'Error Codes',
-      label:'Error Codes',
-      allOptions:allErrorCodes,
-      selectedOptions:errorCodeFilter,
-      onChange:onErrorCodeChange,
-      searchValue:searchErrorCodes,
-      onSearchChange:onSearchErrorCodes
-    },
-    {
-      id:'Models',
-      label:'Models',
-      allOptions:allModels,
-      selectedOptions:modelFilter,
-      onChange:onModelChange,
-      searchValue:searchModels,
-      onSearchChange:onSearchModels
-    }
-  ];
+  // const onStationChange = useCallback(e => {
+  //   const v = e.target.value;
+  //   if (v.includes('__CLEAR__')) setStationFilter([]);
+  //   else setStationFilter(v);
+  // }, []);
+  // const onSearchStations = useCallback(e => {
+  //   setSearchStations(e.target.value);
+  // }, []);
+  // const onErrorCodeChange = useCallback(e => {
+  //   const v = e.target.value;
+  //   if (v.includes('__CLEAR__')) setErrorCodeFilter([]);
+  //   else setErrorCodeFilter(v);
+  // }, []);
+  // const onSearchErrorCodes = useCallback(e => {
+  //   setSearchErrorCodes(e.target.value);
+  // }, []);
+  // const onModelChange = useCallback(e => {
+  //   const v = e.target.value;
+  //   if (v.includes('__CLEAR__')) setModelFilter([]);
+  //   else setModelFilter(v);
+  // }, []);
+  // const onSearchModels = useCallback(e => {
+  //   setSearchModels(e.target.value);
+  // }, []);
+  // const filters = [
+  //   {
+  //     id:groupByWorkstation ? 'Workstations' : 'Fixtures',
+  //     label:groupByWorkstation ? 'Workstations' : 'Fixtures',
+  //     allOptions:allStationsCodes,
+  //     selectedOptions:stationFilter,
+  //     onChange:onStationChange,
+  //     searchValue:searchStations,
+  //     onSearchChange:onSearchStations
+  //   },
+  //   {
+  //     id:'Error Codes',
+  //     label:'Error Codes',
+  //     allOptions:allErrorCodes,
+  //     selectedOptions:errorCodeFilter,
+  //     onChange:onErrorCodeChange,
+  //     searchValue:searchErrorCodes,
+  //     onSearchChange:onSearchErrorCodes
+  //   },
+  //   {
+  //     id:'Models',
+  //     label:'Models',
+  //     allOptions:allModels,
+  //     selectedOptions:modelFilter,
+  //     onChange:onModelChange,
+  //     searchValue:searchModels,
+  //     onSearchChange:onSearchModels
+  //   }
+  // ];
   const sortOptions = useMemo(() => [
     {
       id: 'groupBy',
@@ -178,7 +178,6 @@ const SnFnPage = () => {
     },
   ], [handleExportCSV, handleExportJSON, exportCooldown]);
   const scrollThreshold = 5;
-  const autoRefreshInterval = 300000; // in ms, 5 min
 
   // Theme and style objects for consistent UI
   const theme = useTheme();
@@ -192,29 +191,7 @@ const SnFnPage = () => {
     zIndex: 5,
     boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
   };
-  const modalStyle = {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: 400,
-    bgcolor: 'background.paper',
-    border: '2px solid',
-    boxShadow: 24,
-    pt: 2,
-    px: 4,
-    pb: 3,
-    outline: 0,
-  };
-  const toolbarStyle = {
-          display: 'flex',
-          overflowX: 'auto',
-          flexWrap: { xs: 'wrap', md: 'nowrap' },
-          gap: 2,
-          mb: 2,
-          p: 1
-        }
-  // Modal open/close handlers
+   // Modal open/close handlers
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
@@ -231,9 +208,9 @@ const SnFnPage = () => {
     newStart.setDate(newStart.getDate() - 7);
     setStartDate(normalizeStart(newStart));
     setEndDate(normalizeEnd(new Date()));
-    setErrorCodeFilter([]);
-    setStationFilter([]);
-    setModelFilter([]);
+    onErrorCodeChange({ target: { value: ['__CLEAR__'] } });
+    onStationChange({ target: { value: ['__CLEAR__'] } });
+    onModelChange({ target: { value: ['__CLEAR__'] } });
     setPage(1);
   };
 
@@ -321,7 +298,7 @@ const SnFnPage = () => {
 
   // Reset station Filter on togle
   useEffect(() => {
-    setStationFilter([]); // Reset station filter on toggle
+    onStationChange({ target: { value: ['__CLEAR__'] } });
   }, [groupByWorkstation]);
   
   // Handle page change
@@ -350,90 +327,31 @@ const SnFnPage = () => {
   return (
     <Box p={1}>
       {/* Page Header */}
-      <Box sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          SNFN Reports
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Real-time Error Code Tracking
-        </Typography>
-      </Box>
-
+      <Header
+        title="SNFN Reports"
+        subTitle="Real-time Error Code Tracking"
+      />
       {/* Filters */}
-      <Box
-        sx={toolbarStyle}
-      >
-        {/* Date Filters */}
-        <DateRange
-          startDate={startDate}
-          setStartDate={setStartDate}
-          normalizeStart={normalizeStart}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          normalizeEnd={normalizeEnd}
-        />
-        {/* Filters on Fixtures/ErrorCodes/Models */}
-        <MultiFilter
-          filters={filters}
-          limit={0}            // show all
-          searchThreshold={10} // show search when >10 options
-        />
-        {/* Fields to set tables per page and error codes per table */}
-        <NumberRange
-          defaultNumber={itemsPerPage}
-          setNumber={setItemsPer}
-          label="# Tables"
-        />
-        <NumberRange
-          defaultNumber={maxErrorCodes}
-          setNumber={setMaxErrors}
-          label="# Errors"
-        />
-        {/* Buttons */}
-        <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* Sort Menu Button*/}
-            <Button
-              variant="outlined"
-              sx={{ fontSize: 14 }}
-              onClick={sortMenuOpen}
-            >
-              Sort Options
-            </Button>
-            {/* Reset Filters */}
-            <Button variant='outlined' sx={{ fontSize: 14 }} onClick={clearFilters}>Reset Filters</Button>
-            {/* Exports */}
-            <Button
-              variant='outlined'
-              id="export-button"
-              aria-controls={Boolean(exportAnchor) ? 'export-menu' : undefined}
-              aria-haspopup="true"
-              aria-expanded={Boolean(exportAnchor)}
-              onClick={openExport}
-              disabled={exportCooldown}
-              >
-              Export
-            </Button>
-            {/* Exports Menu */}
-            <MultiMenu
-              anchorEl={exportAnchor}
-              open={Boolean(exportAnchor)}
-              onClose={closeExport}
-              buttonData={exportOptions}
-              aria-label="Export options"
-            />
-            {/* Sort Menu */}
-            <MultiMenu
-              anchorEl={sortAnchorEl}
-              open={Boolean(sortAnchorEl)}
-              onClose={sortMenuClose}
-              buttonData={sortOptions}
-              aria-label="Sort options"
-            />
-        </Box>
-      </Box>
-
+      <SnFnToolbar
+        itemsPerPage={itemsPerPage} setItemsPer={setItemsPer}
+        maxErrorCodes={maxErrorCodes} setMaxErrors={setMaxErrors}
+        sortMenuOpen={sortMenuOpen}
+        sortMenuClose={sortMenuClose}
+        openExport={openExport}
+        closeExport={closeExport}
+        clearFilters={clearFilters}
+        exportCooldown={exportCooldown}
+        exportAnchor={exportAnchor}
+        exportOptions={exportOptions}
+        sortAnchorEl={sortAnchorEl}
+        sortOptions={sortOptions}
+        startDate={startDate} endDate={endDate}
+        setStartDate={setStartDate} setEndDate={setEndDate}
+        normalizeStart={normalizeStart} normalizeEnd={normalizeEnd}
+        filters={filters}
+      />
       {/* Error code table for each station */}
-      <DataTable
+      <SnFnDataTable
         paginatedData={paginatedData}
         maxErrorCodes={maxErrorCodes}
         codeDescMap={codeDescMap}

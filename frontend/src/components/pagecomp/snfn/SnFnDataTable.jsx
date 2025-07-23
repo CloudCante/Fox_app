@@ -1,4 +1,4 @@
-// DataTable.jsx
+// SnFnDataTable.jsx
 import React, { memo } from 'react';
 import { Box, Paper } from '@mui/material';
 import { truncateText,sanitizeText } from '../../../utils/textUtils';
@@ -11,7 +11,7 @@ const tableStyle = {
     margin: '0 auto',
   };
 
-export function DataTable({ paginatedData, maxErrorCodes, codeDescMap, onRowClick, groupByWorkstation, style }) {
+export function SnFnDataTable({ paginatedData, maxErrorCodes, codeDescMap, onRowClick, groupByWorkstation, style }) {
   return (
     <Box sx={tableStyle}>
       {paginatedData.map(station => (
@@ -48,7 +48,7 @@ export function DataTable({ paginatedData, maxErrorCodes, codeDescMap, onRowClic
   );
 }
 
-export default memo(DataTable, (prev, next) =>
+export default memo(SnFnDataTable, (prev, next) =>
   // shallow compare only props you care about
   prev.paginatedData === next.paginatedData &&
   prev.maxErrorCodes === next.maxErrorCodes

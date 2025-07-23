@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { fetchSnFnData } from '../../../utils/snfn/api';
-import { parseSnFnData } from '../../../utils/snfn/transform';
+import { fetchSnFnData } from '../../../utils/snfn/snfnApi';
+import { parseSnFnData } from '../../../utils/snfn/snfnTransform';
 
 export function useSnFnData(
   apiBase,
   startDate,
   endDate,
   groupByWorkstation,
-  refreshInterval = 300_000 // 5 min
+  refreshInterval = 300000 // 5 min
 ) {
   const [data, setData] = useState([]);
   const [allErrorCodes, setAllErrorCodes] = useState([]);
