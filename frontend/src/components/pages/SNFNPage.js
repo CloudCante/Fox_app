@@ -12,6 +12,8 @@ import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
 import { MultiFilter } from '../pagecomp/MultiFilter.jsx';
 import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
 import { SnfnModal } from '../pagecomp/snfn/SnFnModal.jsx';
+import { NumberRange } from '../pagecomp/NumberRange.jsx';
+import { useSnFnData } from '../hooks/snfn/useSnFnData.js';
 import { useCallback } from 'react';
 import { DateRange } from '../pagecomp/DateRange.jsx';
 import { processStationData } from '../../utils/snfn/dataUtils.js';
@@ -42,15 +44,15 @@ const SnFnPage = () => {
   const [exportCooldown,setExportCooldown] = useState(false);
 
   // Data consts
-  const [dataBase, setData] = useState([]); // Database of pulled data on staions and error codes
+  //const [dataBase, setData] = useState([]); // Database of pulled data on staions and error codes
   const [errorCodeFilter, setErrorCodeFilter] = useState([]); // Array holding codes to filter for
-  const [allErrorCodes, setAllErrorCodes] = useState([]); // Array holding error codes for filter list
-  const [allCodeDesc, setCodeDesc] = useState([]); // Placeholder incase we need to read in desc vs static table
+  //const [allErrorCodes, setAllErrorCodes] = useState([]); // Array holding error codes for filter list
+  //const [allCodeDesc, setCodeDesc] = useState([]); // Placeholder incase we need to read in desc vs static table
   const codeDescMap = useMemo(() => new Map(allCodeDesc), [allCodeDesc]);
   const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
-  const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
+  //const [allStationsCodes, setAllStations] = useState([]); // Array holding stations for filter list
   const [modelFilter, setModelFilter] = useState([]); // 
-  const [allModels, setAllModels] = useState([]); // 
+  //const [allModels, setAllModels] = useState([]); // 
   const [searchStations, setSearchStations] = useState('');
   const [searchErrorCodes, setSearchErrorCodes] = useState('');
   const [searchModels, setSearchModels] = useState('');
@@ -61,6 +63,13 @@ const SnFnPage = () => {
   const [sortAsc, setSortAsc] = useState(true); // true = ascending, false = descending
   const [sortByCount, setByCount] = useState(false); // sort by EC count or station ID
   const [groupByWorkstation, setGroupByWorkstation] = useState(false);
+  const {
+    data: dataBase,
+    allErrorCodes,
+    allStations:allStationsCodes,
+    allModels,
+    allCodeDesc,
+  } = useSnFnData(API_BASE, startDate, endDate, groupByWorkstation);
   const [anchorEl, setAnchorEl] = useState(null);
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const [exportAnchor, setExportAnchor] = useState(null);
@@ -197,6 +206,14 @@ const SnFnPage = () => {
     pb: 3,
     outline: 0,
   };
+  const toolbarStyle = {
+          display: 'flex',
+          overflowX: 'auto',
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          gap: 2,
+          mb: 2,
+          p: 1
+        }
   // Modal open/close handlers
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -302,109 +319,6 @@ const SnFnPage = () => {
     handleMenuClose();
   };
 
-  // Fetch and process data initially and every 5 minutes
-  useEffect(() => {
-    const fetchAndSortData = async () => {
-      //const dataSet = testSnFnData; // Placeholder data
-      let dataSet = [];
-      try {
-        dataSet = await importQuery(API_BASE,'/api/snfn/station-errors?',{
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        });
-      } catch (err) {
-        console.error('Failed to fetch SNFN data:', err);
-        return; // exit the function early or set fallback data
-      }
-      // consts for data and sets
-      const data = [];
-      const codeSet = new Set();
-      const stationSet = new Set();
-      const modelSet = new Set();
-      const discMap = new Map();
-
-      if (!Array.isArray(dataSet)){
-        console.error('API response is not an array: ', dataSet);
-        return;
-      }
-
-      dataSet.forEach((d) => {
-        const {
-          fixture_no: FN,
-          sn: SN,
-          error_code: EC,
-          code_count: TN,
-          pn: PN,
-          workstation_name: BT,
-          normalized_end_time: DT,
-          model:MD,
-          error_disc:ED
-        } = d;
-        // Validate date range
-        const recordDate = new Date(DT);
-        if (isNaN(recordDate) || recordDate < startDate || recordDate > endDate) {return;}
-
-        if (TN == 0) return; // Skip if count is zero
-
-        const groupKey = groupByWorkstation ? BT : FN;
-        const secondaryLabel = groupByWorkstation ? FN : BT; // For tooltips and UI clarity
-        const idx = data.findIndex((x) => x[0][0] === groupKey);
-
-        codeSet.add(EC); // Collect unique error codes
-        stationSet.add(groupKey); //Collect unique Fixtures/Workstation 
-        if(MD)modelSet.add(MD); // Collect unique models
-
-        const dKey = groupKey+EC;
-        if (!discMap.has(dKey)) {
-          discMap.set(dKey, new Set());
-        }
-        discMap.get(dKey).add(ED);
-
-        
-        if (idx === -1) {
-            // New station entry  [[FN,BT], [EC, Number(TN), [[SN,PN]]]
-            data.push([[groupKey, secondaryLabel], [EC, Number(TN), [[SN, PN, MD]]]]);
-        } else {
-            // Update existing station entry
-            const jdx = data[idx].findIndex((x)=>x[0]===EC);
-            if(jdx === -1){ // New error code
-                data[idx].push([EC, Number(TN), [[SN,PN, MD]]]);
-            }else{ // Update existing error code
-                const serials = data[idx][jdx][2]; // Array of SNs
-                if (!serials.some(([a,b,c]) => a === SN && b === PN && c === MD)) {
-                  serials.push([SN,PN,MD]);
-                }
-                data[idx][jdx][1] += Number(TN); // currently still counts duplicate ec sn to tn
-            }
-        }
-      });
-
-      // Sort error codes for each station by count (descending)
-      data.forEach((group) => {
-        group.splice(1, group.length - 1, ...group.slice(1).sort((a, b) => b[1] - a[1]));
-      });
-
-      // Populate filter list
-      setAllErrorCodes(Array.from(codeSet).sort());
-      setAllStations(Array.from(stationSet).sort());
-      setAllModels(Array.from(modelSet).sort());
-
-      const combinedCodeDesc = Array.from(discMap.entries()).map(([code, descSet]) => [
-        code,
-        Array.from(descSet).join('\n '), // join multiple descriptions with semicolon or linebreak
-      ]);
-      setCodeDesc(combinedCodeDesc.sort());
-
-      setData([...data]);
-    };
-
-    if (document.visibilityState === 'visible'){fetchAndSortData();}
-    
-    const intervalId = setInterval(() => fetchAndSortData(), autoRefreshInterval); // Refresh every 5 min
-
-    return () => clearInterval(intervalId);
-  }, [startDate,endDate, groupByWorkstation]);
- 
   // Reset station Filter on togle
   useEffect(() => {
     setStationFilter([]); // Reset station filter on toggle
@@ -447,14 +361,7 @@ const SnFnPage = () => {
 
       {/* Filters */}
       <Box
-        sx={{
-          display: 'flex',
-          overflowX: 'auto',
-          flexWrap: { xs: 'wrap', md: 'nowrap' },
-          gap: 2,
-          mb: 2,
-          p: 1
-        }}
+        sx={toolbarStyle}
       >
         {/* Date Filters */}
         <DateRange
@@ -472,28 +379,16 @@ const SnFnPage = () => {
           searchThreshold={10} // show search when >10 options
         />
         {/* Fields to set tables per page and error codes per table */}
-        <TextField size='small' type='number' label='# Tables'
-            slotProps={{
-                input: {min: 1, max:100 },
-                htmlInput: { min: 1, max: 100},
-            }} 
-            defaultValue={itemsPerPage} onChange={(e) => {
-                const value = Number(e.target.value);
-                if (!isNaN(value) && value > 0) {
-                setItemsPer(value);
-                }
-            }}/>
-        <TextField size='small' type='number' label='# Error Codes' 
-            slotProps={{
-                input: {min: 1, max:100 },
-                htmlInput: { min: 1, max: 100},
-            }} 
-            defaultValue={maxErrorCodes} onChange={(e) => {
-                const value = Number(e.target.value);
-                if (!isNaN(value) && value > 0) {
-                setMaxErrors(value);
-                }
-            }}/>
+        <NumberRange
+          defaultNumber={itemsPerPage}
+          setNumber={setItemsPer}
+          label="# Tables"
+        />
+        <NumberRange
+          defaultNumber={maxErrorCodes}
+          setNumber={setMaxErrors}
+          label="# Errors"
+        />
         {/* Buttons */}
         <Box sx={{ display: 'flex', gap: 2 }}>
             {/* Sort Menu Button*/}
@@ -546,7 +441,6 @@ const SnFnPage = () => {
         groupByWorkstation={groupByWorkstation}
         style={style}
       />
-
 
       {/* Pagination Controls */}
       <Box display="flex" justifyContent="center" mt={4}>
