@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, useTheme } from '@mui/material/styles';
 
 const sidebarColor = '#1e3a5f';  // Dark blue for sidebar in both themes
 

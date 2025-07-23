@@ -8,12 +8,13 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { useTheme } from '@mui/material';
 import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
 import { importQuery } from '../../utils/queryUtils';
-import { sanitizeText } from '../../utils/textUtils.js';
 import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
 import { MultiFilter } from '../pagecomp/MultiFilter.jsx';
 import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
+import { SnfnModal } from '../pagecomp/snfn/SnFnModal.jsx';
 import { useCallback } from 'react';
 import { DateRange } from '../pagecomp/DateRange.jsx';
+import { processStationData } from '../../utils/snfn/dataUtils.js';
 
 
 // Check for environment variable for API base
@@ -196,14 +197,6 @@ const SnFnPage = () => {
     pb: 3,
     outline: 0,
   };
-  const tableStyle = {
-    display: 'grid',
-    gridTemplateColumns: { xs: '1fr', sm:'1fr 1fr', md: '1fr 1fr 1fr' },
-    gap: 3,
-    maxWidth: '1600px',
-    margin: '0 auto',
-  };
-
   // Modal open/close handlers
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -214,55 +207,6 @@ const SnFnPage = () => {
     handleOpen();
   };
 
-  // Modal rendering selected station and error code details
-  const ModalContent = () => {
-    const [stationData,codeData]=modalInfo;
-    //const codeDisc = (codeDB.find((x) => x[0] === codeData[0]) || [null, "NAN"])[1];
-    const codeDisc = allCodeDesc.find((x) => x[0] === stationData[0][0]+codeData[0])?.[1] ?? "NAN";
-    return (
-      <Modal
-        open={open}
-        onClose={handleClose}
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
-        >
-        <Box sx={modalStyle}>
-            <Typography id="modal-title" variant="h5">
-              {groupByWorkstation ? `Workstation ${stationData?.[0][1]}` : `Fixture ${stationData?.[0][0]}`}
-            </Typography>
-            <Typography id="modal-sub-title" variant="h7">
-              {groupByWorkstation ? `Fixture "${stationData?.[0][0]}"` : `Workstation "${stationData?.[0][1]}"`}
-            </Typography>
-            <Typography id="modal-desc-summary" variant="body1">
-            Error Code: {codeData?.[0]} — {codeData?.[2]?.length ?? 0} serial numbers
-            </Typography>
-            <Box sx={{ 
-              maxHeight: 200, // adjust as needed
-              overflowY: 'auto',
-              mt: 2,
-              pr: 1 // optional: avoid scrollbar overlap
-              }}>
-              <Typography id="modal-desc-detail" variant="body2">
-              Error Description: {sanitizeText(codeDisc)}
-              </Typography>
-            </Box>
-           <Box sx={{ 
-              maxHeight: 300, // adjust as needed
-              overflowY: codeData[2].length > scrollThreshold ? 'auto' : 'visible',
-              mt: 2,
-              pr: 1 // optional: avoid scrollbar overlap
-            }}>
-              {codeData[2].map(([sn, pn], idx) => (
-                <Box key={sn} mb={1}>
-                  <strong>SN:</strong> {sn}<br />
-                  - {pn}
-                </Box>
-              ))}
-            </Box>
-        </Box>
-      </Modal>
-    );
-  };
 
   // Reset Filters to default
   const clearFilters = () => {
@@ -473,36 +417,14 @@ const SnFnPage = () => {
 
   // Apply station and error code filter to data
   const filteredData = useMemo(() => {
-  return dataBase
-    .filter(
-      station => stationFilter.length === 0 || stationFilter.includes(station[0][0])
-    )
-    .map(station => {
-      const filteredCodes = station.slice(1)
-        .map(([code, count, snList]) => {
-          const filteredSNs = snList.filter(([sn, pn, md]) =>
-            modelFilter.length === 0 || modelFilter.includes(md??'')
-          );
-          return [code, filteredSNs.length, filteredSNs];
-        })
-        .filter(([code, count]) =>
-          (errorCodeFilter.length === 0 || errorCodeFilter.includes(code)) &&
-          count > 0
-        );
-
-      return filteredCodes.length > 0 ? [station[0], ...filteredCodes] : null;
-    })
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (sortByCount) {
-        const totalA = a.slice(1).reduce((sum, [_, count]) => sum + count, 0);
-        const totalB = b.slice(1).reduce((sum, [_, count]) => sum + count, 0);
-        return sortAsc ? totalA - totalB : totalB - totalA;
-      } else {
-        const compare = String(a[0][0]).localeCompare(String(b[0][0]), undefined, { numeric: true, sensitivity: 'base' });
-        return sortAsc ? compare : -compare;
-      }
-    });
+    return(processStationData(
+      dataBase,
+      stationFilter,
+      modelFilter,
+      errorCodeFilter,
+      sortByCount,
+      sortAsc
+    ));
 }, [dataBase, stationFilter, errorCodeFilter, modelFilter, sortAsc, sortByCount]);
 
   // Paginate the filtered data
@@ -637,7 +559,16 @@ const SnFnPage = () => {
       </Box>
 
       {/* Modal with detailed info */}
-      {open && <ModalContent />}
+      {open && <SnfnModal
+        open={open}
+        onClose={handleClose}
+        stationData={modalInfo[0]}
+        codeData={modalInfo[1]}
+        allCodeDesc={allCodeDesc}
+        groupByWorkstation={groupByWorkstation}
+        style={modalStyle}
+        scrollThreshold={scrollThreshold}
+      />}
     </Box>
   );
 };
