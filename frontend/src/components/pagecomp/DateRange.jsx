@@ -1,10 +1,10 @@
 // DateRange.jsx
 import React, { memo, useMemo } from 'react';
-import { Box, FormLabel, FormHelperText } from '@mui/material';
+import { Box, FormHelperText } from '@mui/material';
 import DatePicker from 'react-datepicker';
 import PropTypes from 'prop-types';
 
-const DateRange = memo(function DateRange({
+export const DateRange = memo(function DateRange({
   startDate,
   setStartDate,
   normalizeStart,
@@ -41,17 +41,9 @@ const DateRange = memo(function DateRange({
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, ...sx }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ...sx }}>
       {/* Start Date */}
       <Box>
-        <FormLabel 
-          component="label" 
-          required={required}
-          error={Boolean(error)}
-          sx={{ display: 'block', mb: 1 }}
-        >
-          {startLabel}
-        </FormLabel>
         <DatePicker
           selected={startDate}
           onChange={(date) => setStartDate(safeNormalizeStart(date))}
@@ -74,14 +66,6 @@ const DateRange = memo(function DateRange({
       {/* End Date - only render if it's a range picker */}
       {isRangePicker && (
         <Box>
-          <FormLabel 
-            component="label" 
-            required={required}
-            error={Boolean(error)}
-            sx={{ display: 'block', mb: 1 }}
-          >
-            {endLabel}
-          </FormLabel>
           <DatePicker
             selected={endDate}
             onChange={(date) => setEndDate(safeNormalizeEnd(date))}
