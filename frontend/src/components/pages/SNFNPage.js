@@ -13,6 +13,7 @@ import { MultiMenu } from '../pagecomp/MultiMenu.jsx';
 import { MultiFilter } from '../pagecomp/MultiFilter.jsx';
 import { DataTable } from '../pagecomp/snfn/DataTable.jsx';
 import { useCallback } from 'react';
+import { DateRange } from '../pagecomp/DateRange.jsx';
 
 
 // Check for environment variable for API base
@@ -501,32 +502,14 @@ const SnFnPage = () => {
         }}
       >
         {/* Date Filters */}
-        <Box>
-          <DatePicker
-            selected={startDate}
-            onChange={(date) => setStartDate(normalizeStart(date))}
-            selectsStart
-            startDate={startDate}
-            endDate={endDate}
-            placeholderText="Start Date"
-            dateFormat="yyyy-MM-dd"
-            isClearable
-            maxDate={new Date()}
-          />
-          <br></br>
-          <DatePicker
-            selected={endDate}
-            onChange={(date) => setEndDate(normalizeEnd(date))}
-            selectsEnd
-            startDate={startDate}
-            endDate={endDate}
-            minDate={startDate}
-            placeholderText="End Date"
-            dateFormat="yyyy-MM-dd"
-            isClearable
-            maxDate={new Date()}
-          />
-        </Box>
+        <DateRange
+          startDate={startDate}
+          setStartDate={setStartDate}
+          normalizeStart={normalizeStart}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          normalizeEnd={normalizeEnd}
+        />
         {/* Filters on Fixtures/ErrorCodes/Models */}
         <MultiFilter
           filters={filters}
