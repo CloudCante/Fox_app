@@ -7,6 +7,9 @@ import { ParetoChart } from '../charts/ParetoChart';
 import { FixtureFailParetoChart } from '../charts/FixtureFailParetoChart';
 import { toUTCDateString } from '../../utils/dateUtils';
 import { dataCache } from '../../utils/cacheUtils';
+// Page Components
+import { Header } from '../pagecomp/Header.jsx';
+import { DateRange } from '../pagecomp/DateRange.jsx';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
   <input {...props} ref={ref} readOnly />
@@ -23,13 +26,20 @@ export const Dashboard = () => {
   const [topFixturesData, setTopFixturesData] = useState([]);
   const [failStationsData, setFailStationsData] = useState([]);
   const [defectCodesData, setDefectCodesData] = useState([]);
+  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
+  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
-    return date;
+    return normalizeStart(date);
   });
-  const [endDate, setEndDate] = useState(new Date()); 
+  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
   const [loading, setLoading] = useState(true); 
+  
+  const boxStyle = { height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }
+  const flexStyle = { display: 'flex', alignItems: 'center', mb: 2, position: 'relative', width: '100%'};
+  const typeStyle =  {width: '100%', textAlign: 'center', fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem', }, mr: { xs: '0', sm: '0', md: '0', } }
+  const gridStyle = { display: 'grid', gridTemplateColumns: { sm: '1fr', md: '1fr 1fr' }, gap: 3, maxWidth: '1600px', margin: '0 auto'}
 
   useEffect(() => {
     setLoading(true);
@@ -250,66 +260,25 @@ export const Dashboard = () => {
 
   return (
     <Box p={1}>
+      <Header title="Dashboard" />
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-
-        <DatePicker
-          selected={startDate}
-          onChange={date => setStartDate(date)}
-          selectsStart
+        <DateRange
           startDate={startDate}
+          setStartDate={setStartDate}
+          normalizeStart={normalizeStart}
           endDate={endDate}
-          placeholderText="Start Date"
-          dateFormat="yyyy-MM-dd"
-          customInput={<ReadOnlyInput />}
-        />
-        <DatePicker
-          selected={endDate}
-          onChange={date => setEndDate(date)}
-          selectsEnd
-          startDate={startDate}
-          endDate={endDate}
-          minDate={startDate}
-          placeholderText="End Date"
-          dateFormat="yyyy-MM-dd"
-          customInput={<ReadOnlyInput />}
+          setEndDate={setEndDate}
+          normalizeEnd={normalizeEnd}
         />
       </div>
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { md: '1fr 1fr' },
-        gap: 3,
-        maxWidth: '1600px',
-        margin: '0 auto'
-      }}>
+      <Box sx={gridStyle}>
         <Paper sx={{ p: 2 }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 2,
-            position: 'relative',
-            width: '100%'
-          }}>
-            <Typography
-              variant="h6"
-              sx={{
-                width: '100%',
-                textAlign: 'center',
-                fontSize: {
-                  xs: '1rem',
-                  sm: '1.1rem',
-                  md: '1.25rem',
-                },
-                mr: {
-                  xs: '0',
-                  sm: '0',
-                  md: '0',
-                }
-              }}
-            >
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
               SXM5 Test Station Performance
             </Typography>
           </Box>
-          <Box sx={{ height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Box sx={boxStyle}>
             {loading ? (
               <CircularProgress />
             ) : (
@@ -318,34 +287,12 @@ export const Dashboard = () => {
           </Box>
         </Paper>
         <Paper sx={{ p: 2 }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 2,
-            position: 'relative',
-            width: '100%'
-          }}>
-            <Typography
-              variant="h6"
-              sx={{
-                width: '100%',
-                textAlign: 'center',
-                fontSize: {
-                  xs: '1rem',
-                  sm: '1.1rem',
-                  md: '1.25rem',
-                },
-                mr: {
-                  xs: '0',
-                  sm: '0',
-                  md: '0',
-                }
-              }}
-            >
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
               SXM4 Test Station Performance
             </Typography>
           </Box>
-          <Box sx={{ height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Box sx={boxStyle}>
             {loading ? (
               <CircularProgress />
             ) : (
@@ -354,34 +301,12 @@ export const Dashboard = () => {
           </Box>
         </Paper>
         <Paper sx={{ p: 2 }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 2,
-            position: 'relative',
-            width: '100%'
-          }}>
-            <Typography
-              variant="h6"
-              sx={{
-                width: '100%',
-                textAlign: 'center',
-                fontSize: {
-                  xs: '1rem',
-                  sm: '1.1rem',
-                  md: '1.25rem',
-                },
-                mr: {
-                  xs: '0',
-                  sm: '0',
-                  md: '0',
-                }
-              }}
-            >
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
               Fixture Performance
             </Typography>
           </Box>
-          <Box sx={{ height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Box sx={boxStyle}>
             {loading ? (
               <CircularProgress />
             ) : (
@@ -389,35 +314,13 @@ export const Dashboard = () => {
             )}
           </Box>
         </Paper>
-        <Paper sx={{ p: 2 }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 2,
-            position: 'relative',
-            width: '100%'
-          }}>
-            <Typography
-              variant="h6"
-              sx={{
-                width: '100%',
-                textAlign: 'center',
-                fontSize: {
-                  xs: '1rem',
-                  sm: '1.1rem',
-                  md: '1.25rem',
-                },
-                mr: {
-                  xs: '0',
-                  sm: '0',
-                  md: '0',
-                }
-              }}
-            >
+        {/* <Paper sx={{ p: 2 }}>
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
               Defect Fail Stations
             </Typography>
           </Box>
-          <Box sx={{ height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Box sx={boxStyle}>
             {loading ? (
               <CircularProgress />
             ) : (
@@ -426,41 +329,19 @@ export const Dashboard = () => {
           </Box>
         </Paper>
         <Paper sx={{ p: 2 }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 2,
-            position: 'relative',
-            width: '100%'
-          }}>
-            <Typography
-              variant="h6"
-              sx={{
-                width: '100%',
-                textAlign: 'center',
-                fontSize: {
-                  xs: '1rem',
-                  sm: '1.1rem',
-                  md: '1.25rem',
-                },
-                mr: {
-                  xs: '0',
-                  sm: '0',
-                  md: '0',
-                }
-              }}
-            >
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
               Most Common Defects
             </Typography>
           </Box>
-          <Box sx={{ height: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Box sx={boxStyle}>
             {loading ? (
               <CircularProgress />
             ) : (
               <ParetoChart data={defectCodesData} lineLabel="Cumulative %" />
             )}
           </Box>
-        </Paper>
+        </Paper> */}
       </Box>
     </Box>
   );
