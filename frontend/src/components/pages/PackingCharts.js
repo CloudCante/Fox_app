@@ -1,21 +1,15 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/PackingCharts.jsx
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useNavigate } from 'react-router-dom';
-import PackingOutputBarChart from '../charts/PackingOutputBarChart';
 import { Box, FormGroup, FormControlLabel, Checkbox, Typography, CircularProgress } from '@mui/material';
-import { startOfISOWeek, endOfISOWeek, addWeeks, format, parseISO, getISOWeek, getISOWeekYear, subWeeks } from 'date-fns';
-import { ALL_MODELS, sxm4Parts, sxm5Parts } from '../../data/dataTables';
-import { processPackingData } from '../../utils/packingCharts/packingChartsDataUtils';
-import { fetchPackingRecords } from '../../utils/packingCharts/packingChartsApi';
+import PackingOutputBarChart from '../charts/PackingOutputBarChart';
+import { ALL_MODELS } from '../../data/dataTables';
 import { useWeekNavigation } from '../hooks/packingCharts/useWeekNavigation';
-import { getDateRangeArray } from '../../utils/dateUtils';
+import { usePackingData } from '../hooks/packingCharts/usePackingData';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
-
-const partToModel = {};
-sxm4Parts.forEach(p => partToModel[p] = 'SXM4');
-sxm5Parts.forEach(p => partToModel[p] = 'SXM5');
 
 const weeksToShow = 12; // Number of weeks to show in the weekly chart
 const defaultModels = ['SXM4', 'SXM5']; // Default models to show in the charts
@@ -30,12 +24,17 @@ const PackingCharts = () => {
   } = useWeekNavigation();
   
   const [selectedModels, setSelectedModels] = useState(defaultModels);
-  const [chartData, setChartData] = useState([]);
-  const [weeklyChartData, setWeeklyChartData] = useState([]);
   const [showTrendLine, setShowTrendLine] = useState(false);
   const [showAvgLine, setShowAvgLine] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+
+  const {
+      dailyData,
+      loadingDaily,
+      errorDaily,
+      weeklyData,
+      loadingWeekly,
+      errorWeekly
+    } = usePackingData(API_BASE, selectedModels, currentISOWeekStart, weeksToShow);
 
   // Handle model checkbox change
   const handleModelChange = (model) => {
@@ -45,82 +44,10 @@ const PackingCharts = () => {
         : [...prev, model]
     );
   };
-
-  // Fetch data for the current ISO week (daily chart)
-  useEffect(() => {
-    if (!API_BASE || !currentISOWeekStart) return;
-    setLoading(true);
-    setError(null);
-    
-    const weekStart = parseISO(currentISOWeekStart);
-    const weekEnd = endOfISOWeek(weekStart);
-    
-    fetchPackingRecords(API_BASE, '/api/packing/packing-records', weekStart, weekEnd)
-      .then(data => {
-        const dateMap = processPackingData(data, selectedModels, partToModel);
-        const allDates = getDateRangeArray(format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd'));
-        const chartArr = allDates.map(date => ({ label: date, value: dateMap[date] || 0 }));
-        setChartData(chartArr);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, [selectedModels, currentISOWeekStart]);
-
-  // Fetch and aggregate the last 12 ISO weeks for the weekly chart (independent of daily chart navigation)
-  useEffect(() => {
-    if (!API_BASE) return;
-    const today = new Date();
-    const thisWeekStart = startOfISOWeek(today);
-    const earliestWeekStart = subWeeks(thisWeekStart, (weeksToShow-1)); // 12 weeks total
-    
-    fetchPackingRecords(API_BASE, '/api/packing/packing-records', earliestWeekStart, thisWeekStart)
-      .then(data => {
-        const dateMap = processPackingData(data, selectedModels, partToModel);
-        // Aggregate by ISO week for the last 12 weeks
-        const weekTotals = {};
-        Object.entries(dateMap).forEach(([isoDate, value]) => {
-          const d = parseISO(isoDate);
-          const week = getISOWeek(d);
-          const year = getISOWeekYear(d);
-          const weekKey = `${year}-${week.toString().padStart(2, '0')}`;
-          if (!weekTotals[weekKey]) weekTotals[weekKey] = 0;
-          weekTotals[weekKey] += value;
-        });
-        // Get the last 12 week keys in order
-        const weekKeys = [];
-        for (let i = (weeksToShow-1); i >= 0; i--) {
-          const d = addWeeks(thisWeekStart, -i);
-          const week = getISOWeek(d);
-          const year = getISOWeekYear(d);
-          weekKeys.push(`${year}-${week.toString().padStart(2, '0')}`);
-        }
-        const weeklyData = weekKeys.map(weekKey => ({
-          label: weekKey.replace('-', '-'),
-          value: weekTotals[weekKey] || 0
-        }));
-        console.log('Weekly chart data:', weeklyData);
-        setWeeklyChartData(weeklyData);
-      })
-      .catch(err => {
-        setWeeklyChartData([]);
-        console.error('Weekly chart error:', err.message);
-      });
-  }, [selectedModels]);
-
-  // Display week range for UI
-  let weekRangeLabel = '';
-  if (currentISOWeekStart) {
-    const weekStart = parseISO(currentISOWeekStart);
-    const weekEnd = endOfISOWeek(weekStart);
-    weekRangeLabel = `${format(weekStart, 'MMM d, yyyy')} - ${format(weekEnd, 'MMM d, yyyy')}`;
-  }
   
   // Packing Charts
   return (
-    <div style={{ padding: '32px' }}>
+    <div style={{ padding: 32 }}>
       <Button
         variant="outlined"
         startIcon={<ArrowBackIcon />}
@@ -129,11 +56,15 @@ const PackingCharts = () => {
       >
         Back to Packing
       </Button>
-      <h1>Packing Charts</h1>
-      {/* Filter Bar */}
+
+      <Typography variant="h4" gutterBottom>
+        Packing Charts
+      </Typography>
+
+      {/* Model Filter */}
       <Box display="flex" alignItems="center" gap={4} mb={3}>
         <FormGroup row>
-          {ALL_MODELS.map((model) => (
+          {ALL_MODELS.map(model => (
             <FormControlLabel
               key={model.value}
               control={
@@ -147,7 +78,8 @@ const PackingCharts = () => {
           ))}
         </FormGroup>
       </Box>
-      {/* ISO Week Navigation and Daily Chart */}
+
+      {/* ISO Week Navigation */}
       <Box display="flex" alignItems="center" gap={2} mb={1}>
         <Button variant="outlined" size="small" onClick={handlePrevWeek}>
           &lt; Prev Week
@@ -156,72 +88,84 @@ const PackingCharts = () => {
           {weekRange.label}
         </Typography>
         <Button variant="outlined" size="small" onClick={handleNextWeek}>
-          &gt; Next Week
+          Next Week &gt;
         </Button>
       </Box>
-      {loading ? (
+
+      {/* Daily Chart */}
+      {loadingDaily ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
           <CircularProgress />
         </Box>
-      ) : error ? (
-        <Typography color="error">{error}</Typography>
+      ) : errorDaily ? (
+        <Typography color="error">{errorDaily}</Typography>
       ) : (
-        <>
-          <PackingOutputBarChart
-            title="Daily Packing Output"
-            data={chartData}
-          />
-          <Box display="flex" alignItems="center" gap={2} mb={1}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showAvgLine}
-                  onChange={e => setShowAvgLine(e.target.checked)}
-                />
-              }
-              label="Show Average Line"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showTrendLine}
-                  onChange={e => setShowTrendLine(e.target.checked)}
-                />
-              }
-              label="Show Trend Line"
-            />
-          </Box>
-          <PackingOutputBarChart
-            title="Weekly Packing Output"
-            data={weeklyChartData}
-            color="#4caf50"
-            showTrendLine={showTrendLine}
-            showAvgLine={showAvgLine}
-          />
-          {/* FAKE CHART FOR DEBUGGING TREND LINE */}
-          <PackingOutputBarChart
-            title="Fake Weekly Chart"
-            data={[
-              { label: 'A', value: 100 },
-              { label: 'B', value: 200 },
-              { label: 'C', value: 300 },
-              { label: 'D', value: 400 },
-              { label: 'E', value: 500 },
-              { label: 'F', value: 600 },
-              { label: 'G', value: 700 },
-              { label: 'H', value: 800 },
-              { label: 'I', value: 900 },
-              { label: 'J', value: 1000 },
-              { label: 'K', value: 1100 },
-              { label: 'L', value: 1200 },
-            ]}
-            color="#1976d2"
-            showTrendLine={true}
-            showAvgLine={false}
-          />
-        </>
+        <PackingOutputBarChart
+          title="Daily Packing Output"
+          data={dailyData}
+        />
       )}
-      {/* Weekly and Monthly charts will go here */}
+
+      {/* Weekly Chart Toggles */}
+      <Box display="flex" alignItems="center" gap={2} mb={1}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showAvgLine}
+              onChange={e => setShowAvgLine(e.target.checked)}
+            />
+          }
+          label="Show Average Line"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={showTrendLine}
+              onChange={e => setShowTrendLine(e.target.checked)}
+            />
+          }
+          label="Show Trend Line"
+        />
+      </Box>
+
+      {/* Weekly Chart */}
+      {loadingWeekly ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+          <CircularProgress />
+        </Box>
+      ) : errorWeekly ? (
+        <Typography color="error">{errorWeekly}</Typography>
+      ) : (
+        <PackingOutputBarChart
+          title="Weekly Packing Output"
+          data={weeklyData}
+          color="#4caf50"
+          showTrendLine={showTrendLine}
+          showAvgLine={showAvgLine}
+        />
+      )}
+
+      {/* Debug Chart */}
+      <PackingOutputBarChart
+        title="Fake Weekly Chart"
+        data={[
+          { label: 'A', value: 100 },
+          { label: 'B', value: 200 },
+          { label: 'C', value: 300 },
+          { label: 'D', value: 400 },
+          { label: 'E', value: 500 },
+          { label: 'F', value: 600 },
+          { label: 'G', value: 700 },
+          { label: 'H', value: 800 },
+          { label: 'I', value: 900 },
+          { label: 'J', value: 1000 },
+          { label: 'K', value: 1100 },
+          { label: 'L', value: 1200 },
+        ]}
+        color="#1976d2"
+        showTrendLine
+        showAvgLine={false}
+      />
     </div>
   );
 };
