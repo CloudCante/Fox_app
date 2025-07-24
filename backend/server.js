@@ -38,6 +38,9 @@ app.use('/api/snfn', snfnRouter);
 const stationHourlySummaryRouter = require('./routes/stationHourlySummary');
 app.use('/api/station-hourly-summary', stationHourlySummaryRouter);
 
+const pchartRouter = require('./routes/pchartRoutes');
+app.use('/api/pchart', pchartRouter);
+
 try {
     const uploadHandlerRouter = require('./routes/uploadHandler');
     app.use('/api/upload', uploadHandlerRouter);
