@@ -1,15 +1,19 @@
+// React Core
 import React, { useEffect, useState, useRef } from 'react';
+// Material UI Components
 import { Box, Paper, Typography, CircularProgress } from '@mui/material';
+// Third Party Libraries
 import 'react-datepicker/dist/react-datepicker.css';
+// Custom Charts
 import { TestStationChart } from '../charts/TestStationChart';
-//import { ParetoChart } from '../charts/ParetoChart';
 import { FixtureFailParetoChart } from '../charts/FixtureFailParetoChart';
-import { dataCache } from '../../utils/cacheUtils';
+//import { ParetoChart } from '../charts/ParetoChart';
 // Page Components
 import { Header } from '../pagecomp/Header.jsx';
 import { DateRange } from '../pagecomp/DateRange.jsx';
-// Utils and Styles
-import { gridStyle} from '../theme/themes.js';
+// Utilities and Helpers
+import { dataCache } from '../../utils/cacheUtils';
+import { gridStyle } from '../theme/themes.js';
 import { fetchFixtureQuery, fetchWorkstationQuery } from '../../utils/queryUtils.js';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
@@ -20,6 +24,8 @@ if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
 console.log('API_BASE:', API_BASE);
+
+const refreshInterval = 300000; // 5 minutes
 
 export const Dashboard = () => {
   const [testStationData, setTestStationData] = useState([]);
@@ -40,27 +46,19 @@ export const Dashboard = () => {
   useEffect(() => {
     setLoading(true);
 
-    const fetchSXM5 = () => 
+    const fetchModelData = ({ value, key, setter }) =>
       fetchWorkstationQuery({
-        parameters: [{ id: 'model', value: 'Tesla SXM5' }],
+        parameters: [{ id: 'model', value: value }],
         startDate,
         endDate,
-        key: 'sxm5',
-        setDataCache: setTestStationData,
+        key,
+        setDataCache: setter,
         API_BASE,
         API_Route: '/api/functional-testing/station-performance?'
       });
 
-    const fetchSXM4 = () => 
-      fetchWorkstationQuery({
-        parameters: [{ id: 'model', value: 'Tesla SXM4' }],
-        startDate,
-        endDate,
-        key: 'sxm4',
-        setDataCache: setTestStationDataSXM4,
-        API_BASE,
-        API_Route: '/api/functional-testing/station-performance?'
-      });
+    const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationData});
+    const fetchSXM4 = () => fetchModelData({value:'Tesla SXM4',key:'sxm4',setter: setTestStationDataSXM4});
 
     const fetchFixtures = () => 
       fetchFixtureQuery({
@@ -152,7 +150,7 @@ export const Dashboard = () => {
 
       Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures()])
         .catch(error => console.error("Error refreshing dashboard data:", error));
-    }, 60000);
+    }, refreshInterval);
 
     return () => clearInterval(interval); 
   }, [startDate, endDate]);
@@ -214,4 +212,4 @@ export const Dashboard = () => {
       </Box>
     </Box>
   );
-}; 
+};

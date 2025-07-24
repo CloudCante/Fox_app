@@ -5,47 +5,31 @@ import { useNavigate } from 'react-router-dom';
 import PackingOutputBarChart from '../charts/PackingOutputBarChart';
 import { Box, FormGroup, FormControlLabel, Checkbox, Typography, CircularProgress } from '@mui/material';
 import { startOfISOWeek, endOfISOWeek, addWeeks, format, parseISO, getISOWeek, getISOWeekYear, subWeeks } from 'date-fns';
+import { ALL_MODELS, sxm4Parts, sxm5Parts } from '../../data/dataTables';
+import { processPackingData } from '../../utils/packingCharts/packingChartsDataUtils';
+import { fetchPackingRecords } from '../../utils/packingCharts/packingChartsApi';
+import { useWeekNavigation } from '../hooks/packingCharts/useWeekNavigation';
+import { getDateRangeArray } from '../../utils/dateUtils';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
-const ALL_MODELS = [
-  { label: 'Tesla SXM4', value: 'SXM4' },
-  { label: 'Tesla SXM5', value: 'SXM5' },
-];
-
-const sxm4Parts = [
-  '692-2G506-0200-006', '692-2G506-0200-0R6', '692-2G506-0210-006', '692-2G506-0212-0R5',
-  '692-2G506-0212-0R7', '692-2G506-0210-0R6', '692-2G510-0200-0R0', '692-2G510-0210-003',
-  '692-2G510-0210-0R2', '692-2G510-0210-0R3', '965-2G506-0031-2R0', '965-2G506-0130-202',
-  '965-2G506-6331-200',
-];
-const sxm5Parts = [
-  '692-2G520-0200-000', '692-2G520-0200-0R0', '692-2G520-0200-500', '692-2G520-0200-5R0',
-  '692-2G520-0202-0R0', '692-2G520-0280-001', '692-2G520-0280-0R0', '692-2G520-0280-000',
-  '692-2G520-0280-0R1', '692-2G520-0282-001', '965-2G520-0041-000', '965-2G520-0100-001',
-  '965-2G520-0100-0R0', '965-2G520-0340-0R0', '965-2G520-0900-000', '965-2G520-0900-001',
-  '965-2G520-0900-0R0', '965-2G520-6300-0R0', '965-2G520-A500-000', '965-2G520-A510-300',
-  '692-2G520-0221-5R0',
-];
 const partToModel = {};
 sxm4Parts.forEach(p => partToModel[p] = 'SXM4');
 sxm5Parts.forEach(p => partToModel[p] = 'SXM5');
 
-function getDateRangeArray(start, end) {
-  const arr = [];
-  let current = new Date(start);
-  const last = new Date(end);
-  while (current <= last) {
-    arr.push(current.toISOString().slice(0, 10));
-    current.setDate(current.getDate() + 1);
-  }
-  return arr;
-}
+const weeksToShow = 12; // Number of weeks to show in the weekly chart
+const defaultModels = ['SXM4', 'SXM5']; // Default models to show in the charts
 
 const PackingCharts = () => {
   const navigate = useNavigate();
-  const [selectedModels, setSelectedModels] = useState(['SXM4', 'SXM5']);
-  const [currentISOWeekStart, setCurrentISOWeekStart] = useState(format(startOfISOWeek(new Date()), 'yyyy-MM-dd'));
+  const { 
+    currentISOWeekStart, 
+    handlePrevWeek, 
+    handleNextWeek, 
+    weekRange 
+  } = useWeekNavigation();
+  
+  const [selectedModels, setSelectedModels] = useState(defaultModels);
   const [chartData, setChartData] = useState([]);
   const [weeklyChartData, setWeeklyChartData] = useState([]);
   const [showTrendLine, setShowTrendLine] = useState(false);
@@ -67,29 +51,13 @@ const PackingCharts = () => {
     if (!API_BASE || !currentISOWeekStart) return;
     setLoading(true);
     setError(null);
+    
     const weekStart = parseISO(currentISOWeekStart);
     const weekEnd = endOfISOWeek(weekStart);
-    const url = new URL(`${API_BASE}/api/packing/packing-records`);
-    url.searchParams.append('startDate', weekStart.toISOString());
-    url.searchParams.append('endDate', weekEnd.toISOString());
-    fetch(url.toString())
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch packing data');
-        return res.json();
-      })
+    
+    fetchPackingRecords(API_BASE, '/api/packing/packing-records', weekStart, weekEnd)
       .then(data => {
-        const dateMap = {};
-        Object.entries(data).forEach(([part, dateObj]) => {
-          const model = partToModel[part];
-          if (!model) return;
-          if (!selectedModels.includes(model)) return;
-          Object.entries(dateObj).forEach(([dateStr, count]) => {
-            const [month, day, year] = dateStr.split('/');
-            const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            if (!dateMap[isoDate]) dateMap[isoDate] = 0;
-            dateMap[isoDate] += count;
-          });
-        });
+        const dateMap = processPackingData(data, selectedModels, partToModel);
         const allDates = getDateRangeArray(format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd'));
         const chartArr = allDates.map(date => ({ label: date, value: dateMap[date] || 0 }));
         setChartData(chartArr);
@@ -106,28 +74,11 @@ const PackingCharts = () => {
     if (!API_BASE) return;
     const today = new Date();
     const thisWeekStart = startOfISOWeek(today);
-    const earliestWeekStart = subWeeks(thisWeekStart, 11); // 12 weeks total
-    const url = new URL(`${API_BASE}/api/packing/packing-records`);
-    url.searchParams.append('startDate', earliestWeekStart.toISOString());
-    url.searchParams.append('endDate', endOfISOWeek(thisWeekStart).toISOString());
-    fetch(url.toString())
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch packing data');
-        return res.json();
-      })
+    const earliestWeekStart = subWeeks(thisWeekStart, (weeksToShow-1)); // 12 weeks total
+    
+    fetchPackingRecords(API_BASE, '/api/packing/packing-records', earliestWeekStart, thisWeekStart)
       .then(data => {
-        const dateMap = {};
-        Object.entries(data).forEach(([part, dateObj]) => {
-          const model = partToModel[part];
-          if (!model) return;
-          if (!selectedModels.includes(model)) return;
-          Object.entries(dateObj).forEach(([dateStr, count]) => {
-            const [month, day, year] = dateStr.split('/');
-            const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            if (!dateMap[isoDate]) dateMap[isoDate] = 0;
-            dateMap[isoDate] += count;
-          });
-        });
+        const dateMap = processPackingData(data, selectedModels, partToModel);
         // Aggregate by ISO week for the last 12 weeks
         const weekTotals = {};
         Object.entries(dateMap).forEach(([isoDate, value]) => {
@@ -140,7 +91,7 @@ const PackingCharts = () => {
         });
         // Get the last 12 week keys in order
         const weekKeys = [];
-        for (let i = 11; i >= 0; i--) {
+        for (let i = (weeksToShow-1); i >= 0; i--) {
           const d = addWeeks(thisWeekStart, -i);
           const week = getISOWeek(d);
           const year = getISOWeekYear(d);
@@ -159,14 +110,6 @@ const PackingCharts = () => {
       });
   }, [selectedModels]);
 
-  // Week navigation handlers
-  const handlePrevWeek = () => {
-    setCurrentISOWeekStart(prev => format(addWeeks(parseISO(prev), -1), 'yyyy-MM-dd'));
-  };
-  const handleNextWeek = () => {
-    setCurrentISOWeekStart(prev => format(addWeeks(parseISO(prev), 1), 'yyyy-MM-dd'));
-  };
-
   // Display week range for UI
   let weekRangeLabel = '';
   if (currentISOWeekStart) {
@@ -174,7 +117,8 @@ const PackingCharts = () => {
     const weekEnd = endOfISOWeek(weekStart);
     weekRangeLabel = `${format(weekStart, 'MMM d, yyyy')} - ${format(weekEnd, 'MMM d, yyyy')}`;
   }
-
+  
+  // Packing Charts
   return (
     <div style={{ padding: '32px' }}>
       <Button
@@ -205,9 +149,15 @@ const PackingCharts = () => {
       </Box>
       {/* ISO Week Navigation and Daily Chart */}
       <Box display="flex" alignItems="center" gap={2} mb={1}>
-        <Button variant="outlined" size="small" onClick={handlePrevWeek}>&lt; Prev Week</Button>
-        <Typography variant="subtitle1">{weekRangeLabel}</Typography>
-        <Button variant="outlined" size="small" onClick={handleNextWeek}>&gt; Next Week</Button>
+        <Button variant="outlined" size="small" onClick={handlePrevWeek}>
+          &lt; Prev Week
+        </Button>
+        <Typography variant="subtitle1">
+          {weekRange.label}
+        </Typography>
+        <Button variant="outlined" size="small" onClick={handleNextWeek}>
+          &gt; Next Week
+        </Button>
       </Box>
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
