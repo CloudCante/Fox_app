@@ -1,7 +1,6 @@
 // NumberRange.jsx
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 import { TextField } from '@mui/material';
-import DatePicker from 'react-datepicker';
 import PropTypes from 'prop-types';
 
 export const NumberRange = memo(function NumberRange({
@@ -9,24 +8,26 @@ export const NumberRange = memo(function NumberRange({
 }) {
   return (
     <TextField size='small' type='number' label={label}
-                slotProps={{
-                    input: {min: minNumber, max:maxNumber },
-                    htmlInput: { min: minNumber, max: maxNumber},
-                }} 
-                defaultValue={defaultNumber} onChange={(e) => {
-                    const value = Number(e.target.value);
-                    if (!isNaN(value) && value > 0) {
-                    setNumber(value);
-                    }
-                }}/>
+      sx={{ minWidth: 50, maxWidth: 70 }}
+      slotProps={{
+          input: {min: minNumber, max:maxNumber },
+          htmlInput: { min: minNumber, max: maxNumber},
+      }} 
+      defaultValue={defaultNumber} onChange={(e) => {
+          const value = Number(e.target.value);
+          if (!isNaN(value) && value > 0) {
+          setNumber(value);
+          }
+      }}
+    />
   );
 });
 
 NumberRange.propTypes = {
-  defaultNumber: PropTypes.string,
-  setNumber: PropTypes.func.required,
-  minNumber: PropTypes.string,
-  maxNumber: PropTypes.string,
+  defaultNumber: PropTypes.number,
+  setNumber: PropTypes.func.isRequired,
+  minNumber: PropTypes.number,
+  maxNumber: PropTypes.number,
   label: PropTypes.string,
 };
 

@@ -1,5 +1,5 @@
 // MultiFilter.jsx
-import React, { memo, useMemo, useCallback } from 'react';
+import React, { memo, useMemo } from 'react';
 import {Box, FormControl, InputLabel, Select, OutlinedInput, MenuItem, Checkbox, ListItemText, TextField
 } from '@mui/material';
 import { sanitizeText } from '../../utils/textUtils';
@@ -103,4 +103,4 @@ const FilterSelect = memo(({ filter, searchThreshold }) => {
   );
 });
 
-export default memo(MultiFilter);
+export default MultiFilter;

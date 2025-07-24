@@ -1,6 +1,6 @@
 // Import required dependencies and components
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Box, Typography, Pagination, Button, } from '@mui/material';
+import { Box, Pagination, } from '@mui/material';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useTheme } from '@mui/material';
 // Import Page components
@@ -11,8 +11,8 @@ import { SnFnToolbar } from '../pagecomp/snfn/SnFnToolbar.jsx';
 // Import Hooks
 import { useSnFnData } from '../hooks/snfn/useSnFnData.js';
 import { useSnFnFilters } from '../hooks/snfn/useSnFnFilters.js';
+import { useSnFnExport } from '../hooks/snfn/useSnFnExport.js';
 // Import Utilities
-import { exportSecureCSV, jsonExport } from '../../utils/exportUtils';
 import { processStationData } from '../../utils/snfn/snfnDataUtils.js';
 // Import Style
 import { modalStyle } from '../theme/themes.js';
@@ -43,14 +43,8 @@ const SnFnPage = () => {
   const [exportCooldown,setExportCooldown] = useState(false);
 
   // Data consts
-  // const [errorCodeFilter, setErrorCodeFilter] = useState([]); // Array holding codes to filter for
   const codeDescMap = useMemo(() => new Map(allCodeDesc), [allCodeDesc]);
-  // const [stationFilter, setStationFilter] = useState([]); // Array holding stations to filter for
-  // const [modelFilter, setModelFilter] = useState([]); // 
-  // const [searchStations, setSearchStations] = useState('');
-  // const [searchErrorCodes, setSearchErrorCodes] = useState('');
-  // const [searchModels, setSearchModels] = useState('');
-
+  
   // UI consts
   const [itemsPerPage,setItemsPer] = useState(6); // Number of stations per page
   const [maxErrorCodes,setMaxErrors] = useState(5); // Number of error codes per station table
@@ -69,7 +63,8 @@ const SnFnPage = () => {
     searchStations, searchErrorCodes, searchModels,
     onStationChange, onSearchStations, onErrorCodeChange,onSearchErrorCodes, onSearchModels, onModelChange,
     filters
-  } = useSnFnFilters(allStationsCodes, allErrorCodes, allModels);
+  } = useSnFnFilters(allStationsCodes, allErrorCodes, allModels,groupByWorkstation);
+  
   const [anchorEl, setAnchorEl] = useState(null);
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
   const [exportAnchor, setExportAnchor] = useState(null);
@@ -82,59 +77,7 @@ const SnFnPage = () => {
   const toggleGroup = useCallback(() => setGroupByWorkstation(x => !x),[])
   const toggleAsc = useCallback(() => setSortAsc(x => !x),[])
   const toggleByCount = useCallback(() => setByCount(x => !x),[])
-  // const onStationChange = useCallback(e => {
-  //   const v = e.target.value;
-  //   if (v.includes('__CLEAR__')) setStationFilter([]);
-  //   else setStationFilter(v);
-  // }, []);
-  // const onSearchStations = useCallback(e => {
-  //   setSearchStations(e.target.value);
-  // }, []);
-  // const onErrorCodeChange = useCallback(e => {
-  //   const v = e.target.value;
-  //   if (v.includes('__CLEAR__')) setErrorCodeFilter([]);
-  //   else setErrorCodeFilter(v);
-  // }, []);
-  // const onSearchErrorCodes = useCallback(e => {
-  //   setSearchErrorCodes(e.target.value);
-  // }, []);
-  // const onModelChange = useCallback(e => {
-  //   const v = e.target.value;
-  //   if (v.includes('__CLEAR__')) setModelFilter([]);
-  //   else setModelFilter(v);
-  // }, []);
-  // const onSearchModels = useCallback(e => {
-  //   setSearchModels(e.target.value);
-  // }, []);
-  // const filters = [
-  //   {
-  //     id:groupByWorkstation ? 'Workstations' : 'Fixtures',
-  //     label:groupByWorkstation ? 'Workstations' : 'Fixtures',
-  //     allOptions:allStationsCodes,
-  //     selectedOptions:stationFilter,
-  //     onChange:onStationChange,
-  //     searchValue:searchStations,
-  //     onSearchChange:onSearchStations
-  //   },
-  //   {
-  //     id:'Error Codes',
-  //     label:'Error Codes',
-  //     allOptions:allErrorCodes,
-  //     selectedOptions:errorCodeFilter,
-  //     onChange:onErrorCodeChange,
-  //     searchValue:searchErrorCodes,
-  //     onSearchChange:onSearchErrorCodes
-  //   },
-  //   {
-  //     id:'Models',
-  //     label:'Models',
-  //     allOptions:allModels,
-  //     selectedOptions:modelFilter,
-  //     onChange:onModelChange,
-  //     searchValue:searchModels,
-  //     onSearchChange:onSearchModels
-  //   }
-  // ];
+  
   const sortOptions = useMemo(() => [
     {
       id: 'groupBy',
@@ -159,24 +102,6 @@ const SnFnPage = () => {
     toggleByCount,
     sortByCount,
   ]);
-  const exportOptions = useMemo(() => [
-    {
-      id: 'exportCsv',
-      handleClick: handleExportCSV,
-      label: 'Export CSV',
-      disabled: exportCooldown,
-    },
-    {
-      divider:true,
-      id: 'divider1'
-    },
-    {
-      id: 'exportJson',
-      handleClick: handleExportJSON,
-      label: 'Export JSON',
-      disabled: exportCooldown,
-    },
-  ], [handleExportCSV, handleExportJSON, exportCooldown]);
   const scrollThreshold = 5;
 
   // Theme and style objects for consistent UI
@@ -219,82 +144,6 @@ const SnFnPage = () => {
     const now = new Date();
     return now.toISOString().replace(/:/g, '-').replace(/\..+/, '');
   };
-  
-  // Exporting
-  const exportToCSV = () => {
-    try {
-      const rows = [];
-      filteredData.forEach((station) => {
-          const stationId = station[0][0];
-          const stationSecondaryId = station[0][1];
-          station.slice(1).forEach(([errorCode, count, snList]) => {
-          snList.forEach((sn) => {
-              rows.push([`'${stationId}'`,`'${stationSecondaryId}'`, errorCode, count, sn[0],sn[1],sn[2]]);
-          });
-          });
-      });
-      const headers = [
-        groupByWorkstation ? 'Workstation' : 'Fixture',
-        groupByWorkstation ? 'Fixture' : 'Workstation',
-        'Error Code',
-        'Error Count',
-        'Serial Number',
-        'Part Number',
-        'Model'
-      ];
-      const filename = `snfn_filtered_data_${getTimestamp()}.csv`;
-      // Use secure export function
-      exportSecureCSV(rows, headers, filename);
-    } 
-    catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    };
-  };
-  const exportToJSON = () => {
-    try{
-      const jsonData = [];
-      filteredData.forEach((station) => {
-          const stationId = station[0];
-          const errors = station.slice(1).map(([errorCode, count, snList]) => ({
-          errorCode,
-          count,
-          serialNumbers: snList,
-          }));
-          jsonData.push({
-            [groupByWorkstation ? 'workstation' : 'fixture']: stationId,
-            errors
-          });
-      });
-      const filename = `snfn_filtered_data_${getTimestamp()}.json`
-      jsonExport(jsonData,null,2,filename);
-    } 
-    catch(error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    };
-  };
-  // Export handlers
-  function handleExportCSV () {
-    if (exportCooldown) return;
-    setExportCooldown(true);
-    try {
-      exportToCSV();
-    } catch(err) {
-      console.error(err);
-      alert('Export failed');
-    } finally {
-      // always clear cooldown
-      setTimeout(()=>setExportCooldown(false),3000);
-    }
-  };
-  function handleExportJSON () {
-    if (exportCooldown) return;
-    setExportCooldown(true);
-    setTimeout(()=>setExportCooldown(false),3000);
-    exportToJSON();
-    handleMenuClose();
-  };
 
   // Reset station Filter on togle
   useEffect(() => {
@@ -316,12 +165,20 @@ const SnFnPage = () => {
       sortByCount,
       sortAsc
     ));
-}, [dataBase, stationFilter, errorCodeFilter, modelFilter, sortAsc, sortByCount]);
+  }, [dataBase, stationFilter, errorCodeFilter, modelFilter, sortAsc, sortByCount]);
 
   // Paginate the filtered data
   const paginatedData = useMemo(() => {
     return filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   }, [filteredData, page, itemsPerPage]);
+
+  const { exportOptions } = useSnFnExport({
+    paginatedData,
+    groupByWorkstation,
+    codeDescMap,
+    filteredData,
+    closeExport
+  });
 
   // UI
   return (

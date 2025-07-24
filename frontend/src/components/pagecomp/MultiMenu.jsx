@@ -9,7 +9,7 @@ export const MultiMenu = memo(function MultiMenu({ anchorEl, open, onClose, butt
     <Menu anchorEl={anchorEl} open={open} onClose={onClose} MenuListProps={{'aria-label':arialabel, role:'menu'}}>
         {buttonData.map((item, idx) => {
           if(item.divider){
-            return<Divider key={item.id || 'divider${idx}'}/>
+            return<Divider key={item.id || `divider-${idx}`}/>
           }
           const { handleClick, label, itemDisabled = false, id } = item;
           const itemKey = id || `item-${idx}`;
@@ -47,4 +47,4 @@ MultiMenu.propTypes = {
     ])
   )
 };
-export default memo(MultiMenu);
+export default MultiMenu;

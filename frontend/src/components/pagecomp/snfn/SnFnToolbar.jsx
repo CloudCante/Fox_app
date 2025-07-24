@@ -16,7 +16,7 @@ export function SnFnToolbar({
   filters, // your MultiFilter config
 }) {
   return (
-    <Box sx={toolbarStyle}>
+    <Box sx={toolbarStyle} >
       <DateRange
           startDate={startDate}
           setStartDate={setStartDate}
@@ -29,9 +29,9 @@ export function SnFnToolbar({
       <NumberRange defaultNumber={itemsPerPage} setNumber={setItemsPer} label="# Tables" />
       <NumberRange defaultNumber={maxErrorCodes} setNumber={setMaxErrors} label="# Errors" />
       <Box sx={{ display: 'flex', gap: 2 }}>
-        <Button onClick={sortMenuOpen}>Sort Options</Button>
-        <Button onClick={clearFilters}>Reset Filters</Button>
-        <Button onClick={openExport} disabled={exportCooldown}>Export</Button>
+        <Button onClick={sortMenuOpen} variant="contained" size='small'>Sort Option</Button>
+        <Button onClick={clearFilters} variant="contained" size='small'>Reset Filters</Button>
+        <Button onClick={openExport} variant="contained" size='small' disabled={exportCooldown}>Export</Button>
         <MultiMenu
             anchorEl={exportAnchor}
             open={Boolean(exportAnchor)}
