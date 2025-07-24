@@ -91,5 +91,5 @@ export function useSnFnExport({ paginatedData, groupByWorkstation, codeDescMap,f
     { id:'exportJson', handleClick:handleExportJSON, label:'Export JSON', disabled:exportCooldown },
   ], [handleExportCSV, handleExportJSON, exportCooldown]);
 
-  return { exportOptions };
+  return { exportOptions,exportCooldown };
 }
