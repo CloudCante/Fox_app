@@ -38,7 +38,7 @@ app.use('/api/snfn', snfnRouter);
 const stationHourlySummaryRouter = require('./routes/stationHourlySummary');
 app.use('/api/station-hourly-summary', stationHourlySummaryRouter);
 
-const pchartRouter = require('./routes/pchartRoutes');
+const pchartRouter = require('./routes/pChart');
 app.use('/api/pchart', pchartRouter);
 
 try {
