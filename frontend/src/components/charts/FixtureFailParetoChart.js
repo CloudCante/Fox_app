@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+//import React,{useState} from 'react';
 import {
   ComposedChart,
   Bar,
@@ -51,18 +51,18 @@ export const FixtureFailParetoChart = ({ label, data, lineLabel = "Failure Rate 
                   interval={0}
                   fontSize={12}
                   tickMargin={12}
-                  stroke={theme.palette.mode === 'dark' ? '#fff' : '#666'}
+                  stroke={theme.palette.mode === 'dark' ? '#fff' : '#000'}
                 />
                 <YAxis 
                   yAxisId="left" 
                   fontSize={12}
-                  stroke={theme.palette.mode === 'dark' ? '#fff' : '#666'}
+                  stroke={theme.palette.mode === 'dark' ? '#fff' : '#000'}
                 />
                 <YAxis 
                   yAxisId="right" 
                   orientation="right" 
                   fontSize={12}
-                  stroke={theme.palette.mode === 'dark' ? '#fff' : '#666'}
+                  stroke={theme.palette.mode === 'dark' ? '#fff' : '#000'}
                   domain={[0, 1]}
                   tickFormatter={v => `${(v * 100).toFixed(0)}%`}
                 />
@@ -71,7 +71,7 @@ export const FixtureFailParetoChart = ({ label, data, lineLabel = "Failure Rate 
                     fontSize: '12px',
                     padding: '4px',
                     backgroundColor: theme.palette.mode === 'dark' ? '#1e3a5f' : '#fff',
-                    color: theme.palette.mode === 'dark' ? '#fff' : '#666'
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000'
                   }}
                   formatter={(value, name) => {
                     if (name === 'Failure Rate (%)') return [`${(value * 100).toFixed(1)}%`, name];
@@ -82,7 +82,7 @@ export const FixtureFailParetoChart = ({ label, data, lineLabel = "Failure Rate 
                 <Legend 
                   wrapperStyle={{
                     fontSize: '12px',
-                    color: theme.palette.mode === 'dark' ? '#fff' : '#666'
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000'
                   }}
                 />
                 <Bar
