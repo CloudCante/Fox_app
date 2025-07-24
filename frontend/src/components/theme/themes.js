@@ -109,3 +109,37 @@ export const tableStyle = {
     maxWidth: '1600px',
     margin: '0 auto',
 };
+
+export const boxStyle = { 
+    height: '400px', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center' };
+export const flexStyle = { 
+    display: 'flex', 
+    alignItems: 'center', 
+    mb: 2, 
+    position: 'relative', 
+    width: '100%'};
+export const typeStyle =  {
+    width: '100%', 
+    textAlign: 'center', 
+    fontSize: { 
+        xs: '1rem', 
+        sm: '1.1rem', 
+        md: '1.25rem', 
+    }, 
+    mr: { 
+        xs: '0', 
+        sm: '0', 
+        md: '0', 
+    }};
+export const gridStyle = { 
+    display: 'grid', 
+    gridTemplateColumns: { 
+        sm: '1fr', 
+        md: '1fr 1fr' }, 
+        gap: 3, 
+        maxWidth: '1600px', 
+        margin: '0 auto'};
+export const paperStyle = {p:2};
