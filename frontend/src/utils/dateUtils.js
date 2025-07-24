@@ -37,3 +37,19 @@ export function isSameUTCDay(date1, date2) {
     date1.getUTCDate() === date2.getUTCDate()
   );
 } 
+/**
+ * Builds an array of ISO‑dates between two endpoints (used to fill missing days).
+ * @param {string} start - Start date in ISO format (YYYY-MM-DD)
+ * @param {string} end - End date in ISO format (YYYY-MM-DD)
+ * @returns {string[]} Array of ISO date strings (YYYY-MM-DD) from start
+ */
+export function getDateRangeArray(start, end) {
+  const arr = [];
+  let current = new Date(start);
+  const last = new Date(end);
+  while (current <= last) {
+    arr.push(current.toISOString().slice(0, 10));
+    current.setDate(current.getDate() + 1);
+  }
+  return arr;
+}

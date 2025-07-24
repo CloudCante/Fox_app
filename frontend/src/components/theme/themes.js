@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, useTheme } from '@mui/material/styles';
 
 const sidebarColor = '#1e3a5f';  // Dark blue for sidebar in both themes
 
@@ -77,3 +77,69 @@ export const darkTheme = createTheme({
         divider: themeColors.dark.divider
     }
 }); 
+
+export const toolbarStyle = {
+    display: 'flex',
+    overflowX: 'auto',
+    flexWrap: { xs: 'wrap', md: 'nowrap' },
+    gap: 2,
+    mb: 2,
+    p: 1
+};
+
+export const modalStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'background.paper',
+    border: '2px solid',
+    boxShadow: 24,
+    pt: 2,
+    px: 4,
+    pb: 3,
+    outline: 0,
+};
+
+export const tableStyle = {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm:'1fr 1fr', md: '1fr 1fr 1fr' },
+    gap: 3,
+    maxWidth: '1600px',
+    margin: '0 auto',
+};
+
+export const boxStyle = { 
+    height: '400px', 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center' };
+export const flexStyle = { 
+    display: 'flex', 
+    alignItems: 'center', 
+    mb: 2, 
+    position: 'relative', 
+    width: '100%'};
+export const typeStyle =  {
+    width: '100%', 
+    textAlign: 'center', 
+    fontSize: { 
+        xs: '1rem', 
+        sm: '1.1rem', 
+        md: '1.25rem', 
+    }, 
+    mr: { 
+        xs: '0', 
+        sm: '0', 
+        md: '0', 
+    }};
+export const gridStyle = { 
+    display: 'grid', 
+    gridTemplateColumns: { 
+        sm: '1fr', 
+        md: '1fr 1fr' }, 
+        gap: 3, 
+        maxWidth: '1600px', 
+        margin: '0 auto'};
+export const paperStyle = {p:2};
