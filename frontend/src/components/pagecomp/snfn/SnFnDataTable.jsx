@@ -2,16 +2,15 @@
 import React, { memo } from 'react';
 import { Box, Paper } from '@mui/material';
 import { truncateText,sanitizeText } from '../../../utils/textUtils';
+import { tableStyle } from '../../theme/themes';
 
-const tableStyle = {
-    display: 'grid',
-    gridTemplateColumns: { xs: '1fr', sm:'1fr 1fr', md: '1fr 1fr 1fr' },
-    gap: 3,
-    maxWidth: '1600px',
-    margin: '0 auto',
-  };
-
-export function SnFnDataTable({ paginatedData, maxErrorCodes, codeDescMap, onRowClick, groupByWorkstation, style }) {
+export function SnFnDataTable({ 
+  paginatedData, 
+  maxErrorCodes, 
+  codeDescMap, 
+  onRowClick, 
+  groupByWorkstation, 
+  style }) {
   return (
     <Box sx={tableStyle}>
       {paginatedData.map(station => (

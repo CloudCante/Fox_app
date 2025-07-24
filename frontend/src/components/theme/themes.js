@@ -101,3 +101,11 @@ export const modalStyle = {
     pb: 3,
     outline: 0,
 };
+
+export const tableStyle = {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm:'1fr 1fr', md: '1fr 1fr 1fr' },
+    gap: 3,
+    maxWidth: '1600px',
+    margin: '0 auto',
+};
