@@ -17,8 +17,6 @@ if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
 
-const allParts = [...sxm4Parts, ...sxm5Parts, ...redOctoberParts];
-
 const PackingPage = () => {
   const [packingData, setPackingData] = useState({});
   const [dates, setDates] = useState([]);

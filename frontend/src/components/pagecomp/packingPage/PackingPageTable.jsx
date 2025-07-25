@@ -2,8 +2,7 @@
 import React, { memo, useMemo } from 'react';
 import { Box, FormHelperText, Tooltip, IconButton } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DatePicker from 'react-datepicker';
-import PropTypes from 'prop-types';
+import CheckIcon from '@mui/icons-material/Check';
 import { headerStyle, divStyle, headerStyleTwo, spacerStyle } from '../../theme/themes';
 import { useTheme } from '@emotion/react';
 
@@ -19,51 +18,6 @@ export const PackingPageTable = memo(function DateRange({
   spacer=false
 }) {
     const theme = useTheme();
-  const buttionIconStyle = { 
-    padding: 0,
-    height: '14px',
-    width: '14px',
-    minWidth: '14px',
-    color: copied.group === partLabel && copied.date === date ? 'success.main' : 'white'
-  };
-  const tdStyle = {
-    border: '1px solid #ddd',
-    padding: '10px 8px',
-    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-
-    backgroundColor: theme.palette.background.default,
-
-    position: 'sticky',
-    left: 0,
-    zIndex: 5,
-    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-    fontSize: '13px',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  };
-    const tdStyle2 = {
-    border: '1px solid #ddd',
-    padding: '10px 8px',
-    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-
-    backgroundColor: theme.palette.background.paper,
-
-    position: 'sticky',
-    left: 0,
-    zIndex: 5,
-    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-    fontSize: '13px',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  };
-  const styleOne = {
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   textAlign: 'center',
-                   fontSize: '13px'
-                 }
 
   return (
     
@@ -80,8 +34,14 @@ export const PackingPageTable = memo(function DateRange({
                    <Tooltip title={copied.group === partLabel && copied.date === date ? 'Copied!' : 'Copy column'}>
                      <IconButton
                        size="small"
-                       onClick={() => {if(typeof(handleOnClick)==='function')handleOnClick(part, date)}}
-                       sx={buttionIconStyle}
+                       onClick={() => {if(typeof(handleOnClick)==='function')handleOnClick(partLabel, date)}}
+                       sx={{
+                            padding: 0,
+                            height: '14px',
+                            width: '14px',
+                            minWidth: '14px',
+                            color: copied.group === partLabel && copied.date === date ? 'success.main' : 'white'
+                        }}
                      >
                        {copied.group === partLabel && copied.date === date ? 
                          <CheckIcon sx={{ fontSize: '10px' }} /> : 
@@ -101,11 +61,31 @@ export const PackingPageTable = memo(function DateRange({
                backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper
 
              }}>
-               <td style={(idx % 2) === 0 ? tdStyle : tdStyle2}>
+               <td style={{
+                    border: '1px solid #ddd',
+                    padding: '10px 8px',
+                    fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+
+                    backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper,
+
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 5,
+                    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
+                    fontSize: '13px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                }}>
                  {part}
                </td>
                {dates.map(date => (
-                 <td key={date} style={styleOne}>
+                 <td key={date} style={{
+                   border: '1px solid #ddd',
+                   padding: '10px 8px',
+                   textAlign: 'center',
+                   fontSize: '13px'
+                 }}>
                    {packingData[part]?.[date] || ''}
                  </td>
                ))}
