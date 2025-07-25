@@ -1,127 +1,278 @@
 import React from 'react';
-import { useTheme } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { Line } from 'react-chartjs-2';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
   Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-} from 'recharts';
+  Legend
+} from 'chart.js';
 
-export const PChart = ({ data = [], title = "P-Chart - Performance Monitoring" }) => {
-    const theme = useTheme();
-    
-    const mockData = [
-        { date: '2024-01-01', proportion: 0.95, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-        { date: '2024-01-02', proportion: 0.94, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-        { date: '2024-01-03', proportion: 0.96, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-        { date: '2024-01-04', proportion: 0.93, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-        { date: '2024-01-05', proportion: 0.97, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-        { date: '2024-01-06', proportion: 0.95, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-        { date: '2024-01-07', proportion: 0.94, ucl: 0.98, lcl: 0.92, centerLine: 0.95 },
-    ];
-    
-    const chartData = data.length > 0 ? data : mockData;
-    
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+const PChart = ({ 
+  data = [], 
+  title = "P-Chart", 
+  subtitle = "",
+  station = "",
+  model = "",
+  week = ""
+}) => {
+  // Early return for no data
+  if (!data || data.length === 0) {
     return (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 20,
-            }}
-          >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke={theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}
-            />
-            <XAxis 
-              dataKey="date" 
-              angle={-45}
-              textAnchor="end"
-              height={70}
-              interval={0}
-              fontSize={12}
-              tickMargin={12}
-              stroke={theme.palette.mode === 'dark' ? '#fff' : '#666'}
-            />
-            <YAxis 
-              fontSize={12}
-              stroke={theme.palette.mode === 'dark' ? '#fff' : '#666'}
-              domain={[0.8, 1.0]}
-              tickFormatter={v => `${(v * 100).toFixed(1)}%`}
-            />
-            <Tooltip 
-              contentStyle={{
-                fontSize: '12px',
-                padding: '8px',
-                backgroundColor: theme.palette.mode === 'dark' ? '#1e3a5f' : '#fff',
-                color: theme.palette.mode === 'dark' ? '#fff' : '#666'
-              }}
-              formatter={(value, name) => [
-                `${(value * 100).toFixed(2)}%`,
-                name === 'proportion' ? 'Pass Rate' : 
-                name === 'ucl' ? 'Upper Control Limit' :
-                name === 'lcl' ? 'Lower Control Limit' : 'Center Line'
-              ]}
-            />
-            <Legend 
-              wrapperStyle={{
-                fontSize: '12px',
-                color: theme.palette.mode === 'dark' ? '#fff' : '#666'
-              }}
-            />
-            
-            {/* Upper Control Limit */}
-            <Line
-              type="monotone"
-              dataKey="ucl"
-              stroke="#ff0000"
-              strokeDasharray="5 5"
-              name="Upper Control Limit"
-              dot={false}
-              strokeWidth={2}
-            />
-            
-            {/* Lower Control Limit */}
-            <Line
-              type="monotone"
-              dataKey="lcl"
-              stroke="#ff0000"
-              strokeDasharray="5 5"
-              name="Lower Control Limit"
-              dot={false}
-              strokeWidth={2}
-            />
-            
-            {/* Center Line */}
-            <Line
-              type="monotone"
-              dataKey="centerLine"
-              stroke="#00ff00"
-              strokeDasharray="3 3"
-              name="Center Line"
-              dot={false}
-              strokeWidth={2}
-            />
-            
-            {/* Actual Performance Data */}
-            <Line
-              type="monotone"
-              dataKey="proportion"
-              stroke="#1976d2"
-              name="Pass Rate"
-              dot={{ fill: '#1976d2', strokeWidth: 2, r: 4 }}
-              strokeWidth={3}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="h6" color="text.secondary">
+          No data available for {station} station
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Select different week, model, or station to view P-Chart data
+        </Typography>
+      </Box>
     );
-}; 
+  }
+
+  // Calculate P-chart statistics
+  const calculatePChartStats = (data) => {
+    const totalDefects = data.reduce((sum, day) => sum + day.fails, 0);
+    const totalSamples = data.reduce((sum, day) => sum + (day.fails + day.passes), 0);
+    const P = totalDefects / totalSamples;
+    const Q = 1 - P;
+    const N_bar = totalSamples / data.length;
+    
+    return {
+      P,
+      UCL: P + (3 * Math.sqrt((P * Q) / N_bar)),
+      LCL: Math.max(0, P - (3 * Math.sqrt((P * Q) / N_bar))), // LCL cannot be negative
+      hasNegativeLCL: P - (3 * Math.sqrt((P * Q) / N_bar)) < 0
+    };
+  };
+
+  const stats = calculatePChartStats(data);
+
+  // Process daily points
+  const processedData = data.map(point => {
+    const totalSample = point.fails + point.passes;
+    const dailyP = point.fails / totalSample;
+    
+    return {
+      date: point.date,
+      proportion: dailyP,
+      isOutOfControl: dailyP > stats.UCL || dailyP < stats.LCL,
+      sampleSize: totalSample,
+      defects: point.fails
+    };
+  });
+
+  // Check for runs (7+ points above/below centerline)
+  let runCount = 0;
+  let lastPosition = null;
+  processedData.forEach((point, index) => {
+    const currentPosition = point.proportion > stats.P;
+    if (lastPosition === currentPosition) {
+      runCount++;
+      if (runCount >= 7) {
+        // Mark points in the run as out of control
+        for (let i = index - 6; i <= index; i++) {
+          processedData[i].isOutOfControl = true;
+        }
+      }
+    } else {
+      runCount = 1;
+    }
+    lastPosition = currentPosition;
+  });
+
+  // Format data for chart
+  const labels = processedData.map(point => {
+    const date = new Date(point.date);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      weekday: 'short'
+    });
+  });
+
+  const chartData = {
+    labels: labels,
+    datasets: [
+      {
+        label: 'Daily Proportion',
+        data: processedData.map(point => point.proportion * 100),
+        borderColor: '#1976d2',
+        backgroundColor: processedData.map(point => 
+          point.isOutOfControl ? '#d32f2f' : '#1976d2'
+        ),
+        pointRadius: 6,
+        pointBorderWidth: 2,
+        fill: false,
+        tension: 0,
+        showLine: false,
+      },
+      {
+        label: 'UCL',
+        data: Array(labels.length).fill(stats.UCL * 100),
+        borderColor: '#ff9800',
+        borderWidth: 2,
+        pointRadius: 0,
+        borderDash: [5, 5],
+        fill: false,
+      },
+      {
+        label: 'CL (p̄)',
+        data: Array(labels.length).fill(stats.P * 100),
+        borderColor: '#4caf50',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+      },
+      {
+        label: 'LCL',
+        data: Array(labels.length).fill(stats.LCL * 100),
+        borderColor: '#ff9800',
+        borderWidth: 2,
+        pointRadius: 0,
+        borderDash: [5, 5],
+        fill: false,
+      }
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 20
+        }
+      },
+      title: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          afterLabel: function(context) {
+            const dataIndex = context.dataIndex;
+            const point = processedData[dataIndex];
+            
+            return [
+              `Sample Size: ${point.sampleSize} parts`,
+              `Defects: ${point.defects}`,
+              `UCL: ${(stats.UCL * 100).toFixed(2)}%`,
+              `LCL: ${(stats.LCL * 100).toFixed(2)}%`,
+              `Status: ${point.isOutOfControl ? 'OUT OF CONTROL' : 'In Control'}`
+            ];
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: 'Production Day'
+        },
+        grid: {
+          display: true,
+          color: '#f0f0f0'
+        }
+      },
+      y: {
+        title: {
+          display: true,
+          text: 'Defect Rate (%)'
+        },
+        beginAtZero: true,
+        max: Math.max(stats.UCL * 100, ...processedData.map(p => p.proportion * 100)) * 1.1,
+        grid: {
+          display: true,
+          color: '#f0f0f0'
+        },
+        ticks: {
+          callback: function(value) {
+            return value.toFixed(1) + '%';
+          }
+        }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    }
+  };
+
+  const outOfControlCount = processedData.filter(p => p.isOutOfControl).length;
+
+  return (
+    <Box>
+      {stats.hasNegativeLCL && (
+        <Box sx={{ 
+          bgcolor: 'warning.light', 
+          p: 1, 
+          borderRadius: 1, 
+          mb: 2 
+        }}>
+          <Typography variant="body2" color="warning.dark">
+            ⚠️ The Lower Control Limit calculation resulted in negative values and has been adjusted to zero.
+          </Typography>
+        </Box>
+      )}
+
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 2, 
+        mb: 2, 
+        p: 2, 
+        bgcolor: 'background.paper',
+        borderRadius: 1
+      }}>
+        <Typography variant="body2">
+          <strong>Average Defect Rate:</strong> {(stats.P * 100).toFixed(2)}%
+        </Typography>
+        <Typography variant="body2">
+          <strong>Out of Control Points:</strong> {outOfControlCount}/{processedData.length}
+        </Typography>
+      </Box>
+
+      <Typography variant="h6" gutterBottom>
+        {title}
+      </Typography>
+      {subtitle && (
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          {subtitle}
+        </Typography>
+      )}
+      
+      <Box sx={{ height: 400, mt: 2 }}>
+        <Line data={chartData} options={options} />
+      </Box>
+
+      <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+        <Typography variant="caption" color="text.secondary">
+          <strong>P-Chart Statistics:</strong> {processedData.length} data points • 
+          Control limits based on overall proportion • 
+          Red points indicate out-of-control conditions • 
+          3-sigma control limits (99.7% confidence)
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+export default PChart;
