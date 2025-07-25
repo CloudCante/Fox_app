@@ -57,7 +57,7 @@ const PerformancePage = () => {
   };
 
   // Enhanced frontend consolidation function
-  const consolidateDataByDate = (rawData) => {
+  const consolidateDataByDate = (rawData, applyLowVolumeMerging = true) => {
     const consolidatedByDate = rawData.reduce((acc, point) => {
       const dateKey = point.date;
       
@@ -80,31 +80,35 @@ const PerformancePage = () => {
     // Convert to array and sort by date
     let dailyData = Object.values(consolidatedByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    // Handle low-volume days (< 31 total parts) - merge into previous day
-    const processedData = [];
-    for (let i = 0; i < dailyData.length; i++) {
-      const currentDay = dailyData[i];
-      
-      if (currentDay.total < 31 && processedData.length > 0) {
-        // Merge into previous day
-        const previousDay = processedData[processedData.length - 1];
-        previousDay.fails += currentDay.fails;
-        previousDay.passes += currentDay.passes;
-        previousDay.total += currentDay.total;
+    // Handle low-volume days (< 31 total parts) - only when viewing all service flows
+    if (applyLowVolumeMerging) {
+      const processedData = [];
+      for (let i = 0; i < dailyData.length; i++) {
+        const currentDay = dailyData[i];
         
-        console.log(`Merged low-volume day ${currentDay.date} (${currentDay.total} parts) into ${previousDay.date}`);
-      } else {
-        // Add as new day
-        processedData.push({
-          date: currentDay.date,
-          fails: currentDay.fails,
-          passes: currentDay.passes,
-          total: currentDay.total
-        });
+        if (currentDay.total < 31 && processedData.length > 0) {
+          // Merge into previous day
+          const previousDay = processedData[processedData.length - 1];
+          previousDay.fails += currentDay.fails;
+          previousDay.passes += currentDay.passes;
+          previousDay.total += currentDay.total;
+          
+          console.log(`Merged low-volume day ${currentDay.date} (${currentDay.total} parts) into ${previousDay.date}`);
+        } else {
+          // Add as new day
+          processedData.push({
+            date: currentDay.date,
+            fails: currentDay.fails,
+            passes: currentDay.passes,
+            total: currentDay.total
+          });
+        }
       }
+      return processedData;
+    } else {
+      // No low-volume merging for specific service flow analysis
+      return dailyData;
     }
-
-    return processedData;
   };
 
   // Fetch available filter options with cascading logic
@@ -161,7 +165,7 @@ const PerformancePage = () => {
     }
 
     if (!validateDateRange()) {
-      setError('P-Chart requires minimum 15 days of data. Please select a larger date range.');
+      setError('P-Chart requires minimum 10 days for 8 workdays (4-day work week). Please select a larger date range.');
       setPChartData([]);
       return;
     }
@@ -203,7 +207,9 @@ const PerformancePage = () => {
         }));
       } else {
         // If no specific part number, consolidate all part numbers per day
-        processedData = consolidateDataByDate(rawData);
+        // Only apply low-volume merging when NOT filtering by specific service flow
+        const shouldApplyLowVolumeMerging = !selectedServiceFlow;
+        processedData = consolidateDataByDate(rawData, shouldApplyLowVolumeMerging);
       }
 
       // Validate we have enough data points after consolidation (updated for 4-day work week)
@@ -304,7 +310,10 @@ const PerformancePage = () => {
       <Divider sx={{ mb: 3 }} />
 
       {/* Date Range Controls */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 4, position: 'relative', zIndex: 1000 }}>
+        <Typography variant="h6" gutterBottom>
+          Date Range
+        </Typography>
         <DateRange
           startDate={startDate}
           setStartDate={setStartDate}
@@ -321,8 +330,12 @@ const PerformancePage = () => {
         )}
       </Box>
 
-      {/* Filter Controls - Restored Part Number Filter */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      {/* Filter Controls */}
+      <Box sx={{ mb: 4, position: 'relative', zIndex: 999 }}>
+        <Typography variant="h6" gutterBottom>
+          Filters
+        </Typography>
+        <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={3}>
           <FormControl fullWidth>
             <InputLabel>Model *</InputLabel>
@@ -398,7 +411,8 @@ const PerformancePage = () => {
             </Select>
           </FormControl>
         </Grid>
-      </Grid>
+        </Grid>
+      </Box>
 
       {/* Error Display */}
       {error && (

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Paper, Fade } from '@mui/material';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -31,6 +31,8 @@ const PChart = ({
   model = "",
   week = ""
 }) => {
+  const [selectedPoint, setSelectedPoint] = useState(null);
+
   // Early return for no data
   if (!data || data.length === 0) {
     return (
@@ -166,20 +168,7 @@ const PChart = ({
         display: false
       },
       tooltip: {
-        callbacks: {
-          afterLabel: function(context) {
-            const dataIndex = context.dataIndex;
-            const point = processedData[dataIndex];
-            
-            return [
-              `Sample Size: ${point.sampleSize} parts`,
-              `Defects: ${point.defects}`,
-              `UCL: ${(stats.UCL * 100).toFixed(2)}%`,
-              `LCL: ${(stats.LCL * 100).toFixed(2)}%`,
-              `Status: ${point.isOutOfControl ? 'OUT OF CONTROL' : 'In Control'}`
-            ];
-          }
-        }
+        enabled: false // Disable hover tooltips, we'll use click instead
       }
     },
     scales: {
@@ -209,6 +198,24 @@ const PChart = ({
             return value.toFixed(1) + '%';
           }
         }
+      }
+    },
+    onClick: (event, elements) => {
+      if (elements.length > 0) {
+        const dataIndex = elements[0].index;
+        const point = processedData[dataIndex];
+        
+        setSelectedPoint({
+          date: point.date,
+          proportion: point.proportion,
+          sampleSize: point.sampleSize,
+          defects: point.defects,
+          isOutOfControl: point.isOutOfControl,
+          ucl: stats.UCL,
+          lcl: stats.LCL
+        });
+      } else {
+        setSelectedPoint(null);
       }
     },
     interaction: {
@@ -262,6 +269,40 @@ const PChart = ({
       <Box sx={{ height: 400, mt: 2 }}>
         <Line data={chartData} options={options} />
       </Box>
+
+      {/* Click-to-view Point Details */}
+      {selectedPoint && (
+        <Fade in={true}>
+          <Paper sx={{ mt: 2, p: 2, bgcolor: selectedPoint.isOutOfControl ? 'error.light' : 'info.light', borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Point Details - {new Date(selectedPoint.date).toLocaleDateString()}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              <Typography variant="body2">
+                <strong>Daily Proportion:</strong> {(selectedPoint.proportion * 100).toFixed(2)}%
+              </Typography>
+              <Typography variant="body2">
+                <strong>Sample Size:</strong> {selectedPoint.sampleSize} parts
+              </Typography>
+              <Typography variant="body2">
+                <strong>Defects:</strong> {selectedPoint.defects}
+              </Typography>
+              <Typography variant="body2">
+                <strong>UCL:</strong> {(selectedPoint.ucl * 100).toFixed(2)}%
+              </Typography>
+              <Typography variant="body2">
+                <strong>LCL:</strong> {(selectedPoint.lcl * 100).toFixed(2)}%
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                color: selectedPoint.isOutOfControl ? 'error.main' : 'success.main',
+                fontWeight: 'bold'
+              }}>
+                <strong>Status:</strong> {selectedPoint.isOutOfControl ? 'OUT OF CONTROL' : 'In Control'}
+              </Typography>
+            </Box>
+          </Paper>
+        </Fade>
+      )}
 
       <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
         <Typography variant="caption" color="text.secondary">
