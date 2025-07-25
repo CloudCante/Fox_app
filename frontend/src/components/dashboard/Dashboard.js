@@ -1,5 +1,5 @@
 // React Core
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 // Material UI Components
 import { Box, Paper, Typography, CircularProgress } from '@mui/material';
 // Third Party Libraries
@@ -11,10 +11,12 @@ import { FixtureFailParetoChart } from '../charts/FixtureFailParetoChart';
 // Page Components
 import { Header } from '../pagecomp/Header.jsx';
 import { DateRange } from '../pagecomp/DateRange.jsx';
+// Custom Hooks
+import { useDashboardData } from '../hooks/dashboard/useDashboardData.js';
 // Utilities and Helpers
+import { normalizeDate, getInitialStartDate } from '../../utils/dateUtils.js';
 import { dataCache } from '../../utils/cacheUtils';
 import { gridStyle } from '../theme/themes.js';
-import { fetchFixtureQuery, fetchWorkstationQuery } from '../../utils/queryUtils.js';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
   <input {...props} ref={ref} readOnly />
@@ -28,187 +30,68 @@ console.log('API_BASE:', API_BASE);
 const refreshInterval = 300000; // 5 minutes
 
 export const Dashboard = () => {
-  const [testStationData, setTestStationData] = useState([]);
-  const [testStationDataSXM4, setTestStationDataSXM4] = useState([]);
-  const [topFixturesData, setTopFixturesData] = useState([]);
-  //const [failStationsData, setFailStationsData] = useState([]);
-  //const [defectCodesData, setDefectCodesData] = useState([]);
-  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
-  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 7);
-    return normalizeStart(date);
-  });
-  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
-  const [loading, setLoading] = useState(true); 
+  const [startDate, setStartDate] = useState(getInitialStartDate());
+  const [endDate, setEndDate] = useState(normalizeDate.end(new Date()));
+  const handleStartDateChange = useCallback((date) => {
+    setStartDate(normalizeDate.start(date));
+  }, []);
+  const handleEndDateChange = useCallback((date) => {
+    setEndDate(normalizeDate.end(date));
+  }, []);
 
+  const { state, refreshData } = useDashboardData(API_BASE, startDate, endDate);
+  const { testStationData, testStationDataSXM4, topFixturesData, loading } = state;
+
+  // Setup refresh interval
   useEffect(() => {
-    setLoading(true);
-
-    const fetchModelData = ({ value, key, setter }) =>
-      fetchWorkstationQuery({
-        parameters: [{ id: 'model', value: value }],
-        startDate,
-        endDate,
-        key,
-        setDataCache: setter,
-        API_BASE,
-        API_Route: '/api/functional-testing/station-performance?'
-      });
-
-    const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationData});
-    const fetchSXM4 = () => fetchModelData({value:'Tesla SXM4',key:'sxm4',setter: setTestStationDataSXM4});
-
-    const fetchFixtures = () => 
-      fetchFixtureQuery({
-        startDate,
-        endDate,
-        key: 'fixtures',
-        setDataCache: setTopFixturesData,
-        API_BASE,
-        API_Route: '/api/functional-testing/fixture-performance?'
-      });
-
-    // const fetchFailStations = () => {
-    //   const params = new URLSearchParams();
-    //   if (startDate) {
-    //     const utcStartDate = new Date(startDate);
-    //     utcStartDate.setUTCHours(0, 0, 0, 0);
-    //     params.append('startDate', utcStartDate.toISOString());
-    //   }
-    //   if (endDate) {
-    //     const utcEndDate = new Date(endDate);
-    //     utcEndDate.setUTCHours(23, 59, 59, 999);
-    //     params.append('endDate', utcEndDate.toISOString());
-    //   }
-
-    //   const cacheKey = `failStations_${params.toString()}`;
-
-    //   const cachedData = dataCache.get(cacheKey);
-    //   if (cachedData) {
-    //     setFailStationsData(cachedData);
-    //     return Promise.resolve(cachedData);
-    //   }
-
-    //   return fetch(`${API_BASE}/api/defect-records/fail-stations?${params.toString()}`)
-    //     .then(res => res.json())
-    //     .then(data => {
-    //       setFailStationsData(data);
-    //       dataCache.set(cacheKey, data);
-    //       return data;
-    //     })
-    //     .catch(() => {
-    //       setFailStationsData([]);
-    //       return [];
-    //     });
-    // };
-
-    // const fetchDefectCodes = () => {
-    //   const params = new URLSearchParams();
-    //   if (startDate) {
-    //     const utcStartDate = new Date(startDate);
-    //     utcStartDate.setUTCHours(0, 0, 0, 0);
-    //     params.append('startDate', utcStartDate.toISOString());
-    //   }
-    //   if (endDate) {
-    //     const utcEndDate = new Date(endDate);
-    //     utcEndDate.setUTCHours(23, 59, 59, 999);
-    //     params.append('endDate', utcEndDate.toISOString());
-    //   }
-
-    //   const cacheKey = `defectCodes_${params.toString()}`;
-
-    //   const cachedData = dataCache.get(cacheKey);
-    //   if (cachedData) {
-    //     setDefectCodesData(cachedData);
-    //     return Promise.resolve(cachedData);
-    //   }
-
-    //   return fetch(`${API_BASE}/api/defect-records/defect-codes?${params.toString()}`)
-    //     .then(res => res.json())
-    //     .then(data => {
-    //       setDefectCodesData(data);
-    //       dataCache.set(cacheKey, data);
-    //       return data;
-    //     })
-    //     .catch(() => {
-    //       setDefectCodesData([]);
-    //       return [];
-    //     });
-    // };
-
-    Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures()])
-      .then(() => setLoading(false)) 
-      .catch(error => {
-        console.error("Error fetching dashboard data:", error);
-        setLoading(false); 
-      });
-
+    refreshData();
+    
     const interval = setInterval(() => {
       dataCache.clear();
-
-      Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures()])
-        .catch(error => console.error("Error refreshing dashboard data:", error));
+      refreshData();
     }, refreshInterval);
 
-    return () => clearInterval(interval); 
-  }, [startDate, endDate]);
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  // Memoize child components
+  const memoizedTestStationSXM5 = useMemo(() => (
+    <TestStationChart 
+      label="SXM5 Test Station Performance"
+      data={testStationData}
+      loading={loading}
+    />
+  ), [testStationData, loading]);
+  const memoizedTestStationSXM4 = useMemo(() => (
+    <TestStationChart 
+      label="SXM4 Test Station Performance"
+      data={testStationDataSXM4}
+      loading={loading}
+    />
+  ), [testStationDataSXM4, loading]);
+  const memoizedFixtureFail = useMemo(() => (
+    <FixtureFailParetoChart 
+      label="Fixture Performance"
+      data={topFixturesData}
+      loading={loading}
+    />
+  ), [topFixturesData, loading]);
 
   return (
     <Box p={1}>
       <Header title="Dashboard" />
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-        <DateRange
-          startDate={startDate}
-          setStartDate={setStartDate}
-          normalizeStart={normalizeStart}
-          endDate={endDate}
-          setEndDate={setEndDate}
-          normalizeEnd={normalizeEnd}
-        />
-      </div>
+      <DateRange
+        startDate={startDate}
+        setStartDate={handleStartDateChange}
+        normalizeStart={normalizeDate.start}
+        endDate={endDate}
+        setEndDate={handleEndDateChange}
+        normalizeEnd={normalizeDate.end}
+      />
       <Box sx={gridStyle}>
-        <TestStationChart 
-          label="SXM5 Test Station Performance"
-          data={testStationData}
-          loading={loading} />
-        <TestStationChart 
-          label={"SXM4 Test Station Performance"}
-          data={testStationDataSXM4} 
-          loading={loading}/>
-        <FixtureFailParetoChart 
-          label={"Fixture Performance"}
-          data={topFixturesData}
-          loading={loading} />
-        {/* <Paper sx={{ p: 2 }}>
-          <Box sx={flexStyle}>
-            <Typography variant="h6" sx={typeStyle} >
-              Defect Fail Stations
-            </Typography>
-          </Box>
-          <Box sx={boxStyle}>
-            {loading ? (
-              <CircularProgress />
-            ) : (
-              <ParetoChart data={failStationsData} lineLabel="Cumulative %" />
-            )}
-          </Box>
-        </Paper>
-        <Paper sx={{ p: 2 }}>
-          <Box sx={flexStyle}>
-            <Typography variant="h6" sx={typeStyle} >
-              Most Common Defects
-            </Typography>
-          </Box>
-          <Box sx={boxStyle}>
-            {loading ? (
-              <CircularProgress />
-            ) : (
-              <ParetoChart data={defectCodesData} lineLabel="Cumulative %" />
-            )}
-          </Box>
-        </Paper> */}
+        {memoizedTestStationSXM5}
+        {memoizedTestStationSXM4}
+        {memoizedFixtureFail}
       </Box>
     </Box>
   );

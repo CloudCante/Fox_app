@@ -16,6 +16,7 @@ import { useSnFnExport } from '../hooks/snfn/useSnFnExport.js';
 
 // Utilities & Styles
 import { processStationData } from '../../utils/snfn/snfnDataUtils.js';
+import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
 import { modalStyle } from '../theme/themes.js';
 
 // Check for environment variable for API base
@@ -26,14 +27,14 @@ if (!API_BASE) {
 
 const SnFnPage = () => {
   // Date range state
-  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
-  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 7);
-    return normalizeStart(date);
-  });
-  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
+  const [startDate, setStartDate] = useState(getInitialStartDate());
+  const [endDate, setEndDate] = useState(normalizeDate.end(new Date()));
+  const handleStartDateChange = useCallback((date) => {
+    setStartDate(normalizeDate.start(date));
+  }, []);
+  const handleEndDateChange = useCallback((date) => {
+    setEndDate(normalizeDate.end(date));
+  }, []);
 
   // Modal and pagination state
   const [modalInfo, setModalInfo] = useState([]);
@@ -109,10 +110,8 @@ const SnFnPage = () => {
 
   // Reset filters to default
   const clearFilters = () => {
-    const newStart = new Date();
-    newStart.setDate(newStart.getDate() - 7);
-    setStartDate(normalizeStart(newStart));
-    setEndDate(normalizeEnd(new Date()));
+    setStartDate(getInitialStartDate);
+    setEndDate(normalizeDate.end(new Date()));
     onErrorCodeChange({ target: { value: ['__CLEAR__'] } });
     onStationChange({ target: { value: ['__CLEAR__'] } });
     onModelChange({ target: { value: ['__CLEAR__'] } });
@@ -188,8 +187,8 @@ const SnFnPage = () => {
         sortAnchorEl={sortAnchorEl}
         sortOptions={sortOptions}
         startDate={startDate} endDate={endDate}
-        setStartDate={setStartDate} setEndDate={setEndDate}
-        normalizeStart={normalizeStart} normalizeEnd={normalizeEnd}
+        setStartDate={handleStartDateChange} setEndDate={handleEndDateChange}
+        normalizeStart={normalizeDate.start} normalizeEnd={normalizeDate.end}
         filters={filters}
       />
       <SnFnDataTable
