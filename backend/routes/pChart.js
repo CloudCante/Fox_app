@@ -13,6 +13,20 @@ router.get('/data', async (req, res) => {
             model
         } = req.query;
 
+        // Validate date range (minimum 15 days for P-Chart)
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff < 14) {
+                return res.status(400).json({
+                    error: 'Insufficient data range',
+                    message: 'P-Chart requires minimum 15 days of data. Please select a larger date range.'
+                });
+            }
+        }
+
         let queryParams = [startDate, endDate];
         let paramCount = 2;
 
@@ -29,6 +43,12 @@ router.get('/data', async (req, res) => {
             FROM workstation_pchart_daily
             WHERE date BETWEEN $1 AND $2
         `;
+
+        if (model) {
+            paramCount++;
+            query += ` AND model = $${paramCount}`;
+            queryParams.push(model);
+        }
 
         if (workstation) {
             paramCount++;
@@ -51,6 +71,16 @@ router.get('/data', async (req, res) => {
         query += ' ORDER BY date ASC';
 
         const { rows } = await pool.query(query, queryParams);
+        
+        // Validate we have enough data points
+        if (rows.length < 15) {
+            return res.status(400).json({
+                error: 'Insufficient data points',
+                message: `P-Chart requires minimum 15 data points. Found ${rows.length} points.`,
+                data: []
+            });
+        }
+
         res.json(rows);
 
     } catch (error) {
@@ -62,20 +92,50 @@ router.get('/data', async (req, res) => {
     }
 });
 
-// Get available filter options
+// Get available filter options with cascading support
 router.get('/filters', async (req, res) => {
     try {
-        const filterQueries = {
-            workstations: 'SELECT DISTINCT workstation_name FROM workstation_pchart_daily ORDER BY workstation_name',
-            serviceFlows: 'SELECT DISTINCT service_flow FROM workstation_pchart_daily WHERE service_flow IS NOT NULL ORDER BY service_flow',
-            partNumbers: 'SELECT DISTINCT pn FROM workstation_pchart_daily ORDER BY pn',
-            models: 'SELECT DISTINCT model FROM workstation_pchart_daily WHERE model IS NOT NULL ORDER BY model'
-        };
-
+        const { model, workstation } = req.query;
+        
         const filters = {};
-        for (const [key, query] of Object.entries(filterQueries)) {
-            const { rows } = await pool.query(query);
-            filters[key] = rows.map(row => Object.values(row)[0]);
+
+        // Always get models first
+        const modelsQuery = 'SELECT DISTINCT model FROM workstation_pchart_daily WHERE model IS NOT NULL ORDER BY model';
+        const modelsResult = await pool.query(modelsQuery);
+        filters.models = modelsResult.rows.map(row => row.model);
+
+        // If model is selected, get workstations for that model
+        if (model) {
+            const workstationsQuery = `
+                SELECT DISTINCT workstation_name 
+                FROM workstation_pchart_daily 
+                WHERE model = $1 
+                ORDER BY workstation_name
+            `;
+            const workstationsResult = await pool.query(workstationsQuery, [model]);
+            filters.workstations = workstationsResult.rows.map(row => row.workstation_name);
+
+            // If both model and workstation are selected, get service flows
+            if (workstation) {
+                const serviceFlowsQuery = `
+                    SELECT DISTINCT service_flow 
+                    FROM workstation_pchart_daily 
+                    WHERE model = $1 AND workstation_name = $2 AND service_flow IS NOT NULL
+                    ORDER BY service_flow
+                `;
+                const serviceFlowsResult = await pool.query(serviceFlowsQuery, [model, workstation]);
+                filters.serviceFlows = serviceFlowsResult.rows.map(row => row.service_flow);
+
+                // Get part numbers for this model/workstation combination
+                const partNumbersQuery = `
+                    SELECT DISTINCT pn 
+                    FROM workstation_pchart_daily 
+                    WHERE model = $1 AND workstation_name = $2
+                    ORDER BY pn
+                `;
+                const partNumbersResult = await pool.query(partNumbersQuery, [model, workstation]);
+                filters.partNumbers = partNumbersResult.rows.map(row => row.pn);
+            }
         }
 
         res.json(filters);

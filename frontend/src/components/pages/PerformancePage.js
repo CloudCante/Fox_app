@@ -12,49 +12,131 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Typography
+  Typography,
+  Alert
 } from '@mui/material';
 import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 
 const PerformancePage = () => {
-  // Date handling
+  // Date handling - Default to 14 days back (15 days total including today)
   const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
   const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
   
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
-    date.setDate(date.getDate() - 14); // 14 days back
+    date.setDate(date.getDate() - 14); // 14 days back for 15 total days
     return normalizeStart(date);
   });
   const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
 
-  // Other state
-  const [selectedModel, setSelectedModel] = useState('Tesla SXM4');
-  const [selectedStation, setSelectedStation] = useState('BAT');
-  const [loading, setLoading] = useState(true);
+  // Filter states
+  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedWorkstation, setSelectedWorkstation] = useState('');
+  const [selectedServiceFlow, setSelectedServiceFlow] = useState('');
+  const [selectedPartNumber, setSelectedPartNumber] = useState('');
+
+  // Available options from API
+  const [availableModels, setAvailableModels] = useState([]);
+  const [availableWorkstations, setAvailableWorkstations] = useState([]);
+  const [availableServiceFlows, setAvailableServiceFlows] = useState([]);
+  const [availablePartNumbers, setAvailablePartNumbers] = useState([]);
+
+  // Loading and data states
+  const [filtersLoading, setFiltersLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
   const [pChartData, setPChartData] = useState([]);
+  const [error, setError] = useState('');
 
   const API_BASE = process.env.REACT_APP_API_BASE;
-  const availableModels = ['Tesla SXM4', 'Tesla SXM5'];
-  const priorityStations = ['BAT', 'FCT', 'FI', 'VI1', 'VI2', 'FQC'];
 
-  const fetchPChartData = async () => {
-    setLoading(true);
+  // Validate date range for P-Chart requirements
+  const validateDateRange = () => {
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    return daysDiff >= 14; // Minimum 15 days total
+  };
+
+  // Fetch available filter options with cascading logic
+  const fetchFilters = async (model = '', workstation = '') => {
+    setFiltersLoading(true);
     try {
       const params = new URLSearchParams();
-      const utcStartDate = new Date(startDate);
-      const utcEndDate = new Date(endDate);
-      
-      params.append('startDate', utcStartDate.toISOString());
-      params.append('endDate', utcEndDate.toISOString());
-      params.append('model', selectedModel);
-      params.append('station', selectedStation);
+      if (model) params.append('model', model);
+      if (workstation) params.append('workstation', workstation);
 
-      const response = await fetch(`${API_BASE}/api/quality/pchart?${params.toString()}`);
+      const response = await fetch(`${API_BASE}/api/pchart/filters?${params.toString()}`);
       
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`Filter API error: ${response.status}`);
+      }
+
+      const filters = await response.json();
+      
+      // Always update models
+      setAvailableModels(filters.models || []);
+      
+      // Update workstations if model is selected
+      if (model && filters.workstations) {
+        setAvailableWorkstations(filters.workstations);
+      } else {
+        setAvailableWorkstations([]);
+        setSelectedWorkstation('');
+      }
+      
+      // Update service flows and part numbers if both model and workstation are selected
+      if (model && workstation) {
+        setAvailableServiceFlows(filters.serviceFlows || []);
+        setAvailablePartNumbers(filters.partNumbers || []);
+      } else {
+        setAvailableServiceFlows([]);
+        setAvailablePartNumbers([]);
+        setSelectedServiceFlow('');
+        setSelectedPartNumber('');
+      }
+
+    } catch (error) {
+      console.error('Error fetching filters:', error);
+      setError('Failed to load filter options');
+    } finally {
+      setFiltersLoading(false);
+    }
+  };
+
+  // Fetch P-Chart data
+  const fetchPChartData = async () => {
+    if (!selectedModel || !selectedWorkstation) {
+      setPChartData([]);
+      return;
+    }
+
+    if (!validateDateRange()) {
+      setError('P-Chart requires minimum 15 days of data. Please select a larger date range.');
+      setPChartData([]);
+      return;
+    }
+
+    setDataLoading(true);
+    setError('');
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('startDate', startDate.toISOString().split('T')[0]);
+      params.append('endDate', endDate.toISOString().split('T')[0]);
+      params.append('model', selectedModel);
+      params.append('workstation', selectedWorkstation);
+      
+      if (selectedServiceFlow) {
+        params.append('serviceFlow', selectedServiceFlow);
+      }
+      if (selectedPartNumber) {
+        params.append('pn', selectedPartNumber);
+      }
+
+      const response = await fetch(`${API_BASE}/api/pchart/data?${params.toString()}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `API error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -62,22 +144,84 @@ const PerformancePage = () => {
       // Transform data for PChart component
       const transformedData = data.map(point => ({
         date: point.date,
-        fails: point.defects,
-        passes: point.total - point.defects
+        fails: point.fail_count,
+        passes: point.pass_count
       }));
 
       setPChartData(transformedData);
+      
     } catch (error) {
       console.error('Error fetching P-Chart data:', error);
+      setError(error.message || 'Failed to fetch P-Chart data');
       setPChartData([]);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
+  // Handle model selection change
+  const handleModelChange = (event) => {
+    const newModel = event.target.value;
+    setSelectedModel(newModel);
+    setSelectedWorkstation('');
+    setSelectedServiceFlow('');
+    setSelectedPartNumber('');
+    
+    if (newModel) {
+      fetchFilters(newModel);
+    } else {
+      setAvailableWorkstations([]);
+      setAvailableServiceFlows([]);
+      setAvailablePartNumbers([]);
+    }
+  };
+
+  // Handle workstation selection change
+  const handleWorkstationChange = (event) => {
+    const newWorkstation = event.target.value;
+    setSelectedWorkstation(newWorkstation);
+    setSelectedServiceFlow('');
+    setSelectedPartNumber('');
+    
+    if (newWorkstation && selectedModel) {
+      fetchFilters(selectedModel, newWorkstation);
+    } else {
+      setAvailableServiceFlows([]);
+      setAvailablePartNumbers([]);
+    }
+  };
+
+  // Initial load - fetch models
   useEffect(() => {
-    fetchPChartData();
-  }, [startDate, endDate, selectedModel, selectedStation]);
+    fetchFilters();
+  }, []);
+
+  // Fetch data when filters or dates change
+  useEffect(() => {
+    if (selectedModel && selectedWorkstation) {
+      fetchPChartData();
+    }
+  }, [startDate, endDate, selectedModel, selectedWorkstation, selectedServiceFlow, selectedPartNumber]);
+
+  // Generate chart title and subtitle
+  const getChartTitle = () => {
+    let title = 'P-Chart Analysis';
+    if (selectedWorkstation && selectedModel) {
+      title = `${selectedWorkstation} Station - ${selectedModel}`;
+    }
+    return title;
+  };
+
+  const getChartSubtitle = () => {
+    let subtitle = `Analysis Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+    if (selectedServiceFlow) {
+      subtitle += ` | Service Flow: ${selectedServiceFlow}`;
+    }
+    if (selectedPartNumber) {
+      subtitle += ` | Part Number: ${selectedPartNumber}`;
+    }
+    return subtitle;
+  };
 
   return (
     <Container maxWidth="xl">
@@ -86,77 +230,142 @@ const PerformancePage = () => {
           Quality Control Charts
         </Typography>
         <Typography variant="body1" color="text.secondary" paragraph>
-          Statistical Process Control (SPC) Analysis using P-Charts
+          Statistical Process Control (SPC) Analysis using P-Charts - Minimum 15 days required
         </Typography>
       </Box>
 
       <Divider sx={{ mb: 3 }} />
 
-      {/* Controls */}
+      {/* Date Range Controls */}
       <Box sx={{ mb: 3 }}>
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-          <DateRange
-            startDate={startDate}
-            setStartDate={setStartDate}
-            normalizeStart={normalizeStart}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            normalizeEnd={normalizeEnd}
-          />
-        </div>
-
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Model</InputLabel>
-              <Select
-                value={selectedModel}
-                label="Model"
-                onChange={(e) => setSelectedModel(e.target.value)}
-                disabled={loading}
-              >
-                {availableModels.map((model) => (
-                  <MenuItem key={model} value={model}>{model}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Station</InputLabel>
-              <Select
-                value={selectedStation}
-                label="Station"
-                onChange={(e) => setSelectedStation(e.target.value)}
-                disabled={loading}
-              >
-                {priorityStations.map((station) => (
-                  <MenuItem key={station} value={station}>{station}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+        <DateRange
+          startDate={startDate}
+          setStartDate={setStartDate}
+          normalizeStart={normalizeStart}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          normalizeEnd={normalizeEnd}
+        />
+        
+        {!validateDateRange() && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            P-Chart requires minimum 15 days of data. Current range: {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1} days
+          </Alert>
+        )}
       </Box>
+
+      {/* Filter Controls */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Model *</InputLabel>
+            <Select
+              value={selectedModel}
+              label="Model *"
+              onChange={handleModelChange}
+              disabled={filtersLoading}
+            >
+              <MenuItem value="">
+                <em>Select Model</em>
+              </MenuItem>
+              {availableModels.map((model) => (
+                <MenuItem key={model} value={model}>{model}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Workstation *</InputLabel>
+            <Select
+              value={selectedWorkstation}
+              label="Workstation *"
+              onChange={handleWorkstationChange}
+              disabled={filtersLoading || !selectedModel || availableWorkstations.length === 0}
+            >
+              <MenuItem value="">
+                <em>Select Workstation</em>
+              </MenuItem>
+              {availableWorkstations.map((workstation) => (
+                <MenuItem key={workstation} value={workstation}>{workstation}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Service Flow</InputLabel>
+            <Select
+              value={selectedServiceFlow}
+              label="Service Flow"
+              onChange={(e) => setSelectedServiceFlow(e.target.value)}
+              disabled={filtersLoading || !selectedWorkstation || availableServiceFlows.length === 0}
+            >
+              <MenuItem value="">
+                <em>All Service Flows</em>
+              </MenuItem>
+              {availableServiceFlows.map((flow) => (
+                <MenuItem key={flow} value={flow}>{flow}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Part Number</InputLabel>
+            <Select
+              value={selectedPartNumber}
+              label="Part Number"
+              onChange={(e) => setSelectedPartNumber(e.target.value)}
+              disabled={filtersLoading || !selectedWorkstation || availablePartNumbers.length === 0}
+            >
+              <MenuItem value="">
+                <em>All Part Numbers</em>
+              </MenuItem>
+              {availablePartNumbers.map((pn) => (
+                <MenuItem key={pn} value={pn}>{pn}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+      </Grid>
+
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
       {/* Chart */}
       <Card>
         <CardHeader 
-          title={`${selectedStation} Station P-Chart Analysis`}
-          subheader={`Statistical Process Control for ${selectedModel}`}
+          title={getChartTitle()}
+          subheader="Statistical Process Control Analysis"
         />
         <CardContent>
-          {loading ? (
+          {!selectedModel || !selectedWorkstation ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Select Model and Workstation to View P-Chart
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Choose a model first, then select from available workstations for that model
+              </Typography>
+            </Box>
+          ) : dataLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
               <CircularProgress />
             </Box>
           ) : (
             <PChart
               data={pChartData}
-              title={`${selectedStation} Quality Control Chart`}
-              subtitle={`Analysis Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`}
-              station={selectedStation}
+              title={getChartTitle()}
+              subtitle={getChartSubtitle()}
+              station={selectedWorkstation}
               model={selectedModel}
             />
           )}
