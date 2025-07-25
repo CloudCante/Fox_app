@@ -30,13 +30,13 @@ const PerformancePage = () => {
   });
   const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
 
-  // Filter states
+  // Filter states (restored selectedPartNumber)
   const [selectedModel, setSelectedModel] = useState('');
   const [selectedWorkstation, setSelectedWorkstation] = useState('');
   const [selectedServiceFlow, setSelectedServiceFlow] = useState('');
   const [selectedPartNumber, setSelectedPartNumber] = useState('');
 
-  // Available options from API
+  // Available options from API (restored availablePartNumbers)
   const [availableModels, setAvailableModels] = useState([]);
   const [availableWorkstations, setAvailableWorkstations] = useState([]);
   const [availableServiceFlows, setAvailableServiceFlows] = useState([]);
@@ -50,10 +50,61 @@ const PerformancePage = () => {
 
   const API_BASE = process.env.REACT_APP_API_BASE;
 
-  // Validate date range for P-Chart requirements
+  // Validate date range for P-Chart requirements (updated for 4-day work week)
   const validateDateRange = () => {
     const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-    return daysDiff >= 14; // Minimum 15 days total
+    return daysDiff >= 9; // Minimum 10 days total for 8 workdays (4-day work week * 2 weeks)
+  };
+
+  // Enhanced frontend consolidation function
+  const consolidateDataByDate = (rawData) => {
+    const consolidatedByDate = rawData.reduce((acc, point) => {
+      const dateKey = point.date;
+      
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          date: point.date,
+          fails: 0,
+          passes: 0,
+          total: 0
+        };
+      }
+      
+      acc[dateKey].fails += point.fail_count;
+      acc[dateKey].passes += point.pass_count;
+      acc[dateKey].total += point.total_count;
+      
+      return acc;
+    }, {});
+
+    // Convert to array and sort by date
+    let dailyData = Object.values(consolidatedByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Handle low-volume days (< 31 total parts) - merge into previous day
+    const processedData = [];
+    for (let i = 0; i < dailyData.length; i++) {
+      const currentDay = dailyData[i];
+      
+      if (currentDay.total < 31 && processedData.length > 0) {
+        // Merge into previous day
+        const previousDay = processedData[processedData.length - 1];
+        previousDay.fails += currentDay.fails;
+        previousDay.passes += currentDay.passes;
+        previousDay.total += currentDay.total;
+        
+        console.log(`Merged low-volume day ${currentDay.date} (${currentDay.total} parts) into ${previousDay.date}`);
+      } else {
+        // Add as new day
+        processedData.push({
+          date: currentDay.date,
+          fails: currentDay.fails,
+          passes: currentDay.passes,
+          total: currentDay.total
+        });
+      }
+    }
+
+    return processedData;
   };
 
   // Fetch available filter options with cascading logic
@@ -139,16 +190,30 @@ const PerformancePage = () => {
         throw new Error(errorData.message || `API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const rawData = await response.json();
       
-      // Transform data for PChart component
-      const transformedData = data.map(point => ({
-        date: point.date,
-        fails: point.fail_count,
-        passes: point.pass_count
-      }));
+      // Frontend consolidation: Group multiple part numbers per day (unless specific part number selected)
+      let processedData;
+      if (selectedPartNumber) {
+        // If specific part number selected, use raw data
+        processedData = rawData.map(point => ({
+          date: point.date,
+          fails: point.fail_count,
+          passes: point.pass_count
+        }));
+      } else {
+        // If no specific part number, consolidate all part numbers per day
+        processedData = consolidateDataByDate(rawData);
+      }
 
-      setPChartData(transformedData);
+      // Validate we have enough data points after consolidation (updated for 4-day work week)
+      if (processedData.length < 8) {
+        setError(`P-Chart requires minimum 8 data points for 4-day work week. Found ${processedData.length} points after consolidation.`);
+        setPChartData([]);
+        return;
+      }
+
+      setPChartData(processedData);
       
     } catch (error) {
       console.error('Error fetching P-Chart data:', error);
@@ -196,7 +261,7 @@ const PerformancePage = () => {
     fetchFilters();
   }, []);
 
-  // Fetch data when filters or dates change
+  // Fetch data when filters or dates change (restored selectedPartNumber dependency)
   useEffect(() => {
     if (selectedModel && selectedWorkstation) {
       fetchPChartData();
@@ -219,6 +284,8 @@ const PerformancePage = () => {
     }
     if (selectedPartNumber) {
       subtitle += ` | Part Number: ${selectedPartNumber}`;
+    } else {
+      subtitle += ` | All Part Numbers Combined`;
     }
     return subtitle;
   };
@@ -230,7 +297,7 @@ const PerformancePage = () => {
           Quality Control Charts
         </Typography>
         <Typography variant="body1" color="text.secondary" paragraph>
-          Statistical Process Control (SPC) Analysis using P-Charts - Minimum 15 days required
+          Statistical Process Control (SPC) Analysis using P-Charts - Minimum 8 workdays required (4-day work week)
         </Typography>
       </Box>
 
@@ -249,12 +316,12 @@ const PerformancePage = () => {
         
         {!validateDateRange() && (
           <Alert severity="warning" sx={{ mt: 2 }}>
-            P-Chart requires minimum 15 days of data. Current range: {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1} days
+            P-Chart requires minimum 10 days for 8 workdays (4-day work week). Current range: {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1} days
           </Alert>
         )}
       </Box>
 
-      {/* Filter Controls */}
+      {/* Filter Controls - Restored Part Number Filter */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <FormControl fullWidth>

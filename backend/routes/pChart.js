@@ -13,16 +13,16 @@ router.get('/data', async (req, res) => {
             model
         } = req.query;
 
-        // Validate date range (minimum 15 days for P-Chart)
+        // Validate date range (minimum 10 days for 4-day work week)
         if (startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
             const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
             
-            if (daysDiff < 14) {
+            if (daysDiff < 9) {
                 return res.status(400).json({
                     error: 'Insufficient data range',
-                    message: 'P-Chart requires minimum 15 days of data. Please select a larger date range.'
+                    message: 'P-Chart requires minimum 10 days for 8 workdays (4-day work week). Please select a larger date range.'
                 });
             }
         }
@@ -72,15 +72,7 @@ router.get('/data', async (req, res) => {
 
         const { rows } = await pool.query(query, queryParams);
         
-        // Validate we have enough data points
-        if (rows.length < 15) {
-            return res.status(400).json({
-                error: 'Insufficient data points',
-                message: `P-Chart requires minimum 15 data points. Found ${rows.length} points.`,
-                data: []
-            });
-        }
-
+        // Note: Removed the 15-point validation since frontend will consolidate
         res.json(rows);
 
     } catch (error) {
@@ -115,7 +107,7 @@ router.get('/filters', async (req, res) => {
             const workstationsResult = await pool.query(workstationsQuery, [model]);
             filters.workstations = workstationsResult.rows.map(row => row.workstation_name);
 
-            // If both model and workstation are selected, get service flows
+            // If both model and workstation are selected, get service flows and part numbers
             if (workstation) {
                 const serviceFlowsQuery = `
                     SELECT DISTINCT service_flow 
