@@ -106,8 +106,8 @@ export const tableStyle = {
     display: 'grid',
     gridTemplateColumns: { xs: '1fr', sm:'1fr 1fr', md: '1fr 1fr 1fr' },
     gap: 3,
-    maxWidth: '1600px',
     margin: '0 auto',
+    borderSpacing: '0',
 };
 
 export const boxStyle = { 
@@ -143,3 +143,61 @@ export const gridStyle = {
         maxWidth: '1600px', 
         margin: '0 auto'};
 export const paperStyle = {p:2};
+export const headerStyle = {
+    border: '1px solid #ddd',
+    padding: '10px 8px',
+    fontWeight: 'bold',
+    backgroundColor: '#1a237e',
+    color: 'white',
+    position: 'sticky',
+    left: 0,
+    zIndex: 5,
+    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
+    fontSize: '14px'
+}
+export const headerStyleTwo = {
+    border: '1px solid #ddd',
+    padding: '10px 8px',
+    fontWeight: 'bold',
+    backgroundColor: '#c8e6c9',
+    position: 'sticky',
+    left: 0,
+    zIndex: 5,
+    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
+    fontSize: '14px',
+    color: '#2e7d32'
+    }
+export const divStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '16px',
+    bottomMargin: '20px',
+};
+export const spacerStyle = {
+    height: '20px',
+    border: '1px solid #ddd',
+    backgroundColor: '#fff',
+    position: 'sticky',
+    left: 0,
+    zIndex: 5,
+    boxShadow: '2px 0 5px rgba(0,0,0,0.1)'
+}
+export const buttonStyle = {
+    background: '#1976d2',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '8px 18px',
+    fontWeight: 600,
+    fontSize: '15px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
+}
+export const subTextStyle = { 
+    fontSize: '14px', 
+    color: '#666',
+    fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+    marginLeft: 'auto'
+}
+

@@ -110,7 +110,7 @@ const SnFnPage = () => {
 
   // Reset filters to default
   const clearFilters = () => {
-    setStartDate(getInitialStartDate);
+    setStartDate(getInitialStartDate());
     setEndDate(normalizeDate.end(new Date()));
     onErrorCodeChange({ target: { value: ['__CLEAR__'] } });
     onStationChange({ target: { value: ['__CLEAR__'] } });

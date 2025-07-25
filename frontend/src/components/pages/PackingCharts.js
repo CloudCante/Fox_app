@@ -13,6 +13,7 @@ import { ALL_MODELS } from '../../data/dataTables';
 // Custom Hooks
 import { useWeekNavigation } from '../hooks/packingCharts/useWeekNavigation';
 import { usePackingData } from '../hooks/packingCharts/usePackingData';
+import { buttonStyle } from '../theme/themes';
 
 // Configuration Constants
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -100,18 +101,19 @@ const PackingCharts = () => {
   return (
     <Box sx={{ padding: 4 }}>
       {/* Navigation Header */}
-      <Button
-        variant="outlined"
-        startIcon={<ArrowBackIcon />}
-        onClick={() => navigate('/packing')}
-        sx={{ mb: 2 }}
-      >
-        Back to Packing
-      </Button>
-
-      <Typography variant="h4" gutterBottom>
-        Packing Charts
-      </Typography>
+      <Box display="flex" mb={3} gap={2}>
+        <Typography variant="h4" gutterBottom>
+          Packing Charts
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/packing')}
+          sx={buttonStyle}
+        >
+          Back to Packing
+        </Button>
+      </Box>
 
       {/* Model Selection Filter */}
       <Box display="flex" alignItems="center" gap={4} mb={3}>
