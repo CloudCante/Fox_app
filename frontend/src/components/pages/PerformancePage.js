@@ -1,22 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  CardHeader,
-  CircularProgress,
-  Container,
-  Divider,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  Typography,
-  Alert
+import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
+  Divider, FormControl, Grid, InputLabel, MenuItem,
+  Select, Typography, Alert
 } from '@mui/material';
 import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
+import { Header } from '../pagecomp/Header';
 
 const PerformancePage = () => {
   // Date handling - Default to 14 days back (15 days total including today)
@@ -299,12 +288,10 @@ const PerformancePage = () => {
   return (
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Quality Control Charts
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Statistical Process Control (SPC) Analysis using P-Charts - Minimum 8 workdays required (4-day work week)
-        </Typography>
+        <Header
+          title="Quality Control Charts"
+          subTitle="Statistical Process Control (SPC) Analysis using P-Charts - Minimum 8 workdays required (4-day work week)"
+        />
       </Box>
 
       <Divider sx={{ mb: 3 }} />

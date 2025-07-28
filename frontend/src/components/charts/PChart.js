@@ -1,26 +1,14 @@
 import React, { useState } from 'react';
 import { Box, Typography, Paper, Fade } from '@mui/material';
 import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement,
+  LineElement, Title, Tooltip, Legend
 } from 'chart.js';
+import { Header } from '../pagecomp/Header';
 
 // Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
+ChartJS.register( CategoryScale, LinearScale, PointElement, LineElement,
+  Title, Tooltip, Legend
 );
 
 const PChart = ({ 
@@ -111,8 +99,7 @@ const PChart = ({
   const chartData = {
     labels: labels,
     datasets: [
-      {
-        label: 'Daily Proportion',
+      { label: 'Daily Proportion',
         data: processedData.map(point => point.proportion * 100),
         borderColor: '#1976d2',
         backgroundColor: processedData.map(point => 
@@ -122,10 +109,9 @@ const PChart = ({
         pointBorderWidth: 2,
         fill: false,
         tension: 0,
-        showLine: false,
+        showLine: true,
       },
-      {
-        label: 'UCL',
+      { label: 'UCL',
         data: Array(labels.length).fill(stats.UCL * 100),
         borderColor: '#ff9800',
         borderWidth: 2,
@@ -133,16 +119,14 @@ const PChart = ({
         borderDash: [5, 5],
         fill: false,
       },
-      {
-        label: 'CL (p̄)',
+      { label: 'CL (p̄)',
         data: Array(labels.length).fill(stats.P * 100),
         borderColor: '#4caf50',
         borderWidth: 2,
         pointRadius: 0,
         fill: false,
       },
-      {
-        label: 'LCL',
+      { label: 'LCL',
         data: Array(labels.length).fill(stats.LCL * 100),
         borderColor: '#ff9800',
         borderWidth: 2,
@@ -225,6 +209,21 @@ const PChart = ({
   };
 
   const outOfControlCount = processedData.filter(p => p.isOutOfControl).length;
+  const selectedPointRows = [
+    { label: 'Daily Proportion', value: `${(selectedPoint?.proportion * 100).toFixed(2)}%` },
+    { label: 'Sample Size',      value: `${selectedPoint?.sampleSize} parts`       },
+    { label: 'Defects',          value: selectedPoint?.defects                   },
+    { label: 'UCL',              value: `${(selectedPoint?.ucl * 100).toFixed(2)}%` },
+    { label: 'LCL',              value: `${(selectedPoint?.lcl * 100).toFixed(2)}%` },
+    {
+      label: 'Status',
+      value: selectedPoint?.isOutOfControl ? 'OUT OF CONTROL' : 'In Control',
+      sx: {
+        color: selectedPoint?.isOutOfControl ? 'error.main' : 'success.main',
+        fontWeight: 'bold'
+      }
+    }
+  ];
 
   return (
     <Box>
@@ -241,7 +240,8 @@ const PChart = ({
         </Box>
       )}
 
-      <Box sx={{ 
+      <Box 
+        sx={{ 
         display: 'flex', 
         gap: 2, 
         mb: 2, 
@@ -257,14 +257,13 @@ const PChart = ({
         </Typography>
       </Box>
 
-      <Typography variant="h6" gutterBottom>
-        {title}
-      </Typography>
-      {subtitle && (
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          {subtitle}
-        </Typography>
-      )}
+
+      <Header
+        title={title}
+        subTitle={subtitle}
+        titleVariant="h6"
+        subTitleVariant="body2"
+      />
       
       <Box sx={{ height: 400, mt: 2 }}>
         <Line data={chartData} options={options} />
@@ -278,27 +277,11 @@ const PChart = ({
               Point Details - {new Date(selectedPoint.date).toLocaleDateString()}
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              <Typography variant="body2">
-                <strong>Daily Proportion:</strong> {(selectedPoint.proportion * 100).toFixed(2)}%
-              </Typography>
-              <Typography variant="body2">
-                <strong>Sample Size:</strong> {selectedPoint.sampleSize} parts
-              </Typography>
-              <Typography variant="body2">
-                <strong>Defects:</strong> {selectedPoint.defects}
-              </Typography>
-              <Typography variant="body2">
-                <strong>UCL:</strong> {(selectedPoint.ucl * 100).toFixed(2)}%
-              </Typography>
-              <Typography variant="body2">
-                <strong>LCL:</strong> {(selectedPoint.lcl * 100).toFixed(2)}%
-              </Typography>
-              <Typography variant="body2" sx={{ 
-                color: selectedPoint.isOutOfControl ? 'error.main' : 'success.main',
-                fontWeight: 'bold'
-              }}>
-                <strong>Status:</strong> {selectedPoint.isOutOfControl ? 'OUT OF CONTROL' : 'In Control'}
-              </Typography>
+              {selectedPointRows.map(({ label, value, sx }) => (
+                <Typography variant="body2" key={label} sx={sx}>
+                  <strong>{label}:</strong> {value}
+                </Typography>
+              ))}
             </Box>
           </Paper>
         </Fade>

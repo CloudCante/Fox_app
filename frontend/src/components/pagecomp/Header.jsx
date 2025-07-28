@@ -4,14 +4,14 @@ import { Box,Typography } from '@mui/material';
 import PropTypes from 'prop-types';
 
 export const Header = memo(function Header({
-  title,subTitle
+  title,subTitle,titleVariant = "h4", subTitleVariant = "body1"
 }) {
   return (
     <Box sx={{ py:{xs:2, md:4} }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant={titleVariant} gutterBottom>
         {title}
       </Typography>
-      <Typography variant="body1" color="text.secondary">
+      <Typography variant={subTitleVariant} color="text.secondary">
         {subTitle}
       </Typography>
     </Box>
