@@ -11,13 +11,8 @@ ChartJS.register( CategoryScale, LinearScale, PointElement, LineElement,
   Title, Tooltip, Legend
 );
 
-const PChart = ({ 
-  data = [], 
-  title = "P-Chart", 
-  subtitle = "",
-  station = "",
-  model = "",
-  week = ""
+const PChart = ({  data = [], title = "P-Chart", subtitle = "",
+  station = "", model = "", week = ""
 }) => {
   const [selectedPoint, setSelectedPoint] = useState(null);
 
@@ -25,12 +20,13 @@ const PChart = ({
   if (!data || data.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
-        <Typography variant="h6" color="text.secondary">
-          No data available for {station} station
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Select different week, model, or station to view P-Chart data
-        </Typography>
+        <Header
+          title={`No data available for ${station} station`}
+          subTitle="Select different week, model, or station to view P-Chart data"
+          titleVariant="h6"
+          subTitleVariant="body2"
+          titleColor="text.secondary"
+        />
       </Box>
     );
   }
