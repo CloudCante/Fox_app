@@ -1,5 +1,5 @@
 // React Core
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 // Material UI Components
 import { Box, Paper, Typography, CircularProgress } from '@mui/material';
 // Third Party Libraries
@@ -11,12 +11,10 @@ import { FixtureFailParetoChart } from '../charts/FixtureFailParetoChart';
 // Page Components
 import { Header } from '../pagecomp/Header.jsx';
 import { DateRange } from '../pagecomp/DateRange.jsx';
-// Custom Hooks
-import { useDashboardData } from '../hooks/dashboard/useDashboardData.js';
 // Utilities and Helpers
-import { normalizeDate, getInitialStartDate } from '../../utils/dateUtils.js';
 import { dataCache } from '../../utils/cacheUtils';
 import { gridStyle } from '../theme/themes.js';
+import { fetchFixtureQuery, fetchWorkstationQuery } from '../../utils/queryUtils.js';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
   <input {...props} ref={ref} readOnly />
@@ -156,43 +154,22 @@ export const Dashboard = () => {
         .catch(error => console.error("Error refreshing dashboard data:", error));
     }, refreshInterval);
 
-    return () => clearInterval(interval);
-  }, [refreshData]);
-
-  // Memoize child components
-  const memoizedTestStationSXM5 = useMemo(() => (
-    <TestStationChart 
-      label="SXM5 Test Station Performance"
-      data={testStationData}
-      loading={loading}
-    />
-  ), [testStationData, loading]);
-  const memoizedTestStationSXM4 = useMemo(() => (
-    <TestStationChart 
-      label="SXM4 Test Station Performance"
-      data={testStationDataSXM4}
-      loading={loading}
-    />
-  ), [testStationDataSXM4, loading]);
-  const memoizedFixtureFail = useMemo(() => (
-    <FixtureFailParetoChart 
-      label="Fixture Performance"
-      data={topFixturesData}
-      loading={loading}
-    />
-  ), [topFixturesData, loading]);
+    return () => clearInterval(interval); 
+  }, [startDate, endDate]);
 
   return (
     <Box p={1}>
       <Header title="Dashboard" />
-      <DateRange
-        startDate={startDate}
-        setStartDate={handleStartDateChange}
-        normalizeStart={normalizeDate.start}
-        endDate={endDate}
-        setEndDate={handleEndDateChange}
-        normalizeEnd={normalizeDate.end}
-      />
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+        <DateRange
+          startDate={startDate}
+          setStartDate={setStartDate}
+          normalizeStart={normalizeStart}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          normalizeEnd={normalizeEnd}
+        />
+      </div>
       <Box sx={gridStyle}>
         <TestStationChart 
           label={"SXM4 Test Station Performance"}
