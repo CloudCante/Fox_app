@@ -1,404 +1,446 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Container,
+import React, { useEffect, useState } from 'react';
+import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
+  Divider, FormControl, Grid, InputLabel, MenuItem,
+  Select, Typography, Alert
 } from '@mui/material';
-import { PChart } from '../charts/PChart';
+import { DateRange } from '../pagecomp/DateRange';
+import PChart from '../charts/PChart';
+import { Header } from '../pagecomp/Header';
 
 const PerformancePage = () => {
-  const [dailyPChartData, setDailyPChartData] = useState([]);
-  const [weeklySummary, setWeeklySummary] = useState([]);
-  const [availableWeeks, setAvailableWeeks] = useState([]);
-  const [availableStations, setAvailableStations] = useState([]);
-  const [selectedWeek, setSelectedWeek] = useState('');
-  const [selectedModel, setSelectedModel] = useState('Tesla SXM4');
-  const [selectedStation, setSelectedStation] = useState('BAT');
-  const [loading, setLoading] = useState(true);
+  // Date handling - Default to 14 days back (15 days total including today)
+  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
+  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
+  
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 14); // 14 days back for 15 total days
+    return normalizeStart(date);
+  });
+  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
+
+  // Filter states (restored selectedPartNumber)
+  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedWorkstation, setSelectedWorkstation] = useState('');
+  const [selectedServiceFlow, setSelectedServiceFlow] = useState('');
+  const [selectedPartNumber, setSelectedPartNumber] = useState('');
+
+  // Available options from API (restored availablePartNumbers)
+  const [availableModels, setAvailableModels] = useState([]);
+  const [availableWorkstations, setAvailableWorkstations] = useState([]);
+  const [availableServiceFlows, setAvailableServiceFlows] = useState([]);
+  const [availablePartNumbers, setAvailablePartNumbers] = useState([]);
+
+  // Loading and data states
+  const [filtersLoading, setFiltersLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [pChartData, setPChartData] = useState([]);
+  const [error, setError] = useState('');
 
   const API_BASE = process.env.REACT_APP_API_BASE;
-  if (!API_BASE) {
-    console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
-  }
 
-  // Available models and priority stations
-  const availableModels = ['Tesla SXM4', 'Tesla SXM5'];
-  const priorityStations = ['BAT', 'FCT', 'FI', 'VI1', 'VI2', 'FQC'];
+  // Validate date range for P-Chart requirements (updated for 4-day work week)
+  const validateDateRange = () => {
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    return daysDiff >= 9; // Minimum 10 days total for 8 workdays (4-day work week * 2 weeks)
+  };
 
-  // Fetch available stations from database (optional enhancement)
-  const fetchAvailableStations = async () => {
-    try {
-      // This could be enhanced to get stations dynamically from the database
-      // For now, using the priority stations list
-      setAvailableStations(priorityStations);
-    } catch (error) {
-      console.error('Error fetching stations:', error);
-      setAvailableStations(priorityStations); // Fallback to default list
+  // Enhanced frontend consolidation function
+  const consolidateDataByDate = (rawData, applyLowVolumeMerging = true) => {
+    const consolidatedByDate = rawData.reduce((acc, point) => {
+      const dateKey = point.date;
+      
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          date: point.date,
+          fails: 0,
+          passes: 0,
+          total: 0
+        };
+      }
+      
+      acc[dateKey].fails += point.fail_count;
+      acc[dateKey].passes += point.pass_count;
+      acc[dateKey].total += point.total_count;
+      
+      return acc;
+    }, {});
+
+    // Convert to array and sort by date
+    let dailyData = Object.values(consolidatedByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Handle low-volume days (< 31 total parts) - only when viewing all service flows
+    if (applyLowVolumeMerging) {
+      const processedData = [];
+      for (let i = 0; i < dailyData.length; i++) {
+        const currentDay = dailyData[i];
+        
+        if (currentDay.total < 31 && processedData.length > 0) {
+          // Merge into previous day
+          const previousDay = processedData[processedData.length - 1];
+          previousDay.fails += currentDay.fails;
+          previousDay.passes += currentDay.passes;
+          previousDay.total += currentDay.total;
+          
+          console.log(`Merged low-volume day ${currentDay.date} (${currentDay.total} parts) into ${previousDay.date}`);
+        } else {
+          // Add as new day
+          processedData.push({
+            date: currentDay.date,
+            fails: currentDay.fails,
+            passes: currentDay.passes,
+            total: currentDay.total
+          });
+        }
+      }
+      return processedData;
+    } else {
+      // No low-volume merging for specific service flow analysis
+      return dailyData;
     }
   };
 
-  // Fetch Station P-Chart data
-  const fetchPChartData = async () => {
-    setLoading(true);
-
+  // Fetch available filter options with cascading logic
+  const fetchFilters = async (model = '', workstation = '') => {
+    setFiltersLoading(true);
     try {
-      // First, get available weeks from weekly metrics
-      /*const weeklyResponse = await fetch(`${API_BASE}/api/workstation/weekly-yield-metrics`);
-      if (!weeklyResponse.ok) {
-        throw new Error(`Weekly metrics API error: ${weeklyResponse.status}`);
-      }*/
+      const params = new URLSearchParams();
+      if (model) params.append('model', model);
+      if (workstation) params.append('workstation', workstation);
 
-      const weeklyData = await weeklyResponse.json();
-      const weeks = weeklyData.map(week => week._id).sort().reverse(); // Most recent first
-      setAvailableWeeks(weeks);
-
-      // Set default selected week to most recent if not already set
-      const currentSelectedWeek = selectedWeek || (weeks.length > 0 ? weeks[0] : '');
-      if (!selectedWeek && weeks.length > 0) {
-        setSelectedWeek(currentSelectedWeek);
+      const response = await fetch(`${API_BASE}/api/pchart/filters?${params.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`Filter API error: ${response.status}`);
       }
 
-      if (!currentSelectedWeek || !selectedModel || !selectedStation) {
-        setDailyPChartData([]);
-        setWeeklySummary([]);
+      const filters = await response.json();
+      
+      // Always update models
+      setAvailableModels(filters.models || []);
+      
+      // Update workstations if model is selected
+      if (model && filters.workstations) {
+        setAvailableWorkstations(filters.workstations);
+      } else {
+        setAvailableWorkstations([]);
+        setSelectedWorkstation('');
+      }
+      
+      // Update service flows and part numbers if both model and workstation are selected
+      if (model && workstation) {
+        setAvailableServiceFlows(filters.serviceFlows || []);
+        setAvailablePartNumbers(filters.partNumbers || []);
+      } else {
+        setAvailableServiceFlows([]);
+        setAvailablePartNumbers([]);
+        setSelectedServiceFlow('');
+        setSelectedPartNumber('');
+      }
+
+    } catch (error) {
+      console.error('Error fetching filters:', error);
+      setError('Failed to load filter options');
+    } finally {
+      setFiltersLoading(false);
+    }
+  };
+
+  // Fetch P-Chart data
+  const fetchPChartData = async () => {
+    if (!selectedModel || !selectedWorkstation) {
+      setPChartData([]);
+      return;
+    }
+
+    if (!validateDateRange()) {
+      setError('P-Chart requires minimum 10 days for 8 workdays (4-day work week). Please select a larger date range.');
+      setPChartData([]);
+      return;
+    }
+
+    setDataLoading(true);
+    setError('');
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('startDate', startDate.toISOString().split('T')[0]);
+      params.append('endDate', endDate.toISOString().split('T')[0]);
+      params.append('model', selectedModel);
+      params.append('workstation', selectedWorkstation);
+      
+      if (selectedServiceFlow) {
+        params.append('serviceFlow', selectedServiceFlow);
+      }
+      if (selectedPartNumber) {
+        params.append('pn', selectedPartNumber);
+      }
+
+      const response = await fetch(`${API_BASE}/api/pchart/data?${params.toString()}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `API error: ${response.status}`);
+      }
+
+      const rawData = await response.json();
+      
+      // Frontend consolidation: Group multiple part numbers per day (unless specific part number selected)
+      let processedData;
+      if (selectedPartNumber) {
+        // If specific part number selected, use raw data
+        processedData = rawData.map(point => ({
+          date: point.date,
+          fails: point.fail_count,
+          passes: point.pass_count
+        }));
+      } else {
+        // If no specific part number, consolidate all part numbers per day
+        // Only apply low-volume merging when NOT filtering by specific service flow
+        const shouldApplyLowVolumeMerging = !selectedServiceFlow;
+        processedData = consolidateDataByDate(rawData, shouldApplyLowVolumeMerging);
+      }
+
+      // Validate we have enough data points after consolidation (updated for 4-day work week)
+      if (processedData.length < 8) {
+        setError(`P-Chart requires minimum 8 data points for 4-day work week. Found ${processedData.length} points after consolidation.`);
+        setPChartData([]);
         return;
       }
 
-      // Fetch station-specific P-chart data
-      console.log(`Fetching P-Chart data for ${selectedModel} ${selectedStation} in ${currentSelectedWeek}`);
-
-      // Call the real API endpoint
-      const pchartResponse = await fetch(`${API_BASE}/api/workstation/pchart/${currentSelectedWeek}/${selectedModel}/${selectedStation}`);
-
-      if (!pchartResponse.ok) {
-        throw new Error(`P-Chart API error: ${pchartResponse.status}`);
-      }
-
-      const pchartData = await pchartResponse.json();
-      console.log(`P-Chart API Response:`, pchartData);
-
-      // Transform to chart format
-      const chartData = pchartData.dailyPoints.map(point => ({
-        date: point.date,
-        proportion: point.defectRate / 100, // Convert percentage to proportion
-        sampleSize: point.sampleSize,
-        successCount: point.sampleSize - point.defects, // Non-defective parts
-        defects: point.defects,
-        defectRate: point.defectRate,
-        ucl: point.upperControlLimit / 100,
-        lcl: point.lowerControlLimit / 100,
-        centerLine: pchartData.centerLine / 100,
-        inControl: !point.outOfControl
-      }));
-
-      setDailyPChartData(chartData);
-
-      // Set summary data
-      setWeeklySummary([{
-        _id: currentSelectedWeek,
-        stationSummary: {
-          totalParts: pchartData.weeklyTotals.totalParts,
-          defectRate: pchartData.weeklyTotals.defectRate,
-          model: selectedModel,
-          station: selectedStation
-        }
-      }]);
-
-      console.log(`Loaded ${chartData.length} daily data points for ${selectedStation} station P-Chart`);
-
+      setPChartData(processedData);
+      
     } catch (error) {
       console.error('Error fetching P-Chart data:', error);
+      setError(error.message || 'Failed to fetch P-Chart data');
+      setPChartData([]);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
-  // Calculate summary statistics for station defect rates
-  const summaryStats = useMemo(() => {
-    if (!dailyPChartData || dailyPChartData.length === 0) return null;
+  // Handle model selection change
+  const handleModelChange = (event) => {
+    const newModel = event.target.value;
+    setSelectedModel(newModel);
+    setSelectedWorkstation('');
+    setSelectedServiceFlow('');
+    setSelectedPartNumber('');
+    
+    if (newModel) {
+      fetchFilters(newModel);
+    } else {
+      setAvailableWorkstations([]);
+      setAvailableServiceFlows([]);
+      setAvailablePartNumbers([]);
+    }
+  };
 
-    const defectRates = dailyPChartData.map(d => d.defectRate);
-    const totalParts = dailyPChartData.reduce((sum, d) => sum + d.sampleSize, 0);
-    const totalDefects = dailyPChartData.reduce((sum, d) => sum + d.defects, 0);
-    const outOfControlPoints = dailyPChartData.filter(d => !d.inControl).length;
+  // Handle workstation selection change
+  const handleWorkstationChange = (event) => {
+    const newWorkstation = event.target.value;
+    setSelectedWorkstation(newWorkstation);
+    setSelectedServiceFlow('');
+    setSelectedPartNumber('');
+    
+    if (newWorkstation && selectedModel) {
+      fetchFilters(selectedModel, newWorkstation);
+    } else {
+      setAvailableServiceFlows([]);
+      setAvailablePartNumbers([]);
+    }
+  };
 
-    return {
-      meanDefectRate: defectRates.reduce((sum, p) => sum + p, 0) / defectRates.length,
-      overallDefectRate: (totalDefects / totalParts) * 100,
-      minDefectRate: Math.min(...defectRates),
-      maxDefectRate: Math.max(...defectRates),
-      totalParts: totalParts,
-      totalDefects: totalDefects,
-      dataPoints: dailyPChartData.length,
-      outOfControlPoints: outOfControlPoints,
-      processInControl: outOfControlPoints === 0
-    };
-  }, [dailyPChartData]);
-
-  // Load data on component mount and when selections change
+  // Initial load - fetch models
   useEffect(() => {
-    fetchPChartData();
-  }, [selectedWeek, selectedModel, selectedStation]);
-
-  // Initialize available stations on component mount
-  useEffect(() => {
-    fetchAvailableStations();
+    fetchFilters();
   }, []);
 
-  const handleWeekChange = (event) => {
-    setSelectedWeek(event.target.value);
+  // Fetch data when filters or dates change (restored selectedPartNumber dependency)
+  useEffect(() => {
+    if (selectedModel && selectedWorkstation) {
+      fetchPChartData();
+    }
+  }, [startDate, endDate, selectedModel, selectedWorkstation, selectedServiceFlow, selectedPartNumber]);
+
+  // Generate chart title and subtitle
+  const getChartTitle = () => {
+    let title = 'P-Chart Analysis';
+    if (selectedWorkstation && selectedModel) {
+      title = `${selectedWorkstation} Station - ${selectedModel}`;
+    }
+    return title;
   };
 
-  const handleModelChange = (event) => {
-    setSelectedModel(event.target.value);
-  };
-
-  const handleStationChange = (event) => {
-    setSelectedStation(event.target.value);
+  const getChartSubtitle = () => {
+    let subtitle = `Analysis Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+    if (selectedServiceFlow) {
+      subtitle += ` | Service Flow: ${selectedServiceFlow}`;
+    }
+    if (selectedPartNumber) {
+      subtitle += ` | Part Number: ${selectedPartNumber}`;
+    } else {
+      subtitle += ` | All Part Numbers Combined`;
+    }
+    return subtitle;
   };
 
   return (
     <Container maxWidth="xl">
       <Box sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Performance Analytics
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Real-time manufacturing performance metrics and statistical process control.
-        </Typography>
+        <Header
+          title="Quality Control Charts"
+          subTitle="Statistical Process Control (SPC) Analysis using P-Charts - Minimum 8 workdays required (4-day work week)"
+        />
       </Box>
 
       <Divider sx={{ mb: 3 }} />
 
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Station P-Chart Analysis
+      {/* Date Range Controls */}
+      <Box sx={{ mb: 4, position: 'relative', zIndex: 1000 }}>
+        <Typography variant="h6" gutterBottom>
+          Date Range
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Statistical process control for station-specific defect rates. P-charts detect when a station's daily defect rate goes out of control.
+        <DateRange
+          startDate={startDate}
+          setStartDate={setStartDate}
+          normalizeStart={normalizeStart}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          normalizeEnd={normalizeEnd}
+        />
+        
+        {!validateDateRange() && (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            P-Chart requires minimum 10 days for 8 workdays (4-day work week). Current range: {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1} days
+          </Alert>
+        )}
+      </Box>
+
+      {/* Filter Controls */}
+      <Box sx={{ mb: 4, position: 'relative', zIndex: 999 }}>
+        <Typography variant="h6" gutterBottom>
+          Filters
         </Typography>
+        <Grid container spacing={2}>
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Model *</InputLabel>
+            <Select
+              value={selectedModel}
+              label="Model *"
+              onChange={handleModelChange}
+              disabled={filtersLoading}
+            >
+              <MenuItem value="">
+                <em>Select Model</em>
+              </MenuItem>
+              {availableModels.map((model) => (
+                <MenuItem key={model} value={model}>{model}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
 
-        {/* Selection Controls */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Week</InputLabel>
-              <Select
-                value={selectedWeek}
-                label="Week"
-                onChange={handleWeekChange}
-                disabled={loading}
-              >
-                {availableWeeks.map((week) => (
-                  <MenuItem key={week} value={week}>
-                    {week}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Workstation *</InputLabel>
+            <Select
+              value={selectedWorkstation}
+              label="Workstation *"
+              onChange={handleWorkstationChange}
+              disabled={filtersLoading || !selectedModel || availableWorkstations.length === 0}
+            >
+              <MenuItem value="">
+                <em>Select Workstation</em>
+              </MenuItem>
+              {availableWorkstations.map((workstation) => (
+                <MenuItem key={workstation} value={workstation}>{workstation}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
 
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Model</InputLabel>
-              <Select
-                value={selectedModel}
-                label="Model"
-                onChange={handleModelChange}
-                disabled={loading}
-              >
-                {availableModels.map((model) => (
-                  <MenuItem key={model} value={model}>
-                    {model}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Service Flow</InputLabel>
+            <Select
+              value={selectedServiceFlow}
+              label="Service Flow"
+              onChange={(e) => setSelectedServiceFlow(e.target.value)}
+              disabled={filtersLoading || !selectedWorkstation || availableServiceFlows.length === 0}
+            >
+              <MenuItem value="">
+                <em>All Service Flows</em>
+              </MenuItem>
+              {availableServiceFlows.map((flow) => (
+                <MenuItem key={flow} value={flow}>{flow}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
 
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Station</InputLabel>
-              <Select
-                value={selectedStation}
-                label="Station"
-                onChange={handleStationChange}
-                disabled={loading}
-              >
-                {availableStations.map((station) => (
-                  <MenuItem key={station} value={station}>
-                    {station}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <FormControl fullWidth>
+            <InputLabel>Part Number</InputLabel>
+            <Select
+              value={selectedPartNumber}
+              label="Part Number"
+              onChange={(e) => setSelectedPartNumber(e.target.value)}
+              disabled={filtersLoading || !selectedWorkstation || availablePartNumbers.length === 0}
+            >
+              <MenuItem value="">
+                <em>All Part Numbers</em>
+              </MenuItem>
+              {availablePartNumbers.map((pn) => (
+                <MenuItem key={pn} value={pn}>{pn}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
         </Grid>
       </Box>
 
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-          <CircularProgress size={60} />
-          <Typography variant="h6" color="text.secondary" sx={{ ml: 2 }}>
-            Loading daily data for selected week...
-          </Typography>
-        </Box>
-      ) : (
-        <Grid container spacing={3}>
-          {/* Main P-Chart */}
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardHeader
-                title={`Daily Completion FPY P-Chart - ${selectedWeek || 'No Week Selected'}`}
-                subheader="Daily completion FPY within selected week with historical control limits"
-                titleTypographyProps={{ variant: 'h6' }}
-                subheaderTypographyProps={{ variant: 'body2' }}
-              />
-              <CardContent>
-                <Box sx={{ height: 450 }}>
-                  <PChart
-                    data={dailyPChartData}
-                    title={`${selectedStation} Station Defect Rate P-Chart - ${selectedModel} (${selectedWeek})`}
-                    subtitle={`Daily defect rates with control limits. Center line: ${dailyPChartData.length > 0 ? (dailyPChartData[0].centerLine * 100).toFixed(2) : 0}%`}
-                    yAxisLabel="Defect Rate (%)"
-                    chartType="defectRate"
-                    station={selectedStation}
-                    model={selectedModel}
-                    week={selectedWeek}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Summary Statistics */}
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardHeader
-                title={`P-Chart Summary - ${selectedWeek || 'No Week Selected'}`}
-                titleTypographyProps={{ variant: 'h6' }}
-              />
-              <CardContent>
-                {summaryStats && (
-                  <Grid container spacing={3} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="error.main">
-                          {summaryStats.overallDefectRate ? summaryStats.overallDefectRate.toFixed(1) : '--'}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Overall Defect Rate
-                        </Typography>
-                      </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="warning.main">
-                          {summaryStats.totalDefects ? summaryStats.totalDefects.toLocaleString() : '--'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Defects
-                        </Typography>
-                      </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center' }}>
-                        <Typography variant="h4" color="info.main">
-                          {summaryStats.totalParts ? summaryStats.totalParts.toLocaleString() : '--'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Parts Tested
-                        </Typography>
-                      </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6} md={3}>
-                      <Paper sx={{ p: 2, textAlign: 'center', bgcolor: summaryStats?.processInControl ? 'success.light' : 'error.light' }}>
-                        <Typography variant="h4" color={summaryStats?.processInControl ? 'success.dark' : 'error.dark'}>
-                          {summaryStats?.processInControl ? '✓' : '⚠'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Process {summaryStats?.processInControl ? 'In Control' : 'Out of Control'}
-                        </Typography>
-                        {summaryStats?.outOfControlPoints > 0 && (
-                          <Typography variant="caption" color="error.main">
-                            {summaryStats.outOfControlPoints} out-of-control points
-                          </Typography>
-                        )}
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Selected Week Summary */}
-          {weeklySummary.length > 0 && (
-            <Grid item xs={12}>
-              <Card elevation={3}>
-                <CardHeader
-                  title={`Week ${selectedWeek} Summary`}
-                  subheader="Complete weekly metrics for selected week"
-                  titleTypographyProps={{ variant: 'h6' }}
-                />
-                <CardContent>
-                  {weeklySummary.map((week) => (
-                    <Grid container spacing={2} key={week._id}>
-                      <Grid item xs={12} md={3}>
-                        <Paper sx={{ p: 2, textAlign: 'center' }}>
-                          <Typography variant="h5" color="primary">
-                            {week.stationSummary?.defectRate?.toFixed(1) || '--'}%
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Defect Rate
-                          </Typography>
-                        </Paper>
-                      </Grid>
-
-                      <Grid item xs={12} md={3}>
-                        <Paper sx={{ p: 2, textAlign: 'center' }}>
-                          <Typography variant="h5" color="secondary">
-                            {week.stationSummary?.totalParts?.toLocaleString() || '--'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Total Parts
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                    </Grid>
-                  ))}
-                </CardContent>
-              </Card>
-            </Grid>
-          )}
-        </Grid>
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
       )}
 
-      {/* Success Note */}
-      <Box sx={{ mt: 4, p: 2, backgroundColor: 'success.light', borderRadius: 1 }}>
-        <Typography variant="body2" color="success.contrastText">
-          <strong>✅ Live P-Chart:</strong> Daily data points within selected week with control limits from historical data.
-          Week selector provides focused analysis while maintaining statistical process control.
-          {!loading && selectedWeek && ` Currently showing ${dailyPChartData.length} days from ${selectedWeek}.`}
-        </Typography>
-      </Box>
+      {/* Chart */}
+      <Card>
+        <CardHeader 
+          title={getChartTitle()}
+          subheader="Statistical Process Control Analysis"
+        />
+        <CardContent>
+          {!selectedModel || !selectedWorkstation ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Select Model and Workstation to View P-Chart
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Choose a model first, then select from available workstations for that model
+              </Typography>
+            </Box>
+          ) : dataLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <PChart
+              data={pChartData}
+              title={getChartTitle()}
+              subtitle={getChartSubtitle()}
+              station={selectedWorkstation}
+              model={selectedModel}
+            />
+          )}
+        </CardContent>
+      </Card>
     </Container>
   );
 };
 
-export default PerformancePage; 
+export default PerformancePage;
