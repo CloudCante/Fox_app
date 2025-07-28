@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Tooltip,
   IconButton,
@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { sxm4Parts, sxm5Parts, redOctoberParts } from '../../data/dataTables';
 import {PackingPageTable} from '../pagecomp/packingPage/PackingPageTable';
 import { headerStyle, tableStyle, divStyle, headerStyleTwo, spacerStyle, buttonStyle, subTextStyle } from '../theme/themes';
+import { usePackingData } from '../hooks/packingPage/usePackingData';
+import { FixedSizeGrid as Grid } from 'react-window';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -18,146 +20,21 @@ if (!API_BASE) {
 }
 
 const PackingPage = () => {
-  const [packingData, setPackingData] = useState({});
-  const [dates, setDates] = useState([]);
-  const [sortData, setSortData] = useState({ '506': {}, '520': {} });
+
   const [copied, setCopied] = useState({ group: '', date: '' });
-  const [lastUpdated, setLastUpdated] = useState(null);
+  
+  const { packingData, dates, sortData, lastUpdated } = usePackingData(API_BASE);
 
   const theme = useTheme();
   const navigate = useNavigate();
 
-  const groups = [
+  const groups = useMemo(()=>[
   { key:'SXM4', parts:sxm4Parts, label:'TESLA SXM4', totalLabel:'TESLA SXM4 Total' },
   { key:'SXM5', parts:sxm5Parts, label:'TESLA SXM5', totalLabel:'TESLA SXM5 Total' },
   { key:'RED OCTOBER', parts:redOctoberParts, label:'RED OCTOBER', totalLabel:'Red October Total' },
-  ];
+  ],[]);
 
-  useEffect(() => {
-
-    const endDate = new Date();
-    const startDate = getInitialStartDate(30);
-    
-    // Fetch real data
-    const fetchPackingData = () => {
-      
-      const url = new URL(`${API_BASE}/api/packing/packing-records`);
-      url.searchParams.append('startDate', startDate.toISOString());
-      url.searchParams.append('endDate', endDate.toISOString());
-      
-      fetch(url.toString())
-        .then(res => res.json())
-        .then(data => {
-          console.log('Raw backend data:', data); // Debug log
-          const rolledUpData = {};
-          const allDatesSet = new Set();
-          Object.entries(data).forEach(([part, dateObj]) => {
-            rolledUpData[part] = {};
-            Object.entries(dateObj).forEach(([dateStr, count]) => {
-              const [month, day, year] = dateStr.split('/');
-              const dateObjJS = createUTCDate(year, month, day);
-              let rollupDate = toUTCDateString(dateObjJS);
-              const dayOfWeek = dateObjJS.getUTCDay();
-              if (dayOfWeek === 6) {
-                const friday = new Date(dateObjJS);
-                friday.setUTCDate(friday.getUTCDate() - 1);
-                rollupDate = toUTCDateString(friday);
-              } else if (dayOfWeek === 0) {
-                const friday = new Date(dateObjJS);
-                friday.setUTCDate(friday.getUTCDate() - 2);
-                rollupDate = toUTCDateString(friday);
-              }
-              if (!rolledUpData[part][rollupDate]) rolledUpData[part][rollupDate] = 0;
-              rolledUpData[part][rollupDate] += count;
-              allDatesSet.add(rollupDate);
-            });
-          });
-          
-          let sortedDates = Array.from(allDatesSet).sort((a, b) => {
-            const [am, ad, ay] = a.split('/');
-            const [bm, bd, by] = b.split('/');
-            return createUTCDate(ay, am, ad) - createUTCDate(by, bm, bd);
-          });
-          
-          console.log('Processed packing data:', rolledUpData); // Debug log
-          console.log('Sorted dates:', sortedDates); // Debug log
-          
-          setPackingData(rolledUpData);
-          setDates(sortedDates);
-          setLastUpdated(new Date());
-        })
-        .catch(error => {
-          console.error('Error fetching packing data:', error);
-        });
-    };
-
-    // Fetch sort data
-    const fetchSortData = () => {
-      
-      const url = new URL(`${API_BASE}/api/sort-record/sort-data`);
-      url.searchParams.append('startDate', startDate.toISOString());
-      url.searchParams.append('endDate', endDate.toISOString());
-      
-      
-      fetch(url.toString())
-        .then(res => res.json())
-        .then(data => {
-          console.log('Received sort data:', data); // Debug log
-          // Initialize sort data structure
-          const processedSortData = { '506': {}, '520': {} };
-          
-          // Process the data for each sort code
-          Object.entries(data).forEach(([sortCode, dateObj]) => {
-            if (sortCode === '506' || sortCode === '520') {
-              Object.entries(dateObj).forEach(([dateStr, count]) => {
-                const [month, day, year] = dateStr.split('/');
-                const dateObjJS = createUTCDate(year, month, day);
-                let rollupDate = toUTCDateString(dateObjJS);
-                const dayOfWeek = dateObjJS.getUTCDay();
-                
-                // Roll up weekend data to Friday
-                if (dayOfWeek === 6) {
-                  const friday = new Date(dateObjJS);
-                  friday.setUTCDate(friday.getUTCDate() - 1);
-                  rollupDate = toUTCDateString(friday);
-                } else if (dayOfWeek === 0) {
-                  const friday = new Date(dateObjJS);
-                  friday.setUTCDate(friday.getUTCDate() - 2);
-                  rollupDate = toUTCDateString(friday);
-                }
-                
-                if (!processedSortData[sortCode][rollupDate]) {
-                  processedSortData[sortCode][rollupDate] = 0;
-                }
-                processedSortData[sortCode][rollupDate] += count;
-              });
-            }
-          });
-          
-          console.log('Processed sort data:', processedSortData); // Debug log
-          setSortData(processedSortData);
-        })
-        .catch(error => {
-          console.error('Error fetching sort data:', error);
-        });
-    };
-
-    // Initial data fetch
-    fetchPackingData();
-    fetchSortData();
-
-    // Set up polling interval
-    const intervalId = setInterval(() => {
-      fetchPackingData();
-      fetchSortData();
-    }, 300000); // 5 minutes
-
-    // Cleanup
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // Copy column functionality - copies data in Excel-pasteable format
-  const handleCopyColumn = (group, date) => {
+  const handleCopyColumn = useCallback((group, date) => {
     let values = '';
     
     if (group === 'SXM4') {
@@ -168,10 +45,16 @@ const PackingPage = () => {
       values = redOctoberParts.map(part => packingData[part]?.[date] || '').join('\n');
     } else if (group === 'DAILY TOTAL') {
       // Calculate and copy the daily total for this date
-      const sxm4Total = sxm4Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      const sxm5Total = sxm5Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      const redOctoberTotal = redOctoberParts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      const dailyTotal = sxm4Total + sxm5Total + redOctoberTotal;
+      //const sxm4Total = sxm4Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+      //const sxm5Total = sxm5Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+      //const redOctoberTotal = redOctoberParts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+      const dailyTotal = useMemo(() => {
+        return dates.map(date => {
+          const total = [...sxm4Parts, ...sxm5Parts, ...redOctoberParts]
+            .reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+          return { date, total };
+        });
+      }, [dates, packingData]);
       values = dailyTotal.toString();
     } else if (group === 'SORT') {
       values = ['506', '520'].map(model => sortData[model]?.[date] || '').join('\n');
@@ -181,7 +64,7 @@ const PackingPage = () => {
       setCopied({ group, date });
       setTimeout(() => setCopied({ group: '', date: '' }), 1200);
     });
-  };
+  },[packingData,sortData]);
 
   return (
     <div style={{ padding: '20px' }}>

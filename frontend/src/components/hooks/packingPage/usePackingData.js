@@ -1,0 +1,93 @@
+// src/hooks/usePackingData.js
+import { useEffect, useReducer, useRef } from 'react';
+import { rollupWeekendCounts } from '../../../utils/packingPage/packingDataUtils';
+import { rollupSortData      } from '../../../utils/packingPage/sortDataUtils';
+
+const initialState = {
+  packingData: {}, 
+  dates:       [], 
+  sortData:    { '506': {}, '520': {} }, 
+  lastUpdated: null
+};
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'SET_ALL':
+      return { ...state, ...action.payload };
+    default:
+      return state;
+  }
+}
+
+/**
+ * Custom hook to fetch & roll‑up packing + sort data.
+ * @param {string} apiBase    – base URL for your API
+ * @param {number} daysBack   – how many days back to fetch
+ * @param {number} pollInterval – ms between automatic refreshes
+ */
+export function usePackingData(
+  apiBase, 
+  daysBack     = 30, 
+  pollInterval = 300_000
+) {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!apiBase) return;
+
+    // Compute our start/end once, outside the fetch loop
+    const endDate  = new Date();
+    const startDate = new Date(endDate);
+    startDate.setDate(endDate.getDate() - daysBack);
+
+    const startIso = startDate.toISOString();
+    const endIso   = endDate.toISOString();
+    const query    = `?startDate=${startIso}&endDate=${endIso}`;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    async function fetchAll() {
+      try {
+        // fire both calls in parallel
+        const [pRes, sRes] = await Promise.all([
+          fetch(`${apiBase}/api/packing/packing-records${query}`, { signal }),
+          fetch(`${apiBase}/api/sort-record/sort-data${query}`,    { signal })
+        ]);
+        if (!pRes.ok || !sRes.ok) throw new Error('Network response was not ok.');
+
+        const [rawPacking, rawSort] = await Promise.all([ pRes.json(), sRes.json() ]);
+
+        // roll‑up weekend counts and sort‑code counts
+        const { rolledUp, sortedDates } = rollupWeekendCounts(rawPacking);
+        const rolledSort                = rollupSortData(rawSort);
+
+        // batch into one update
+        dispatch({
+          type: 'SET_ALL',
+          payload: {
+            packingData: rolledUp,
+            dates:       sortedDates,
+            sortData:    rolledSort,
+            lastUpdated: new Date()
+          }
+        });
+      } catch (err) {
+        // ignore abort errors
+        if (err.name !== 'AbortError') console.error('usePackingData:', err);
+      }
+    }
+
+    // initial fetch + set up polling
+    fetchAll();
+    timerRef.current = setInterval(fetchAll, pollInterval);
+
+    return () => {
+      controller.abort();
+      clearInterval(timerRef.current);
+    };
+  }, [apiBase, daysBack, pollInterval]);
+
+  return state; // { packingData, dates, sortData, lastUpdated }
+}
