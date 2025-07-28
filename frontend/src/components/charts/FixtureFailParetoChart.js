@@ -1,4 +1,4 @@
-//import React,{useState} from 'react';
+import React,{memo} from 'react';
 import {
   ComposedChart,
   Bar,
@@ -15,7 +15,7 @@ import { useTheme, Paper, Box, Typography, CircularProgress } from '@mui/materia
 // Styles
 import { paperStyle, flexStyle, typeStyle, boxStyle } from '../theme/themes.js';
 
-export const FixtureFailParetoChart = ({ label, data, lineLabel = "Failure Rate (%)", loading}) => {
+export const FixtureFailParetoChart = memo(({ label, data, lineLabel = "Failure Rate (%)", loading}) => {
     const theme = useTheme();
     return (
       <Paper sx={paperStyle}>
@@ -144,4 +144,4 @@ export const FixtureFailParetoChart = ({ label, data, lineLabel = "Failure Rate 
         </Box>
       </Paper>
     );
-}; 
+}); 

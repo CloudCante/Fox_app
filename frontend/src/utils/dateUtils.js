@@ -53,3 +53,14 @@ export function getDateRangeArray(start, end) {
   }
   return arr;
 }
+
+export const normalizeDate = {
+  start: (date) => new Date(new Date(date).setHours(0, 0, 0, 0)),
+  end: (date) => new Date(new Date(date).setHours(23, 59, 59, 999))
+};
+
+export const getInitialStartDate = (offSet=7) => {
+  const date = new Date();
+  date.setDate(date.getDate() - offSet);
+  return normalizeDate.start(date);
+};

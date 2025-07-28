@@ -1,203 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Tooltip,
   IconButton,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { toUTCDateString, createUTCDate } from '../../utils/dateUtils';
+import { toUTCDateString, createUTCDate, getInitialStartDate } from '../../utils/dateUtils';
 import { useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { sxm4Parts, sxm5Parts, redOctoberParts } from '../../data/dataTables';
+import {PackingPageTable} from '../pagecomp/packingPage/PackingPageTable';
+import { headerStyle, tableStyle, divStyle, headerStyleTwo, spacerStyle, buttonStyle, subTextStyle } from '../theme/themes';
+import { usePackingData } from '../hooks/packingPage/usePackingData';
+import { FixedSizeGrid as Grid } from 'react-window';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
 
-const sxm4Parts = [
-  '692-2G506-0200-006',
-  '692-2G506-0200-0R6',
-  '692-2G506-0210-006',
-  '692-2G506-0212-0R5',
-  '692-2G506-0212-0R7',
-  '692-2G506-0210-0R6',
-  '692-2G510-0200-0R0',
-  '692-2G510-0210-003',
-  '692-2G510-0210-0R2',
-  '692-2G510-0210-0R3',
-  '965-2G506-0031-2R0',
-  '965-2G506-0130-202',
-  '965-2G506-6331-200',
-];
-
-const sxm5Parts = [
-  '692-2G520-0200-000',
-  '692-2G520-0200-0R0',
-  '692-2G520-0200-500',
-  '692-2G520-0200-5R0',
-  '692-2G520-0202-0R0',
-  '692-2G520-0280-001',
-  '692-2G520-0280-0R0',
-  '692-2G520-0280-000',
-  '692-2G520-0280-0R1',
-  '692-2G520-0282-001',
-  '965-2G520-0041-000',
-  '965-2G520-0100-001',
-  '965-2G520-0100-0R0',
-  '965-2G520-0340-0R0',
-  '965-2G520-0900-000',
-  '965-2G520-0900-001',
-  '965-2G520-0900-0R0',
-  '965-2G520-6300-0R0',
-  '965-2G520-A500-000',
-  '965-2G520-A510-300',
-  '692-2G520-0221-5R0',
-];
-
-const redOctoberParts = [
-  '920-23487-2530-0R0',
-  '920-23487-2531-0R0',
-];
-
-const allParts = [...sxm4Parts, ...sxm5Parts, ...redOctoberParts];
-
 const PackingPage = () => {
-  const [packingData, setPackingData] = useState({});
-  const [dates, setDates] = useState([]);
-  const [sortData, setSortData] = useState({ '506': {}, '520': {} });
+
   const [copied, setCopied] = useState({ group: '', date: '' });
-  const [lastUpdated, setLastUpdated] = useState(null);
+  
+  const { packingData, dates, sortData, lastUpdated } = usePackingData(API_BASE);
 
   const theme = useTheme();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Fetch real data
-    const fetchPackingData = () => {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
-      
-      const url = new URL(`${API_BASE}/api/packing/packing-records`);
-      url.searchParams.append('startDate', startDate.toISOString());
-      url.searchParams.append('endDate', endDate.toISOString());
-      
-      fetch(url.toString())
-        .then(res => res.json())
-        .then(data => {
-          console.log('Raw backend data:', data); // Debug log
-          const rolledUpData = {};
-          const allDatesSet = new Set();
-          Object.entries(data).forEach(([part, dateObj]) => {
-            rolledUpData[part] = {};
-            Object.entries(dateObj).forEach(([dateStr, count]) => {
-              const [month, day, year] = dateStr.split('/');
-              const dateObjJS = createUTCDate(year, month, day);
-              let rollupDate = toUTCDateString(dateObjJS);
-              const dayOfWeek = dateObjJS.getUTCDay();
-              if (dayOfWeek === 6) {
-                const friday = new Date(dateObjJS);
-                friday.setUTCDate(friday.getUTCDate() - 1);
-                rollupDate = toUTCDateString(friday);
-              } else if (dayOfWeek === 0) {
-                const friday = new Date(dateObjJS);
-                friday.setUTCDate(friday.getUTCDate() - 2);
-                rollupDate = toUTCDateString(friday);
-              }
-              if (!rolledUpData[part][rollupDate]) rolledUpData[part][rollupDate] = 0;
-              rolledUpData[part][rollupDate] += count;
-              allDatesSet.add(rollupDate);
-            });
-          });
-          
-          let sortedDates = Array.from(allDatesSet).sort((a, b) => {
-            const [am, ad, ay] = a.split('/');
-            const [bm, bd, by] = b.split('/');
-            return createUTCDate(ay, am, ad) - createUTCDate(by, bm, bd);
-          });
-          
-          console.log('Processed packing data:', rolledUpData); // Debug log
-          console.log('Sorted dates:', sortedDates); // Debug log
-          
-          setPackingData(rolledUpData);
-          setDates(sortedDates);
-          setLastUpdated(new Date());
-        })
-        .catch(error => {
-          console.error('Error fetching packing data:', error);
-        });
-    };
+  const groups = useMemo(()=>[
+  { key:'SXM4', parts:sxm4Parts, label:'TESLA SXM4', totalLabel:'TESLA SXM4 Total' },
+  { key:'SXM5', parts:sxm5Parts, label:'TESLA SXM5', totalLabel:'TESLA SXM5 Total' },
+  { key:'RED OCTOBER', parts:redOctoberParts, label:'RED OCTOBER', totalLabel:'Red October Total' },
+  ],[]);
 
-    // Fetch sort data
-    const fetchSortData = () => {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
-      
-      const url = new URL(`${API_BASE}/api/sort-record/sort-data`);
-      url.searchParams.append('startDate', startDate.toISOString());
-      url.searchParams.append('endDate', endDate.toISOString());
-      
-      
-      fetch(url.toString())
-        .then(res => res.json())
-        .then(data => {
-          console.log('Received sort data:', data); // Debug log
-          // Initialize sort data structure
-          const processedSortData = { '506': {}, '520': {} };
-          
-          // Process the data for each sort code
-          Object.entries(data).forEach(([sortCode, dateObj]) => {
-            if (sortCode === '506' || sortCode === '520') {
-              Object.entries(dateObj).forEach(([dateStr, count]) => {
-                const [month, day, year] = dateStr.split('/');
-                const dateObjJS = createUTCDate(year, month, day);
-                let rollupDate = toUTCDateString(dateObjJS);
-                const dayOfWeek = dateObjJS.getUTCDay();
-                
-                // Roll up weekend data to Friday
-                if (dayOfWeek === 6) {
-                  const friday = new Date(dateObjJS);
-                  friday.setUTCDate(friday.getUTCDate() - 1);
-                  rollupDate = toUTCDateString(friday);
-                } else if (dayOfWeek === 0) {
-                  const friday = new Date(dateObjJS);
-                  friday.setUTCDate(friday.getUTCDate() - 2);
-                  rollupDate = toUTCDateString(friday);
-                }
-                
-                if (!processedSortData[sortCode][rollupDate]) {
-                  processedSortData[sortCode][rollupDate] = 0;
-                }
-                processedSortData[sortCode][rollupDate] += count;
-              });
-            }
-          });
-          
-          console.log('Processed sort data:', processedSortData); // Debug log
-          setSortData(processedSortData);
-        })
-        .catch(error => {
-          console.error('Error fetching sort data:', error);
-        });
-    };
-
-    // Initial data fetch
-    fetchPackingData();
-    fetchSortData();
-
-    // Set up polling interval
-    const intervalId = setInterval(() => {
-      fetchPackingData();
-      fetchSortData();
-    }, 300000); // 5 minutes
-
-    // Cleanup
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // Copy column functionality - copies data in Excel-pasteable format
-  const handleCopyColumn = (group, date) => {
+  const handleCopyColumn = useCallback((group, date) => {
     let values = '';
     
     if (group === 'SXM4') {
@@ -208,10 +45,16 @@ const PackingPage = () => {
       values = redOctoberParts.map(part => packingData[part]?.[date] || '').join('\n');
     } else if (group === 'DAILY TOTAL') {
       // Calculate and copy the daily total for this date
-      const sxm4Total = sxm4Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      const sxm5Total = sxm5Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      const redOctoberTotal = redOctoberParts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      const dailyTotal = sxm4Total + sxm5Total + redOctoberTotal;
+      //const sxm4Total = sxm4Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+      //const sxm5Total = sxm5Parts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+      //const redOctoberTotal = redOctoberParts.reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+      const dailyTotal = useMemo(() => {
+        return dates.map(date => {
+          const total = [...sxm4Parts, ...sxm5Parts, ...redOctoberParts]
+            .reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
+          return { date, total };
+        });
+      }, [dates, packingData]);
       values = dailyTotal.toString();
     } else if (group === 'SORT') {
       values = ['506', '520'].map(model => sortData[model]?.[date] || '').join('\n');
@@ -221,517 +64,48 @@ const PackingPage = () => {
       setCopied({ group, date });
       setTimeout(() => setCopied({ group: '', date: '' }), 1200);
     });
-  };
+  },[packingData,sortData]);
 
   return (
     <div style={{ padding: '20px' }}>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '16px',
-        marginBottom: '20px' 
-      }}>
+      <div style={divStyle}>
         <h1 style={{ margin: 0 }}>Packing Output</h1>
         <button
-          style={{
-            background: '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            padding: '8px 18px',
-            fontWeight: 600,
-            fontSize: '15px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.08)'
-          }}
+          style={buttonStyle}
           onClick={() => navigate('/packing-charts')}
         >
           Packing Charts
         </button>
         {lastUpdated && (
-          <div style={{ 
-            fontSize: '14px', 
-            color: '#666',
-            fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-            marginLeft: 'auto'
-          }}>
+          <div style={subTextStyle}>
             Last updated: {lastUpdated.toLocaleTimeString()}
           </div>
         )}
       </div>
-      
-      <table style={{
-        borderCollapse: 'separate',
-        borderSpacing: '0',
-        fontSize: '14px',
-        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-        border: '1px solid #ccc',
-        tableLayout: 'fixed'
-      }}>
-        
-                 <tbody>
-           {/* Tesla SXM4 Section Header */}
-           <tr style={{ backgroundColor: '#1a237e' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#1a237e',
-               color: 'white',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px'
-             }}>
-               TESLA SXM4
-             </td>
-             {dates.map(date => (
-               <td key={date} style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 backgroundColor: '#1a237e',
-                 color: 'white',
-                 textAlign: 'center',
-                 fontWeight: 'bold',
-                 fontSize: '13px'
-               }}>
-                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                   <span>{date}</span>
-                   <Tooltip title={copied.group === 'SXM4' && copied.date === date ? 'Copied!' : 'Copy column'}>
-                     <IconButton
-                       size="small"
-                       onClick={() => handleCopyColumn('SXM4', date)}
-                       sx={{ 
-                         padding: 0,
-                         height: '14px',
-                         width: '14px',
-                         minWidth: '14px',
-                         color: copied.group === 'SXM4' && copied.date === date ? 'success.main' : 'white'
-                       }}
-                     >
-                       {copied.group === 'SXM4' && copied.date === date ? 
-                         <CheckIcon sx={{ fontSize: '10px' }} /> : 
-                         <ContentCopyIcon sx={{ fontSize: '10px' }} />
-                       }
-                     </IconButton>
-                   </Tooltip>
-                 </div>
-               </td>
-             ))}
-           </tr>
-
-                      {/* SXM4 Parts */}
-           {sxm4Parts.map((part, idx) => (
-             <tr key={part} style={{
-
-               backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper
-
-             }}>
-               <td style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-
-                 backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper,
-
-                 position: 'sticky',
-                 left: 0,
-                 zIndex: 5,
-                 boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                 fontSize: '13px',
-                 whiteSpace: 'nowrap',
-                 overflow: 'hidden',
-                 textOverflow: 'ellipsis'
-               }}>
-                 {part}
-               </td>
-               {dates.map(date => (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   textAlign: 'center',
-                   fontSize: '13px'
-                 }}>
-                   {packingData[part]?.[date] || ''}
-                 </td>
-               ))}
-             </tr>
-           ))}
-
-           {/* SXM4 Total Row */}
-           <tr style={{ backgroundColor: '#c8e6c9' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#c8e6c9',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px',
-               color: '#2e7d32'
-             }}>
-               TESLA SXM4 Total
-             </td>
-             {dates.map(date => {
-               const total = sxm4Parts.reduce((sum, part) => 
-                 sum + (packingData[part]?.[date] || 0), 0
-               );
-               return (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   backgroundColor: '#c8e6c9',
-                   textAlign: 'center',
-                   fontWeight: 'bold',
-                   fontSize: '13px',
-                   color: '#2e7d32'
-                 }}>
-                   {total || ''}
-                 </td>
-               );
-             })}
-           </tr>
-
-           {/* Spacer Row */}
-           <tr>
-             <td style={{
-               height: '20px',
-               border: '1px solid #ddd',
-               backgroundColor: '#fff',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)'
-             }}></td>
-             {dates.map((_, idx) => (
-               <td key={idx} style={{
-                 height: '20px',
-                 border: '1px solid #ddd',
-                 backgroundColor: '#fff'
-               }}></td>
-             ))}
-           </tr>
-
-           {/* Tesla SXM5 Section Header */}
-           <tr style={{ backgroundColor: '#1a237e' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#1a237e',
-               color: 'white',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px'
-             }}>
-               TESLA SXM5
-             </td>
-             {dates.map(date => (
-               <td key={date} style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 backgroundColor: '#1a237e',
-                 color: 'white',
-                 textAlign: 'center',
-                 fontWeight: 'bold',
-                 fontSize: '13px'
-               }}>
-                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                   <span>{date}</span>
-                   <Tooltip title={copied.group === 'SXM5' && copied.date === date ? 'Copied!' : 'Copy column'}>
-                     <IconButton
-                       size="small"
-                       onClick={() => handleCopyColumn('SXM5', date)}
-                       sx={{ 
-                         padding: 0,
-                         height: '14px',
-                         width: '14px',
-                         minWidth: '14px',
-                         color: copied.group === 'SXM5' && copied.date === date ? 'success.main' : 'white'
-                       }}
-                     >
-                       {copied.group === 'SXM5' && copied.date === date ? 
-                         <CheckIcon sx={{ fontSize: '10px' }} /> : 
-                         <ContentCopyIcon sx={{ fontSize: '10px' }} />
-                       }
-                     </IconButton>
-                   </Tooltip>
-                 </div>
-               </td>
-             ))}
-           </tr>
-
-           {/* SXM5 Parts */}
-           {sxm5Parts.map((part, idx) => (
-             <tr key={part} style={{
-
-               backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper
-
-             }}>
-               <td style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-
-                 backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper,
-
-                 position: 'sticky',
-                 left: 0,
-                 zIndex: 5,
-                 boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                 fontSize: '13px',
-                 whiteSpace: 'nowrap',
-                 overflow: 'hidden',
-                 textOverflow: 'ellipsis'
-               }}>
-                 {part}
-               </td>
-               {dates.map(date => (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   textAlign: 'center',
-                   fontSize: '13px'
-                 }}>
-                   {packingData[part]?.[date] || ''}
-                                  </td>
-               ))}
-             </tr>
-           ))}
-
-           {/* SXM5 Total Row */}
-           <tr style={{ backgroundColor: '#c8e6c9' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#c8e6c9',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px',
-               color: '#2e7d32'
-             }}>
-               TESLA SXM5 Total
-             </td>
-             {dates.map(date => {
-               const total = sxm5Parts.reduce((sum, part) => 
-                 sum + (packingData[part]?.[date] || 0), 0
-               );
-               return (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   backgroundColor: '#c8e6c9',
-                   textAlign: 'center',
-                   fontWeight: 'bold',
-                   fontSize: '13px',
-                   color: '#2e7d32'
-                 }}>
-                   {total || ''}
-                 </td>
-               );
-             })}
-           </tr>
-
-           {/* Spacer Row */}
-           <tr>
-             <td style={{
-               height: '20px',
-               border: '1px solid #ddd',
-               backgroundColor: '#fff',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)'
-             }}></td>
-             {dates.map((_, idx) => (
-               <td key={idx} style={{
-                 height: '20px',
-                 border: '1px solid #ddd',
-                 backgroundColor: '#fff'
-               }}></td>
-             ))}
-           </tr>
-
-           {/* Red October Section Header */}
-           <tr style={{ backgroundColor: '#1a237e' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#1a237e',
-               color: 'white',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px'
-             }}>
-               RED OCTOBER
-             </td>
-             {dates.map(date => (
-               <td key={date} style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 backgroundColor: '#1a237e',
-                 color: 'white',
-                 textAlign: 'center',
-                 fontWeight: 'bold',
-                 fontSize: '13px'
-               }}>
-                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                   <span>{date}</span>
-                   <Tooltip title={copied.group === 'RED OCTOBER' && copied.date === date ? 'Copied!' : 'Copy column'}>
-                     <IconButton
-                       size="small"
-                       onClick={() => handleCopyColumn('RED OCTOBER', date)}
-                       sx={{ 
-                         padding: 0,
-                         height: '14px',
-                         width: '14px',
-                         minWidth: '14px',
-                         color: copied.group === 'RED OCTOBER' && copied.date === date ? 'success.main' : 'white'
-                       }}
-                     >
-                       {copied.group === 'RED OCTOBER' && copied.date === date ? 
-                         <CheckIcon sx={{ fontSize: '10px' }} /> : 
-                         <ContentCopyIcon sx={{ fontSize: '10px' }} />
-                       }
-                     </IconButton>
-                   </Tooltip>
-                 </div>
-               </td>
-             ))}
-           </tr>
-
-           {/* Red October Parts */}
-           {redOctoberParts.map((part, idx) => (
-             <tr key={part} style={{
-
-               backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper
-
-             }}>
-               <td style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-
-                 backgroundColor: idx % 2 === 0 ? theme.palette.background.default : theme.palette.background.paper,
-
-                 position: 'sticky',
-                 left: 0,
-                 zIndex: 5,
-                 boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                 fontSize: '13px',
-                 whiteSpace: 'nowrap',
-                 overflow: 'hidden',
-                 textOverflow: 'ellipsis'
-               }}>
-                 {part}
-               </td>
-               {dates.map(date => (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   textAlign: 'center',
-                   fontSize: '13px'
-                 }}>
-                   {packingData[part]?.[date] || ''}
-                 </td>
-               ))}
-             </tr>
-           ))}
-
-           {/* Red October Total Row */}
-           <tr style={{ backgroundColor: '#c8e6c9' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#c8e6c9',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px',
-               color: '#2e7d32'
-             }}>
-               RED OCTOBER Total
-             </td>
-             {dates.map(date => {
-               const total = redOctoberParts.reduce((sum, part) => 
-                 sum + (packingData[part]?.[date] || 0), 0
-               );
-               return (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   backgroundColor: '#c8e6c9',
-                   textAlign: 'center',
-                   fontWeight: 'bold',
-                   fontSize: '13px',
-                   color: '#2e7d32'
-                 }}>
-                   {total || ''}
-                 </td>
-               );
-             })}
-           </tr>
-
-           {/* Spacer Row */}
-           <tr>
-             <td style={{
-               height: '20px',
-               border: '1px solid #ddd',
-               backgroundColor: '#fff',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)'
-             }}></td>
-             {dates.map((_, idx) => (
-               <td key={idx} style={{
-                 height: '20px',
-                 border: '1px solid #ddd',
-                 backgroundColor: '#fff'
-               }}></td>
-             ))}
-           </tr>
-
+      <table style={tableStyle}>
+        {groups.map(g => (
+          <PackingPageTable
+            key={g.key}
+            header={g.label}
+            headerTwo={g.totalLabel}
+            dates={dates}
+            partLabel={g.key}
+            handleOnClick={handleCopyColumn}
+            partsMap={g.parts}
+            packingData={packingData}
+            copied={copied}
+            spacer
+          />
+        ))}
+        <tbody>
            {/* Daily Total Section Header */}
-           <tr style={{ backgroundColor: '#1a237e' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#1a237e',
-               color: 'white',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px'
-             }}>
+           <tr style={headerStyle}>
+             <td style={headerStyle}>
                DAILY TOTAL
              </td>
              {dates.map(date => (
-               <td key={date} style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 backgroundColor: '#1a237e',
-                 color: 'white',
-                 textAlign: 'center',
-                 fontWeight: 'bold',
-                 fontSize: '13px'
-               }}>
-                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+               <td key={date} style={headerStyle}>
+                 <div style={divStyle}>
                    <span>{date}</span>
                    <Tooltip title={copied.group === 'DAILY TOTAL' && copied.date === date ? 'Copied!' : 'Copy column'}>
                      <IconButton
@@ -758,18 +132,7 @@ const PackingPage = () => {
 
            {/* Daily Total Row */}
            <tr style={{ backgroundColor: '#c8e6c9' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#c8e6c9',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px',
-               color: '#2e7d32'
-             }}>
+             <td style={headerStyleTwo}>
                Total Packed
              </td>
              {dates.map(date => {
@@ -780,15 +143,7 @@ const PackingPage = () => {
                const dailyTotal = sxm4Total + sxm5Total + redOctoberTotal;
                
                return (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   backgroundColor: '#c8e6c9',
-                   textAlign: 'center',
-                   fontWeight: 'bold',
-                   fontSize: '13px',
-                   color: '#2e7d32'
-                 }}>
+                 <td key={date} style={headerStyleTwo}>
                    {dailyTotal || ''}
                  </td>
                );
@@ -797,51 +152,20 @@ const PackingPage = () => {
 
            {/* Spacer Row */}
            <tr>
-             <td style={{
-               height: '20px',
-               border: '1px solid #ddd',
-               backgroundColor: '#fff',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)'
-             }}></td>
+             <td style={spacerStyle}></td>
              {dates.map((_, idx) => (
-               <td key={idx} style={{
-                 height: '20px',
-                 border: '1px solid #ddd',
-                 backgroundColor: '#fff'
-               }}></td>
+               <td key={idx} style={spacerStyle}></td>
              ))}
            </tr>
 
            {/* Sort Section Header */}
-           <tr style={{ backgroundColor: '#1a237e' }}>
-             <td style={{
-               border: '1px solid #ddd',
-               padding: '10px 8px',
-               fontWeight: 'bold',
-               backgroundColor: '#1a237e',
-               color: 'white',
-               position: 'sticky',
-               left: 0,
-               zIndex: 5,
-               boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-               fontSize: '14px'
-             }}>
+           <tr style={headerStyle}>
+             <td style={headerStyle}>
                SORT
              </td>
              {dates.map(date => (
-               <td key={date} style={{
-                 border: '1px solid #ddd',
-                 padding: '10px 8px',
-                 backgroundColor: '#1a237e',
-                 color: 'white',
-                 textAlign: 'center',
-                 fontWeight: 'bold',
-                 fontSize: '13px'
-               }}>
-                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+               <td key={date} style={headerStyle}>
+                 <div style={divStyle}>
                    <span>{date}</span>
                    <Tooltip title={copied.group === 'SORT' && copied.date === date ? 'Copied!' : 'Copy column'}>
                      <IconButton

@@ -1,10 +1,10 @@
-//import React,{useState} from 'react';
+import React,{memo} from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LabelList } from 'recharts';
 import { useTheme, Paper, Box, Typography, CircularProgress } from '@mui/material';
 // Styles
 import { paperStyle, flexStyle, typeStyle, boxStyle } from '../theme/themes.js';
 
-export const TestStationChart = ({ label, data ,loading}) => {
+export const TestStationChart = memo(({ label, data ,loading}) => {
     const theme = useTheme();
     const textColor = theme.palette.mode === 'dark' ? '#fff' : '#000';
     
@@ -101,4 +101,4 @@ export const TestStationChart = ({ label, data ,loading}) => {
         </Paper>
 
     );
-}; 
+}); 
