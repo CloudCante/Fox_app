@@ -28,8 +28,9 @@ console.log('API_BASE:', API_BASE);
 const refreshInterval = 300000; // 5 minutes
 
 export const Dashboard = () => {
-  const [testStationData, setTestStationData] = useState([]);
+  const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
   const [testStationDataSXM4, setTestStationDataSXM4] = useState([]);
+  const [testStationDataSXM6, setTestStationDataSXM6] = useState([]);
   const [topFixturesData, setTopFixturesData] = useState([]);
   //const [failStationsData, setFailStationsData] = useState([]);
   //const [defectCodesData, setDefectCodesData] = useState([]);
@@ -57,8 +58,9 @@ export const Dashboard = () => {
         API_Route: '/api/functional-testing/station-performance?'
       });
 
-    const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationData});
+    const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationDataSXM5});
     const fetchSXM4 = () => fetchModelData({value:'Tesla SXM4',key:'sxm4',setter: setTestStationDataSXM4});
+    const fetchSXM6 = () => fetchModelData({value:'Tesla SXM6',key:'sxm6',setter: setTestStationDataSXM6});
 
     const fetchFixtures = () => 
       fetchFixtureQuery({
@@ -138,7 +140,7 @@ export const Dashboard = () => {
     //     });
     // };
 
-    Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures()])
+    Promise.all([fetchSXM4(), fetchSXM5(), fetchSXM6(), fetchFixtures()])
       .then(() => setLoading(false)) 
       .catch(error => {
         console.error("Error fetching dashboard data:", error);
@@ -148,7 +150,7 @@ export const Dashboard = () => {
     const interval = setInterval(() => {
       dataCache.clear();
 
-      Promise.all([fetchSXM4(), fetchSXM5(), fetchFixtures()])
+      Promise.all([fetchSXM4(), fetchSXM5(), fetchSXM6, fetchFixtures()])
         .catch(error => console.error("Error refreshing dashboard data:", error));
     }, refreshInterval);
 
@@ -170,13 +172,17 @@ export const Dashboard = () => {
       </div>
       <Box sx={gridStyle}>
         <TestStationChart 
-          label="SXM5 Test Station Performance"
-          data={testStationData}
-          loading={loading} />
-        <TestStationChart 
           label={"SXM4 Test Station Performance"}
           data={testStationDataSXM4} 
           loading={loading}/>
+        <TestStationChart 
+          label="SXM5 Test Station Performance"
+          data={testStationDataSXM5}
+          loading={loading} />
+        <TestStationChart 
+          label="SXM6 Test Station Performance"
+          data={testStationDataSXM6}
+          loading={loading} />
         <FixtureFailParetoChart 
           label={"Fixture Performance"}
           data={topFixturesData}
