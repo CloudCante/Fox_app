@@ -20,7 +20,8 @@ export const DateRange = memo(function DateRange({
   error,
   helperText,
   required = false,
-  sx = {}
+  sx = {},
+  inline=false
 }) {
   // Memoize maxDate to avoid creating new Date on every render
   const defaultMaxDate = useMemo(() => new Date(), []);
@@ -39,7 +40,48 @@ export const DateRange = memo(function DateRange({
     if (!date) return null;
     return typeof normalizeEnd === 'function' ? normalizeEnd(date) : date;
   };
-
+  if (inline) {
+    return (
+      <Box sx={{ display: 'flex', gap: 1, ...sx }}>
+        <DatePicker
+          selected={startDate}
+          onChange={(date) => setStartDate(safeNormalizeStart(date))}
+          selectsStart={isRangePicker}
+          startDate={startDate}
+          endDate={endDate}
+          placeholderText={`Select ${startLabel.toLowerCase()}`}
+          dateFormat={format}
+          isClearable
+          maxDate={effectiveMaxDate}
+          minDate={minDate}
+          disabled={disabled}
+          aria-label={startLabel}
+          aria-required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'daterange-error' : helperText ? 'daterange-helper' : undefined}
+        />
+        {isRangePicker && (
+          <DatePicker
+            selected={endDate}
+            onChange={(date) => setEndDate(safeNormalizeEnd(date))}
+            selectsEnd
+            startDate={startDate}
+            endDate={endDate}
+            minDate={startDate}
+            maxDate={effectiveMaxDate}
+            placeholderText={`Select ${endLabel.toLowerCase()}`}
+            dateFormat={format}
+            isClearable
+            disabled={disabled}
+            aria-label={endLabel}
+            aria-required={required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? 'daterange-error' : helperText ? 'daterange-helper' : undefined}
+          />
+        )}
+      </Box>
+    );
+  }
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, ...sx }}>
       {/* Start Date */}

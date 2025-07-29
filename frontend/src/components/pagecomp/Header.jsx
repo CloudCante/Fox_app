@@ -5,16 +5,16 @@ import PropTypes from 'prop-types';
 
 export const Header = memo(function Header({
   title,subTitle,titleVariant = "h4", subTitleVariant = "body1",
-  titleColor = "text.primary", subTitleColor = "text.secondary"
+  titleColor = "text.primary", subTitleColor = "text.secondary",
 }) {
   return (
     <Box sx={{ py:{xs:2, md:4} }}>
       <Typography variant={titleVariant} color = {titleColor} gutterBottom>
         {title}
       </Typography>
-      <Typography variant={subTitleVariant} color={subTitleColor}>
+      {subTitle&&(<Typography variant={subTitleVariant} color={subTitleColor} gutterBottom>
         {subTitle}
-      </Typography>
+      </Typography>)}
     </Box>
   );
 });

@@ -8,6 +8,8 @@ export function BoxChart({
   width = 400,
   height = 120,
   margin = { top: 20, right: 20, bottom: 30, left: 40 },
+  isVertical = false,
+  color = '#1976d2',
   label,
 }) {
   const svgRef = useRef();
@@ -27,9 +29,9 @@ export function BoxChart({
     const innerHeight = height - margin.top - margin.bottom;
 
     // Scales
-    const x = d3.scaleLinear()
-      .domain([min, max])
-      .range([0, innerWidth]);
+    const x = isVertical ? 
+        d3.scaleLinear().domain([min, max]).range([0, innerHeight]):
+        d3.scaleLinear().domain([min, max]).range([0, innerWidth]);
 
     // Prepare SVG
     const svg = d3.select(svgRef.current);
@@ -40,56 +42,61 @@ export function BoxChart({
 
     // Whiskers
     g.append('line')
-      .attr('x1', x(min))
-      .attr('x2', x(q1))
-      .attr('y1', innerHeight / 2)
-      .attr('y2', innerHeight / 2)
+      .attr('x1', isVertical ? innerWidth / 2 : x(min))
+      .attr('x2', isVertical ? innerWidth / 2 : x(q1))
+      .attr('y1', isVertical ? x(min) : innerHeight / 2)
+      .attr('y2', isVertical ? x(q1) : innerHeight / 2)
       .attr('stroke', theme.palette.text.primary);
 
     g.append('line')
-      .attr('x1', x(q3))
-      .attr('x2', x(max))
-      .attr('y1', innerHeight / 2)
-      .attr('y2', innerHeight / 2)
+      .attr('x1', isVertical ? innerWidth / 2 : x(q3))
+      .attr('x2', isVertical ? innerWidth / 2 : x(max))
+      .attr('y1', isVertical ? x(q3) : innerHeight / 2)
+      .attr('y2', isVertical ? x(max) : innerHeight / 2)
       .attr('stroke', theme.palette.text.primary);
 
     // Box
     g.append('rect')
-      .attr('x', x(q1))
-      .attr('y', innerHeight / 2 - 20)
-      .attr('width', x(q3) - x(q1))
-      .attr('height', 40)
-      .attr('fill', '#1976d2')
-      .attr('opacity', 0.5)
-      .attr('stroke', theme.palette.text.primary);
+      .attr('x', isVertical ? innerWidth / 2 - 20 : x(q1))
+      .attr('y', isVertical ? x(q1) : innerHeight / 2 - 20)
+      .attr('width', isVertical ? 40 : x(q3) - x(q1))
+      .attr('height', isVertical ? x(q3) - x(q1) :  40)
+      .attr('fill', color)
+      .attr('opacity', 0.7)
+      .attr('stroke', theme.palette.text.primary)
+      .attr('stroke-width', 1);
 
     // Median line
     g.append('line')
-      .attr('x1', x(median))
-      .attr('x2', x(median))
-      .attr('y1', innerHeight / 2 - 20)
-      .attr('y2', innerHeight / 2 + 20)
+      .attr('x1', isVertical ? innerWidth / 2 - 20 : x(median))
+      .attr('x2', isVertical ? innerWidth / 2 + 20 : x(median))
+      .attr('y1', isVertical ? x(median) : innerHeight / 2 - 20)
+      .attr('y2', isVertical ? x(median) : innerHeight / 2 + 20)
       .attr('stroke', theme.palette.text.primary);
 
     // Caps
     [min, max].forEach(d => {
       g.append('line')
-        .attr('x1', x(d))
-        .attr('x2', x(d))
-        .attr('y1', innerHeight / 2 - 10)
-        .attr('y2', innerHeight / 2 + 10)
+        .attr('x1', isVertical ? innerWidth / 2 - 10 : x(d))
+        .attr('x2', isVertical ? innerWidth / 2 + 10 :x(d))
+        .attr('y1', isVertical ? x(d) : innerHeight / 2 - 10)
+        .attr('y2', isVertical ? x(d) : innerHeight / 2 + 10)
         .attr('stroke', theme.palette.text.primary);
     });
 
-    // X Axis
-    g.append('g')
-      .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(x).ticks(5));
+    // Axis Label
+    isVertical ? 
+        g.append('g')
+        .attr('transform', `translate(0,0)`)
+        .call(d3.axisLeft(x).ticks(5).tickFormat(d => d.toFixed(2))): 
+        g.append('g')
+        .attr('transform', `translate(0,${innerHeight})`)
+        .call(d3.axisBottom(x).ticks(5));
 
   }, [data, width, height, margin]);
 
   return (
-    <Box>
+    <Box style={{ padding: 16, border: '1px solid #ccc', borderRadius: 4 }}>
       <Typography variant="h6" gutterBottom color={theme.palette.text.primary}>
         {label}
       </Typography>

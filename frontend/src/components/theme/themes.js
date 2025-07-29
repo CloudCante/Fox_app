@@ -176,8 +176,6 @@ export const divStyle = {
 };
 export const spacerStyle = {
     height: '20px',
-    border: '1px solid #ddd',
-    backgroundColor: '#fff',
     position: 'sticky',
     left: 0,
     zIndex: 5,

@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
   Divider, FormControl, Grid, InputLabel, MenuItem,
-  Select, Typography, Alert
+  Select, Typography, Alert, Stack
 } from '@mui/material';
 import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 import { Header } from '../pagecomp/Header';
 import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
-import { ViolinChart } from '../charts/ViolinChart.js';
-import { BoxChart } from '../charts/BoxChart.js';
 const PerformancePage = () => {
   // Date handling - Default to 14 days back (15 days total including today)
   const [startDate, setStartDate] = useState(getInitialStartDate(14));
@@ -288,20 +286,18 @@ const PerformancePage = () => {
 
   return (
     <Container maxWidth="xl">
-      <Box sx={{ py: 4 }}>
+      <Box >
         <Header
           title="Quality Control Charts"
           subTitle="Statistical Process Control (SPC) Analysis using P-Charts - Minimum 8 workdays required (4-day work week)"
         />
       </Box>
 
-      <Divider sx={{ mb: 3 }} />
+      <Divider />
 
       {/* Date Range Controls */}
-      <Box sx={{ mb: 4, position: 'relative', zIndex: 1000 }}>
-        <Typography variant="h6" gutterBottom>
-          Date Range
-        </Typography>
+      <Box sx={{ mb: 4, position: 'relative', zIndex: 1000, display: 'flex', alignItems:'center', justifyItems:'start',gap:2 } }>
+        <Header title="Date Range" titleVariant="h6"/>
         <DateRange
           startDate={startDate}
           setStartDate={handleStartDateChange}
@@ -309,6 +305,7 @@ const PerformancePage = () => {
           endDate={endDate}
           setEndDate={handleEndDateChange}
           normalizeEnd={normalizeDate.end}
+          inline={true}
         />
         
         {!validateDateRange() && (
@@ -320,86 +317,72 @@ const PerformancePage = () => {
 
       {/* Filter Controls */}
       <Box sx={{ mb: 4, position: 'relative', zIndex: 999 }}>
-        <Typography variant="h6" gutterBottom>
-          Filters
-        </Typography>
-        <Grid container spacing={2}>
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
+        <Typography variant="h6" gutterBottom>Filters</Typography>
+        <Stack 
+          direction="row"
+          spacing={2}
+          alignItems="center"
+          flexWrap="wrap"
+        >
+          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading}>
             <InputLabel>Model *</InputLabel>
             <Select
               value={selectedModel}
               label="Model *"
               onChange={handleModelChange}
-              disabled={filtersLoading}
             >
-              <MenuItem value="">
-                <em>Select Model</em>
-              </MenuItem>
-              {availableModels.map((model) => (
+              <MenuItem value=""><em>Select Model</em></MenuItem>
+              {availableModels.map(model => (
                 <MenuItem key={model} value={model}>{model}</MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
+          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading || !selectedModel}>
             <InputLabel>Workstation *</InputLabel>
             <Select
               value={selectedWorkstation}
               label="Workstation *"
               onChange={handleWorkstationChange}
-              disabled={filtersLoading || !selectedModel || availableWorkstations.length === 0}
             >
-              <MenuItem value="">
-                <em>Select Workstation</em>
-              </MenuItem>
-              {availableWorkstations.map((workstation) => (
-                <MenuItem key={workstation} value={workstation}>{workstation}</MenuItem>
+              <MenuItem value=""><em>Select Workstation</em></MenuItem>
+              {availableWorkstations.map(ws => (
+                <MenuItem key={ws} value={ws}>{ws}</MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Service Flow</InputLabel>
+          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading || !selectedWorkstation}>
+            <InputLabel>Service Flow *</InputLabel>
             <Select
               value={selectedServiceFlow}
-              label="Service Flow"
-              onChange={(e) => setSelectedServiceFlow(e.target.value)}
+              label="Service Flow *"
+              onChange={e => setSelectedServiceFlow(e.target.value)}
               disabled={filtersLoading || !selectedWorkstation || availableServiceFlows.length === 0}
             >
-              <MenuItem value="">
-                <em>All Service Flows</em>
-              </MenuItem>
-              {availableServiceFlows.map((flow) => (
-                <MenuItem key={flow} value={flow}>{flow}</MenuItem>
+              <MenuItem value=""><em>All Service Flow</em></MenuItem>
+              {availableServiceFlows.map(sf => (
+                <MenuItem key={sf} value={sf}>{sf}</MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Part Number</InputLabel>
+          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading || !selectedWorkstation}>
+            <InputLabel>Part Number *</InputLabel>
             <Select
               value={selectedPartNumber}
-              label="Part Number"
-              onChange={(e) => setSelectedPartNumber(e.target.value)}
+              label="Part Number *"
+              onChange={e => setSelectedPartNumber(e.target.value)}
               disabled={filtersLoading || !selectedWorkstation || availablePartNumbers.length === 0}
             >
-              <MenuItem value="">
-                <em>All Part Numbers</em>
-              </MenuItem>
-              {availablePartNumbers.map((pn) => (
+              <MenuItem value=""><em>All Part Numbers</em></MenuItem>
+              {availablePartNumbers.map(pn => (
                 <MenuItem key={pn} value={pn}>{pn}</MenuItem>
               ))}
             </Select>
           </FormControl>
-        </Grid>
-        </Grid>
+          {/* ...and so on for Service Flow and Part Number */}
+        </Stack>
       </Box>
 
       {/* Error Display */}
@@ -418,12 +401,13 @@ const PerformancePage = () => {
         <CardContent>
           {!selectedModel || !selectedWorkstation ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                Select Model and Workstation to View P-Chart
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Choose a model first, then select from available workstations for that model
-              </Typography>
+              <Header
+                title="Select Model and Workstation to View P-Chart"
+                subTitle="Choose a model first, then select from available workstations for that model"
+                titleVariant="h6"
+                subTitleVariant="body2"
+                titleColor="text.secondary"
+              />
             </Box>
           ) : dataLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>

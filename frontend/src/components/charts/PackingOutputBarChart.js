@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, ReferenceLine, Line } from 'recharts';
 import { Typography } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 function getLinearRegressionLine(data) {
   if (!data || data.length < 2) return [];
@@ -35,6 +36,8 @@ const PackingOutputBarChart = ({ data, title, color = '#1976d2', showTrendLine =
     return merged;
   }, [data, showTrendLine, title]);
 
+  const theme = useTheme();
+
   return (
     <div style={{ marginBottom: '40px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 4 }}>
@@ -48,11 +51,11 @@ const PackingOutputBarChart = ({ data, title, color = '#1976d2', showTrendLine =
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={dataWithTrend} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="label" angle={-45} textAnchor="end" height={60} />
-          <YAxis />
+          <XAxis dataKey="label" angle={-45} textAnchor="end" height={60} tick={{ fill: theme.palette.text.secondary}}/>
+          <YAxis tick={{ fill: theme.palette.text.secondary}}/>
           <Tooltip />
           <Bar dataKey="value" fill={color}>
-            <LabelList dataKey="value" position="top" style={{ fontWeight: 'bold', fontSize: '13px' }} />
+            <LabelList dataKey="value" position="top" fill={theme.palette.text.secondary} style={{ fontWeight: 'bold', fontSize: '13px', }} />
           </Bar>
           {showAvgLine && avg > 0 && (
             <ReferenceLine y={avg} stroke="red" strokeDasharray="6 3">
@@ -60,7 +63,7 @@ const PackingOutputBarChart = ({ data, title, color = '#1976d2', showTrendLine =
                 value={`AVG = ${avg}u`}
                 position="right"
                 fill="red"
-                style={{ fontWeight: 'bold', fontSize: '13px' }}
+                style={{ fontWeight: 'bold', fontSize: '13px', }}
               />
             </ReferenceLine>
           )}
