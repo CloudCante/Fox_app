@@ -12,9 +12,9 @@ export const Header = memo(function Header({
       <Typography variant={titleVariant} color = {titleColor} gutterBottom>
         {title}
       </Typography>
-      <Typography variant={subTitleVariant} color={subTitleColor}>
+      {subTitle&&(<Typography variant={subTitleVariant} color={subTitleColor} gutterBottom>
         {subTitle}
-      </Typography>
+      </Typography>)}
     </Box>
   );
 });

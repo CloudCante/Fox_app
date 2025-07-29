@@ -1,6 +1,7 @@
 // src/components/charts/ViolinPlot.jsx
 import React, { useRef, useEffect, useMemo } from 'react';
 import { Paper, Typography, Box } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import * as d3 from 'd3';
 
 
@@ -29,9 +30,10 @@ function kernelDensityEstimator(kernel, X) {
 }
 
 export function ViolinChart({ 
-    data = [], width = 400, height = 200, isHorizontal = false,
-     margin = { top: 20, right: 20, bottom: 30, left: 40 }, label = '' }) {
+    data = [], width = 400, height = 200, isHorizontal = false, color = '#69b3a2',
+    margin = { top: 20, right: 20, bottom: 30, left: 40 }, label = '' }) {
   const svgRef = useRef();
+  const theme = useTheme();
 
   const processedData = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -120,7 +122,7 @@ export function ViolinChart({
         .attr('x2', w)
         .attr('y1', h/2)
         .attr('y2', h/2)
-        .attr('stroke', '#666')
+        .attr('stroke', theme.palette.text.primary)
         .attr('stroke-dasharray', '2,2');
 
       // Add median line if data exists
@@ -131,7 +133,8 @@ export function ViolinChart({
           .attr('x2', dataScale(median))
           .attr('y1', h/2 - h/4)
           .attr('y2', h/2 + h/4)
-          .attr('stroke', '#000');
+          .attr('stroke', theme.palette.text.primary)
+          .attr('stroke-width','2');
       }
 
     } else {
@@ -163,7 +166,7 @@ export function ViolinChart({
         .attr('x2', w/2)
         .attr('y1', 0)
         .attr('y2', h)
-        .attr('stroke', '#666')
+        .attr('stroke', theme.palette.text.primary)
         .attr('stroke-dasharray', '2,2');
 
       // Add median line if data exists
@@ -174,7 +177,7 @@ export function ViolinChart({
           .attr('x2', w/2 + w/4)
           .attr('y1', dataScale(median))
           .attr('y2', dataScale(median))
-          .attr('stroke', '#000');
+          .attr('stroke', theme.palette.text.primary);
       }
     }
 
@@ -185,7 +188,7 @@ export function ViolinChart({
       .attr('d', violinArea)
       .attr('fill', '#69b3a2')
       .attr('fill-opacity', 0.7)
-      .attr('stroke', '#2c5530')
+      .attr('stroke', theme.palette.text.primary)
       .attr('stroke-width', 1);
 
   }, [processedData, width, height, margin, isHorizontal]);
@@ -194,7 +197,7 @@ export function ViolinChart({
     return (
       <Box style={{ padding: 16, border: '1px solid #ccc', borderRadius: 4 }}>
         {label && <Typography style={{ margin: '0 0 16px 0' }}>{label}</Typography>}
-        <p>No valid data to display</p>
+        <Typography>No valid data to display</Typography>
       </Box>
     );
   }

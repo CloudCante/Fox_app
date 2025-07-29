@@ -1,8 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import {
-  Tooltip,
-  IconButton,
-} from '@mui/material';
+import { Tooltip, IconButton, } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import { useTheme } from '@mui/material';
@@ -43,12 +40,9 @@ const PackingPage = () => {
   const handleCopyColumn = useCallback((group, date) => {
     let values = '';
 
-    if (group === 'SXM4') {
+    const parts = ["SXM4", "SXM5", "RED OCTOBER"];
+    if (group in parts) {
       values = sxm4Parts.map(part => packingData[part]?.[date] || '').join('\n');
-    } else if (group === 'SXM5') {
-      values = sxm5Parts.map(part => packingData[part]?.[date] || '').join('\n');
-    } else if (group === 'RED OCTOBER') {
-      values = redOctoberParts.map(part => packingData[part]?.[date] || '').join('\n');
     } else if (group === 'DAILY TOTAL') {
       values = dailyTotals[date]?.toString() || '';
     } else if (group === 'SORT') {
@@ -115,7 +109,7 @@ const PackingPage = () => {
               </td>
             ))}
           </tr>
-          <tr style={{ backgroundColor: '#c8e6c9' }}>
+          <tr style={headerStyleTwo}>
             <td style={headerStyleTwo}>Total Packed</td>
             {dates.map(date => (
               <td key={date} style={dataTotalStyle}>

@@ -7,9 +7,6 @@ import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 import { Header } from '../pagecomp/Header';
 import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
-import { ViolinChart } from '../charts/ViolinChart.js';
-import { BoxChart } from '../charts/BoxChart.js';
-import { gridStyle } from '../theme/themes.js';
 const PerformancePage = () => {
   // Date handling - Default to 14 days back (15 days total including today)
   const [startDate, setStartDate] = useState(getInitialStartDate(14));
@@ -40,24 +37,6 @@ const PerformancePage = () => {
   const [error, setError] = useState('');
 
   const API_BASE = process.env.REACT_APP_API_BASE;
-  const sampleData = [
-  // Cluster around 5 (n=50)
-  6.76, 5.40, 5.98, 7.24, 6.87, 4.02, 5.95, 4.85, 4.90, 5.41,
-  5.14, 6.45, 5.76, 5.12, 5.44, 5.33, 4.49, 4.90, 6.27, 5.85,
-  7.16, 5.87, 5.17, 4.90, 5.15, 5.98, 6.06, 4.93, 4.52, 6.83,
-  4.97, 5.14, 4.62, 4.80, 5.16, 4.57, 5.31, 7.16, 6.72, 5.07,
-  5.89, 6.59, 5.62, 5.07, 5.40, 4.59, 5.50, 4.94, 5.75, 5.07,
-
-  // Cluster around 15 (n=50)
-  14.24, 14.26, 13.28, 14.98, 17.47, 14.47, 16.77, 14.64, 12.86, 17.11,
-  14.19, 17.44, 15.42, 16.95, 15.71, 16.41, 15.02, 18.57, 15.25, 15.80,
-  14.09, 15.72, 15.27, 16.10, 13.88, 13.66, 14.56, 14.73, 16.70, 16.62,
-  12.27, 14.40, 14.13, 15.60, 13.40, 17.13, 14.59, 12.65, 14.90, 15.98,
-  13.22, 16.35, 13.51, 17.58, 16.24, 14.31, 15.87, 13.34, 16.12, 15.03,
-
-  // Outliers
-  0.00, 25.00
-];
 
   // Validate date range for P-Chart requirements (updated for 4-day work week)
   const validateDateRange = () => {
@@ -318,9 +297,7 @@ const PerformancePage = () => {
 
       {/* Date Range Controls */}
       <Box sx={{ mb: 4, position: 'relative', zIndex: 1000 }}>
-        <Typography variant="h6" gutterBottom>
-          Date Range
-        </Typography>
+        <Header title="Date Range" titleVariant="h6"/>
         <DateRange
           startDate={startDate}
           setStartDate={handleStartDateChange}
@@ -437,12 +414,13 @@ const PerformancePage = () => {
         <CardContent>
           {!selectedModel || !selectedWorkstation ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                Select Model and Workstation to View P-Chart
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Choose a model first, then select from available workstations for that model
-              </Typography>
+              <Header
+                title="Select Model and Workstation to View P-Chart"
+                subTitle="Choose a model first, then select from available workstations for that model"
+                titleVariant="h6"
+                subTitleVariant="body2"
+                titleColor="text.secondary"
+              />
             </Box>
           ) : dataLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
@@ -459,10 +437,6 @@ const PerformancePage = () => {
           )}
         </CardContent>
       </Card>
-      <Box sx={gridStyle}>
-          <ViolinChart data={sampleData} width={300} height={600} label="Sample Violin Chart" />
-          <BoxChart data={sampleData} width={300} height={600} isVertical={true} label="Sample Violin Chart" />
-      </Box>
     </Container>
   );
 };

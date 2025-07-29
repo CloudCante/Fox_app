@@ -9,6 +9,7 @@ export function BoxChart({
   height = 120,
   margin = { top: 20, right: 20, bottom: 30, left: 40 },
   isVertical = false,
+  color = '#1976d2',
   label,
 }) {
   const svgRef = useRef();
@@ -60,9 +61,10 @@ export function BoxChart({
       .attr('y', isVertical ? x(q1) : innerHeight / 2 - 20)
       .attr('width', isVertical ? 40 : x(q3) - x(q1))
       .attr('height', isVertical ? x(q3) - x(q1) :  40)
-      .attr('fill', '#1976d2')
-      .attr('opacity', 0.5)
-      .attr('stroke', theme.palette.text.primary);
+      .attr('fill', color)
+      .attr('opacity', 0.7)
+      .attr('stroke', theme.palette.text.primary)
+      .attr('stroke-width', 1);
 
     // Median line
     g.append('line')
@@ -82,7 +84,7 @@ export function BoxChart({
         .attr('stroke', theme.palette.text.primary);
     });
 
-    // X Axis
+    // Axis Label
     isVertical ? 
         g.append('g')
         .attr('transform', `translate(0,0)`)
