@@ -11,28 +11,39 @@ export function BoxChart({
   isVertical = false,
   color = '#1976d2',
   label,
+  ticks = 5,
 }) {
   const svgRef = useRef();
   const theme = useTheme();
-  useEffect(() => {
-    if (data.length === 0) return;
 
     // Sort and compute quartiles
-    const sorted = data.slice().sort(d3.ascending);
-    const q1 = d3.quantile(sorted, 0.25);
-    const median = d3.quantile(sorted, 0.5);
-    const q3 = d3.quantile(sorted, 0.75);
-    const min = d3.min(sorted);
-    const max = d3.max(sorted);
+    const { q1, median, q3, min, max } = useMemo(() => {
+      if (!data.length) return {};
+      const s = data.slice().sort(d3.ascending);
+      return {
+        q1:     d3.quantile(s, 0.25),
+        median: d3.quantile(s, 0.5),
+        q3:     d3.quantile(s, 0.75),
+        min:    d3.min(s),
+        max:    d3.max(s)
+      };
+    }, [data]);
 
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
+    const [innerWidth, innerHeight] = useMemo(() => [
+      width - margin.left - margin.right,
+      height - margin.top - margin.bottom
+    ], [width, height, margin]);
 
     // Scales
-    const x = isVertical ? 
-        d3.scaleLinear().domain([min, max]).range([0, innerHeight]):
-        d3.scaleLinear().domain([min, max]).range([0, innerWidth]);
+    const x = useMemo(() => {
+      if (min == null || max == null) return null;
+      return d3.scaleLinear()
+        .domain([min, max])
+        .range(isVertical ? [0, innerHeight] : [0, innerWidth]);
+    }, [isVertical, min, max, innerWidth, innerHeight]);
 
+  useEffect(() => {
+    if (!x) return;
     // Prepare SVG
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -88,10 +99,10 @@ export function BoxChart({
     isVertical ? 
         g.append('g')
         .attr('transform', `translate(0,0)`)
-        .call(d3.axisLeft(x).ticks(5).tickFormat(d => d.toFixed(2))): 
+        .call(d3.axisLeft(x).ticks(ticks).tickFormat(d => d.toFixed(2))): 
         g.append('g')
         .attr('transform', `translate(0,${innerHeight})`)
-        .call(d3.axisBottom(x).ticks(5));
+        .call(d3.axisBottom(x).ticks(ticks).tickFormat(d => d.toFixed(2)));
 
   }, [data, width, height, margin]);
 

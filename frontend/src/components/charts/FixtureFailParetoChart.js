@@ -116,22 +116,14 @@ export const FixtureFailParetoChart = memo(({ label, data, lineLabel = "Failure 
                   />
                 </Bar>
                 <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="failurerate"
-                  stroke="#ff0000"
-                  name={lineLabel}
-                  dot={{ fill: '#ff0000' }}
+                  yAxisId="right" type="monotone" dataKey="failurerate"
+                  stroke="#ff0000" name={lineLabel} dot={{ fill: '#ff0000' }}
                   label={({ x, y, value }) => {
                     const yPos = y < 20 ? y + 20 : y - 10;
                     return (
                       <text
-                        x={x}
-                        y={yPos}
-                        fill="#ff0000"
-                        fontSize={12}
-                        textAnchor="middle"
-                        fontWeight="bold"
+                        x={x} y={yPos} fill="#ff0000"
+                        fontSize={12} textAnchor="middle" fontWeight="bold"
                       >
                         {value !== undefined ? `${(value * 100).toFixed(1)}%` : ''}
                       </text>

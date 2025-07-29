@@ -28,8 +28,8 @@ console.log('API_BASE:', API_BASE);
 const refreshInterval = 300000; // 5 minutes
 
 export const Dashboard = () => {
-  const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
   const [testStationDataSXM4, setTestStationDataSXM4] = useState([]);
+  const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
   const [testStationDataSXM6, setTestStationDataSXM6] = useState([]);
   const [topFixturesData, setTopFixturesData] = useState([]);
   //const [failStationsData, setFailStationsData] = useState([]);
@@ -168,6 +168,7 @@ export const Dashboard = () => {
           endDate={endDate}
           setEndDate={setEndDate}
           normalizeEnd={normalizeEnd}
+          inline= {true}
         />
       </div>
       <Box sx={gridStyle}>
