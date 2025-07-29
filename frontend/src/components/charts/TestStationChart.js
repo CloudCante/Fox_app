@@ -8,6 +8,23 @@ export const TestStationChart = memo(({ label, data ,loading}) => {
     const theme = useTheme();
     const textColor = theme.palette.mode === 'dark' ? '#fff' : '#000';
     
+    if (!data || data.length === 0) {
+      return (
+        <Paper sx={paperStyle}>
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
+              {label}
+            </Typography>
+          </Box>
+          <Box sx={boxStyle}>
+            <Typography variant="body2" color="textSecondary">
+              No data available
+            </Typography>
+          </Box>
+        </Paper>
+      )
+    }
+
     return (
       <Paper sx={paperStyle}>
           <Box sx={flexStyle}>
