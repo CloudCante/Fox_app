@@ -60,7 +60,7 @@ export const Dashboard = () => {
 
     const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationDataSXM5});
     const fetchSXM4 = () => fetchModelData({value:'Tesla SXM4',key:'sxm4',setter: setTestStationDataSXM4});
-    const fetchSXM6 = () => fetchModelData({value:'Tesla SXM6',key:'sxm6',setter: setTestStationDataSXM6});
+    const fetchSXM6 = () => fetchModelData({value:'SXM6',key:'sxm6',setter: setTestStationDataSXM6});
 
     const fetchFixtures = () => 
       fetchFixtureQuery({
