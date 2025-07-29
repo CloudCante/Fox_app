@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
   Divider, FormControl, Grid, InputLabel, MenuItem,
   Select, Typography, Alert
@@ -6,18 +6,19 @@ import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
 import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 import { Header } from '../pagecomp/Header';
-
+import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
+import { ViolinChart } from '../charts/ViolinChart.js';
+import { BoxChart } from '../charts/BoxChart.js';
 const PerformancePage = () => {
   // Date handling - Default to 14 days back (15 days total including today)
-  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
-  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
-  
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 14); // 14 days back for 15 total days
-    return normalizeStart(date);
-  });
-  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
+  const [startDate, setStartDate] = useState(getInitialStartDate(14));
+  const [endDate, setEndDate] = useState(normalizeDate.end(new Date()));
+  const handleStartDateChange = useCallback((date) => {
+    setStartDate(normalizeDate.start(date));
+  }, []);
+  const handleEndDateChange = useCallback((date) => {
+    setEndDate(normalizeDate.end(date));
+  }, []);
 
   // Filter states (restored selectedPartNumber)
   const [selectedModel, setSelectedModel] = useState('');
@@ -38,6 +39,24 @@ const PerformancePage = () => {
   const [error, setError] = useState('');
 
   const API_BASE = process.env.REACT_APP_API_BASE;
+  const sampleData = [
+  // Cluster around 5 (n=50)
+  6.76, 5.40, 5.98, 7.24, 6.87, 4.02, 5.95, 4.85, 4.90, 5.41,
+  5.14, 6.45, 5.76, 5.12, 5.44, 5.33, 4.49, 4.90, 6.27, 5.85,
+  7.16, 5.87, 5.17, 4.90, 5.15, 5.98, 6.06, 4.93, 4.52, 6.83,
+  4.97, 5.14, 4.62, 4.80, 5.16, 4.57, 5.31, 7.16, 6.72, 5.07,
+  5.89, 6.59, 5.62, 5.07, 5.40, 4.59, 5.50, 4.94, 5.75, 5.07,
+
+  // Cluster around 15 (n=50)
+  14.24, 14.26, 13.28, 14.98, 17.47, 14.47, 16.77, 14.64, 12.86, 17.11,
+  14.19, 17.44, 15.42, 16.95, 15.71, 16.41, 15.02, 18.57, 15.25, 15.80,
+  14.09, 15.72, 15.27, 16.10, 13.88, 13.66, 14.56, 14.73, 16.70, 16.62,
+  12.27, 14.40, 14.13, 15.60, 13.40, 17.13, 14.59, 12.65, 14.90, 15.98,
+  13.22, 16.35, 13.51, 17.58, 16.24, 14.31, 15.87, 13.34, 16.12, 15.03,
+
+  // Outliers
+  0.00, 25.00
+];
 
   // Validate date range for P-Chart requirements (updated for 4-day work week)
   const validateDateRange = () => {
@@ -303,11 +322,11 @@ const PerformancePage = () => {
         </Typography>
         <DateRange
           startDate={startDate}
-          setStartDate={setStartDate}
-          normalizeStart={normalizeStart}
+          setStartDate={handleStartDateChange}
+          normalizeStart={normalizeDate.start}
           endDate={endDate}
-          setEndDate={setEndDate}
-          normalizeEnd={normalizeEnd}
+          setEndDate={handleEndDateChange}
+          normalizeEnd={normalizeDate.end}
         />
         
         {!validateDateRange() && (
