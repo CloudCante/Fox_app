@@ -5,17 +5,17 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement,
   LineElement, Title, Tooltip, Legend
 } from 'chart.js';
 import { Header } from '../pagecomp/Header';
+import { useTheme } from '@mui/material/styles';
 
 // Register ChartJS components
 ChartJS.register( CategoryScale, LinearScale, PointElement, LineElement,
   Title, Tooltip, Legend
 );
-
 const PChart = ({  data = [], title = "P-Chart", subtitle = "",
   station = "", model = "", week = ""
 }) => {
   const [selectedPoint, setSelectedPoint] = useState(null);
-
+  const theme = useTheme();
   // Early return for no data
   if (!data || data.length === 0) {
     return (
@@ -140,9 +140,11 @@ const PChart = ({  data = [], title = "P-Chart", subtitle = "",
       legend: {
         position: 'top',
         labels: {
+          color: theme.palette.text.secondary,
           usePointStyle: true,
           padding: 20
-        }
+        },
+        color: theme.palette.text.secondary,
       },
       title: {
         display: false
@@ -155,17 +157,22 @@ const PChart = ({  data = [], title = "P-Chart", subtitle = "",
       x: {
         title: {
           display: true,
-          text: 'Production Day'
+          text: 'Production Day',
+          color: theme.palette.text.primary
         },
         grid: {
           display: true,
           color: '#f0f0f0'
+        },
+        ticks: {
+          color: theme.palette.text.secondary,
         }
       },
       y: {
         title: {
           display: true,
-          text: 'Defect Rate (%)'
+          text: 'Defect Rate (%)',
+          color: theme.palette.text.primary
         },
         beginAtZero: true,
         max: Math.max(stats.UCL * 100, ...processedData.map(p => p.proportion * 100)) * 1.1,
@@ -174,9 +181,10 @@ const PChart = ({  data = [], title = "P-Chart", subtitle = "",
           color: '#f0f0f0'
         },
         ticks: {
+          color: theme.palette.text.secondary,
           callback: function(value) {
             return value.toFixed(1) + '%';
-          }
+          },
         }
       }
     },
@@ -283,7 +291,7 @@ const PChart = ({  data = [], title = "P-Chart", subtitle = "",
         </Fade>
       )}
 
-      <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+      <Box sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}>
         <Typography variant="caption" color="text.secondary">
           <strong>P-Chart Statistics:</strong> {processedData.length} data points • 
           Control limits based on overall proportion • 

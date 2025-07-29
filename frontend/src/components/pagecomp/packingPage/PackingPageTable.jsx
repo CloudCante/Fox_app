@@ -3,8 +3,11 @@ import React, { memo, useMemo } from 'react';
 import { Box, FormHelperText, Tooltip, IconButton } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import { headerStyle, divStyle, headerStyleTwo, spacerStyle } from '../../theme/themes';
+import { headerStyle, divStyle, headerStyleTwo, spacerStyle, dataTextStyle,
+  dataTotalStyle,
+ } from '../../theme/themes';
 import { useTheme } from '@emotion/react';
+import { green } from '@mui/material/colors';
 
 export const PackingPageTable = memo(function DateRange({
   header,
@@ -80,12 +83,7 @@ export const PackingPageTable = memo(function DateRange({
                  {part}
                </td>
                {dates.map(date => (
-                 <td key={date} style={{
-                   border: '1px solid #ddd',
-                   padding: '10px 8px',
-                   textAlign: 'center',
-                   fontSize: '13px'
-                 }}>
+                 <td key={date} style={dataTextStyle}>
                    {packingData[part]?.[date] || ''}
                  </td>
                ))}
@@ -102,7 +100,7 @@ export const PackingPageTable = memo(function DateRange({
                  sum + (packingData[part]?.[date] || 0), 0
                );
                return (
-                 <td key={date} style={headerStyleTwo}>
+                 <td key={date} style={dataTotalStyle}>
                    {total || ''}
                  </td>
                );

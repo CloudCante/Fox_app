@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
   Divider, FormControl, Grid, InputLabel, MenuItem,
   Select, Typography, Alert
@@ -6,18 +6,19 @@ import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
 import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 import { Header } from '../pagecomp/Header';
-
+import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
+import { ViolinChart } from '../charts/ViolinChart.js';
+import { BoxChart } from '../charts/BoxChart.js';
 const PerformancePage = () => {
   // Date handling - Default to 14 days back (15 days total including today)
-  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
-  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
-  
-  const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 14); // 14 days back for 15 total days
-    return normalizeStart(date);
-  });
-  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
+  const [startDate, setStartDate] = useState(getInitialStartDate(14));
+  const [endDate, setEndDate] = useState(normalizeDate.end(new Date()));
+  const handleStartDateChange = useCallback((date) => {
+    setStartDate(normalizeDate.start(date));
+  }, []);
+  const handleEndDateChange = useCallback((date) => {
+    setEndDate(normalizeDate.end(date));
+  }, []);
 
   // Filter states (restored selectedPartNumber)
   const [selectedModel, setSelectedModel] = useState('');
@@ -303,11 +304,11 @@ const PerformancePage = () => {
         </Typography>
         <DateRange
           startDate={startDate}
-          setStartDate={setStartDate}
-          normalizeStart={normalizeStart}
+          setStartDate={handleStartDateChange}
+          normalizeStart={normalizeDate.start}
           endDate={endDate}
-          setEndDate={setEndDate}
-          normalizeEnd={normalizeEnd}
+          setEndDate={handleEndDateChange}
+          normalizeEnd={normalizeDate.end}
         />
         
         {!validateDateRange() && (

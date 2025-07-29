@@ -200,4 +200,17 @@ export const subTextStyle = {
     fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
     marginLeft: 'auto'
 }
+export const dataTextStyle = {
+    border: '1px solid #ddd',
+    padding: '10px 8px',
+    textAlign: 'center',
+    fontSize: '13px',
+}
+export const dataTotalStyle = {
+    border: '1px solid #ddd',
+    padding: '10px 8px',
+    textAlign: 'center',
+    fontSize: '13px',
+    color: '#2e7d32',
+}
 
