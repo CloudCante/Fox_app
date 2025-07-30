@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
   Divider, FormControl, Grid, InputLabel, MenuItem,
   Select, Typography, Alert, Stack
@@ -7,6 +7,7 @@ import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 import { Header } from '../pagecomp/Header';
 import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
+
 const PerformancePage = () => {
   // Date handling - Default to 14 days back (15 days total including today)
   const [startDate, setStartDate] = useState(getInitialStartDate(14));

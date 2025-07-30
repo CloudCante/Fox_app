@@ -17,7 +17,7 @@ export const TestStationChart = memo(({ label, data ,loading}) => {
             </Typography>
           </Box>
           <Box sx={boxStyle}>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body1" color="textSecondary">
               No data available
             </Typography>
           </Box>
