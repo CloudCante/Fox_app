@@ -53,7 +53,7 @@ export const StationCycleTime =() => {
                 // Call backend using importQuery (POST)
                 const backendData = await importQuery(
                 API_BASE,
-                "/station-times",
+                "/api/workstationRoutes/station-times?",
                 {},            // GET params not needed
                 "POST",
                 { sns }        // Body of the POST
