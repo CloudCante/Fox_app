@@ -41,6 +41,9 @@ app.use('/api/station-hourly-summary', stationHourlySummaryRouter);
 const pchartRouter = require('./routes/pChart');
 app.use('/api/pchart', pchartRouter);
 
+const workstationRouter = require('./routes/workstationRoutes');
+app.use('/api/workstationRoutes', workstationRouter);
+
 try {
     const uploadHandlerRouter = require('./routes/uploadHandler');
     app.use('/api/upload', uploadHandlerRouter);
