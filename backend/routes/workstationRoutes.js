@@ -5,6 +5,7 @@ const { pool } = require('../db.js');
 // Get workstation times
 // Group by serial number and workstationnames
 router.post('/station-times', async (req, res) => {
+    console.log("got here")
     try {
         const { sns } = req.body;
         if (!sns || !Array.isArray(sns) || sns.length === 0 ) {
