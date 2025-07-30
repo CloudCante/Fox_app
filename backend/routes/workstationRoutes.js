@@ -20,7 +20,7 @@ router.post('/station-times', async (req, res) => {
             GROUP BY sn, workstation_name
             ORDER BY sn, workstation_name;
         `;
-        const params = [sns];
+        //const params = [sns];
         const result = await pool.query(query,params);
         res.json(result.rows);
     } catch (error) {
