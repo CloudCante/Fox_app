@@ -5,7 +5,7 @@ const crypto = require('crypto');
 //fox-quality-dashboard-1.1.26 Setup.exe
 const version = require('./package.json').version;
 const productName = require('./package.json').name || 'app';
-const exeName = `${productName}-${version} Setup.exe`; // Adjust if yours differs
+const exeName = `${productName}-${version}-Setup.exe`; // Adjust if yours differs
 
 const exePath = path.join(__dirname, 'out', 'make', 'squirrel.windows', 'x64', exeName);
 const latestYmlPath = path.join(__dirname, 'out', 'make', 'squirrel.windows', 'x64', 'latest.yml');
