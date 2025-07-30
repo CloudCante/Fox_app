@@ -40,6 +40,12 @@ const createWindow = () => {
 app.whenReady().then(() => {
   createWindow();
 
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'CloudCante',  // your GitHub username/org
+    repo: 'Fox_app'       // your repo name
+  });
+
   // configure logging early
   autoUpdater.logger = log;
   autoUpdater.logger.transports.file.level = 'info';
