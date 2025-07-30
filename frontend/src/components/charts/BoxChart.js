@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import * as d3 from 'd3';
 import { Box, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';

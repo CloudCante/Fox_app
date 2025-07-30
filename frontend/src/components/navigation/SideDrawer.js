@@ -25,6 +25,7 @@ import TableChartIcon from '@mui/icons-material/TableChart';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import GradingIcon from '@mui/icons-material/Grading';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { ThemeToggle } from '../theme/ThemeToggle';
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -47,7 +48,8 @@ const MENU_ITEMS = [
   ]},
   { text: 'Performance', icon: <SpeedIcon />, children:[
     { text: 'Quality Control Charts', icon: <SpeedIcon />, route: '/performance' },
-    { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' }
+    { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
+    { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' }
   ]}
   //{ text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
 ];

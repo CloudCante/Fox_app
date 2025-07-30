@@ -1,7 +1,7 @@
 {
   "name": "fox-quality-dashboard",
   "productName": "fox-quality-dashboard",
-  "version": "1.1.49",
+  "version": "1.1.50",
   "description": "Quality Dashboard for Fox Manufacturing",
   "main": ".webpack/main",
   "scripts": {
@@ -52,6 +52,7 @@
     "date-fns": "^4.1.0",
     "electron-log": "^5.4.1",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.6.2",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-datepicker": "^8.3.0",
