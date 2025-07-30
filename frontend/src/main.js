@@ -1,17 +1,7 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('node:path');
-const { updateElectronApp, UpdateSourceType } = require('update-electron-app');
 const { autoUpdater } = require('electron-updater');
-
-// updateElectronApp({
-//   updateSource: {
-//     type: UpdateSourceType.ElectronPublicUpdateService,
-//     repo: 'CloudCante/Fox_app'
-//   },
-//   updateInterval: '1 hour',
-//   logger: require('electron-log')
-// });
-
+const log = require('electron-log');
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -25,15 +15,15 @@ const createWindow = () => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       webSecurity: false,
     },
-    frame: false,  
-    titleBarStyle: 'hidden', 
+    frame: false,
+    titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#1e3a5f',
       symbolColor: '#ffffff',
       height: 30
     },
   });
-//DO NOTE REMOVE THIS, IDK WHY BUT IF YOU DO THE APP REFUSES TO RUN DURING LIVE SESSION (NPM START etc...)
+
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -44,19 +34,23 @@ const createWindow = () => {
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
   mainWindow.webContents.openDevTools();
 };
-
 
 app.whenReady().then(() => {
   createWindow();
 
+  // configure logging early
+  autoUpdater.logger = log;
+  autoUpdater.logger.transports.file.level = 'info';
+
+  // event listeners
   autoUpdater.on('checking-for-update', () => log.info('Checking for update...'));
   autoUpdater.on('update-not-available', () => log.info('No updates available.'));
   autoUpdater.on('error', (err) => log.error('Update error:', err));
 
   autoUpdater.on('update-available', () => {
+    log.info('Update available.');
     const result = dialog.showMessageBoxSync({
       type: 'info',
       title: 'Update available',
@@ -64,12 +58,13 @@ app.whenReady().then(() => {
       buttons: ['Yes', 'Later']
     });
 
-    if (result === 0) { // "Yes"
+    if (result === 0) {
       autoUpdater.downloadUpdate();
     }
   });
 
   autoUpdater.on('update-downloaded', () => {
+    log.info('Update downloaded.');
     const result = dialog.showMessageBoxSync({
       type: 'question',
       title: 'Update ready',
@@ -77,16 +72,13 @@ app.whenReady().then(() => {
       buttons: ['Restart', 'Later']
     });
 
-    if (result === 0) { // "Restart"
+    if (result === 0) {
       autoUpdater.quitAndInstall();
     }
   });
 
-  const log = require('electron-log');
-  autoUpdater.logger = log;
-  autoUpdater.logger.transports.file.level = 'info';
-
-  if(app.isPackaged) {
+  // only run auto-updater in packaged mode
+  if (app.isPackaged) {
     autoUpdater.checkForUpdatesAndNotify();
   } else {
     console.log('Running in development mode, skipping auto-update check.');
@@ -99,11 +91,8 @@ app.whenReady().then(() => {
   });
 });
 
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-
-
