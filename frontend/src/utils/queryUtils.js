@@ -52,14 +52,22 @@ const fetchWithCache = async (url, cacheKey, setDataCache, mapFn) => {
 /**
  * Exported functions for querying data
  */
-export async function importQuery(base, route, params) {
+export async function importQuery(base, route, params = {}, method = 'GET', body = null) {
   try {
-    const queryParams = new URLSearchParams(params);
-    const res = await fetch(`${base}${route}${queryParams}`);
-    if (!res.ok) {
-      console.error(`Server error: ${res.status} ${res.statusText}`);
-      throw new Error('Failed to connect to server');
+    let url = `${base}${route}`;
+    let fetchOptions = { method };
+
+    if (method === 'GET') {
+      const queryParams = new URLSearchParams(params);
+      url += queryParams.toString();
+    } else if (method === 'POST') {
+      fetchOptions.headers = { 'Content-Type': 'application/json' };
+      fetchOptions.body = JSON.stringify(body || params);
     }
+
+    const res = await fetch(url, fetchOptions);
+    if (!res.ok) throw new Error(`Server error: ${res.status} ${res.statusText}`);
+
     const data = await res.json();
     return Array.isArray(data) ? data : [];
   } catch (err) {
@@ -67,6 +75,7 @@ export async function importQuery(base, route, params) {
     throw new Error(`importQuery failed: ${err.message}`);
   }
 }
+
 export async function fetchWorkstationQuery({
   parameters = [],
   startDate,
