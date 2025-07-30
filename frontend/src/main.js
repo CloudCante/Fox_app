@@ -86,8 +86,11 @@ app.whenReady().then(() => {
   autoUpdater.logger = log;
   autoUpdater.logger.transports.file.level = 'info';
 
-
-  autoUpdater.checkForUpdatesAndNotify()
+  if(app.isPackaged) {
+    autoUpdater.checkForUpdatesAndNotify();
+  } else {
+    console.log('Running in development mode, skipping auto-update check.');
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
