@@ -5,7 +5,6 @@ const { pool } = require('../db.js');
 // Get workstation times
 // Group by serial number and workstationnames
 router.post('/station-times', async (req, res) => {
-    console.log("got here")
     try {
         const { sns } = req.body;
         if (!sns || !Array.isArray(sns) || sns.length === 0 ) {
@@ -15,7 +14,7 @@ router.post('/station-times', async (req, res) => {
             SELECT 
                 sn,
                 workstation_name,
-                SUM(EXTRACT(EPOCH FROM (history_station_end_time - history_station_start_time))) AS "total_time"
+                SUM(EXTRACT(EPOCH FROM (history_station_end_time - history_station_start_time))) / 3600.0 AS "total_time"
             FROM workstation_master_log
             WHERE sn = ANY($1)
             GROUP BY sn, workstation_name
