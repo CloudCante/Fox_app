@@ -23,4 +23,44 @@ router.get('/hulk-smash', async (req, res) => {
     }
 });
 
+router.post('/most-recent-fail', async (req, res) => {
+  try {
+    const { sns,startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required query parameters: startDate, endDate' });
+    }
+    if (!Array.isArray(sns) || sns.length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'Missing or invalid sns array in request body' });
+    }
+
+    const query = `
+      SELECT DISTINCT ON (sn)
+        sn,
+        failure_reasons AS error_code,
+        history_station_start_time AS fail_time
+      FROM testboard_master_log
+      WHERE sn = ANY($1)
+        AND history_station_start_time >= $2
+        AND history_station_end_time <= $3
+        AND history_station_passing_status = 'Fail'
+      ORDER BY
+        sn,
+        history_station_start_time DESC;
+    `;
+
+    const params = [sns, startDate, endDate];
+    const result = await pool.query(query, params);
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('most-recent-fail error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+
 module.exports = router; 

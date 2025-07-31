@@ -53,6 +53,7 @@
     "electron-log": "^5.4.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
+    "papaparse": "^5.5.3",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-datepicker": "^8.3.0",
