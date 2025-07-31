@@ -8,6 +8,7 @@ import { buttonStyle } from '../theme/themes.js';
 import { DateRange } from '../pagecomp/DateRange.jsx';
 import { getInitialStartDate, normalizeDate } from '../../utils/dateUtils.js';
 import { importQuery } from '../../utils/queryUtils.js';
+import { exportSecureCSV } from '../../utils/exportUtils.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -82,9 +83,82 @@ export const MostRecentFail = () => {
     e.target.value = null;
   }, [startDate, endDate]);
 
+  function cleanCode(code){
+    if(code==='Pass')return;
+    try{
+        const newCode = code.slice(-3);
+        if (newCode.length<3)return('NA');
+        if (newCode==='_na')return('NA');
+        return('EC'+newCode);
+    }catch(err) {
+        console.error(err);
+        return;}
+  }
+
+  const mergedDate = useMemo(()=>{
+    if(!Array.isArray(csvData))return [];
+
+    const lookup =codeData.reduce((acc, row) => {
+      acc[row.sn] = row;
+      return acc;
+    }, {});
+
+    return csvData.map(row => {
+      const match = lookup[row.sn];
+      return {
+        ...row,
+        error_code: match ? cleanCode(match.error_code) : 'Pass',
+        //fail_time: match ? match.history_station_start_time : 'NA'
+      };
+    });
+  }, [csvData, codeData]);
+
+    const [exportCooldown, setExportCooldown] = useState(false);
+
+    const getTimestamp = () => {
+        const now = new Date();
+        return now.toISOString().replace(/:/g, '-').replace(/\..+/, '');
+    };
+
+    const exportToCSV = useCallback(() => { 
+        try {
+          const rows = [];
+          mergedDate.forEach((row) => {
+              rows.push([row[`sn`],row[`error_code`]
+                //, row['fail_time']
+              ]);
+          });
+          const headers = [
+            'Serial Number',
+            'Error Code',
+            //'Last Fail Time'
+          ];
+          const filename = `most_recent_fail_data_${getTimestamp()}.csv`;
+          // Use secure export function
+          exportSecureCSV(rows, headers, filename);
+        } 
+        catch (error) {
+          console.error('Export failed:', error);
+          alert('Export failed. Please try again.');
+        };
+    }, [mergedDate]);
+
+    function handleExportCSV() {
+        if (exportCooldown) return;
+        setExportCooldown(true);
+        try {
+        exportToCSV();
+        } catch(err) {
+        console.error(err);
+        alert('Export failed');
+        } finally {
+        // always clear cooldown
+        setTimeout(()=>setExportCooldown(false),3000);
+        }
+    }
   return (
     <Box>
-      <Header title="Station Cycle Time" subTitle="Charting station cycle times for shipped items" />
+      <Header title="Most Recent Fail" subTitle="Charts most recent fail of imported SNs within a given timeframe" />
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <DateRange
@@ -106,15 +180,20 @@ export const MostRecentFail = () => {
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
+        {mergedDate.length>0 ?(
+        <Button sx={buttonStyle} onClick={handleExportCSV}>
+          Export Serial Numbers (CSV)
+        </Button>):
+        <></>}
       </Box>
 
       <Divider />
 
-      {codeData.length > 0 ? (
+      {mergedDate.length > 0 ? (
         <>
             <Typography>Data accepted.</Typography>
-            {codeData.map(row => (
-                <Typography>{row[0]}: {row[1]}</Typography>
+            {mergedDate.map(row => (
+                <Typography>{row['sn']}: {row['error_code']}</Typography>
             ))}
         </>
       ) : (
