@@ -35,43 +35,53 @@ export function ViolinChart({
   const svgRef = useRef();
   const theme = useTheme();
 
-  const processedData = useMemo(() => {
-    if (!data || data.length === 0) return null;
-    
-    // Filter out invalid values
-    const validData = data.filter(d => typeof d === 'number' && isFinite(d));
-    if (validData.length === 0) return null;
+  // src/components/charts/ViolinPlot.jsx
+const processedData = useMemo(() => {
+  console.log('Data:',data)
+  if (!data || data.length === 0) return null;
 
-    const min = Math.min(...validData);
-    const max = Math.max(...validData);
-    
-    // Handle edge case where all values are the same
-    if (min === max) {
-      return {
-        data: validData,
-        min: min - 1,
-        max: max + 1,
-        density: [[min, 1]]
-      };
+  // Normalize: extract numbers whether input is numbers or objects
+  const numericValues = data.map(d => {
+    if (typeof d === 'number') return d;
+    if (d && typeof d.value === 'number') return d.value;   // standard "value" prop
+    // fallback: if object has only one numeric property, grab it
+    if (d && typeof d === 'object') {
+      const numericKeys = Object.values(d).filter(v => typeof v === 'number' && isFinite(v));
+      if (numericKeys.length > 0) return numericKeys[0];
     }
+    return NaN;
+  });
 
-    // Calculate bandwidth using Scott's rule or simple heuristic
-    const bandwidth = Math.max((max - min) / 20, 0.1);
+  const validData = numericValues.filter(v => typeof v === 'number' && isFinite(v));
+  if (validData.length === 0) return null;
 
-    
-    // Sample points for KDE
-    const samplePoints = d3.range(min, max + bandwidth/10, (max - min) / 50);
-    
-    const kde = kernelDensityEstimator(kernelEpanechnikov(bandwidth), samplePoints);
-    const density = kde(validData);
+  const min = Math.min(...validData);
+  const max = Math.max(...validData);
 
+  // Edge case: all identical
+  if (min === max) {
     return {
       data: validData,
-      min,
-      max,
-      density: density.filter(d => d[1] > 0) // Remove zero density points
+      min: min - 1,
+      max: max + 1,
+      density: [[min, 1]],
     };
-  }, [data]);
+  }
+
+  const bandwidth = Math.max((max - min) / 20, 0.1);
+  const samplePoints = d3.range(min, max + bandwidth/10, (max - min) / 50);
+
+  const kde = kernelDensityEstimator(kernelEpanechnikov(bandwidth), samplePoints);
+  const density = kde(validData);
+  console.log('Valid Data:',validData)
+  return {
+    data: validData,
+    min,
+    max,
+    density: density.filter(d => d[1] > 0),
+  };
+}, [data]);
+
 
   useEffect(() => {
     if (!processedData) return;

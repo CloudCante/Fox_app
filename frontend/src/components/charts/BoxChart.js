@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState } from 'react';
 import * as d3 from 'd3';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
 export function BoxChart({
@@ -27,6 +27,12 @@ export function BoxChart({
     const iqr = q3 - q1;
     return { q1, median, q3, min: d3.min(s), max: d3.max(s), iqr };
   }, [data]);
+
+  const toolTip = `Min: ${Number(min).toFixed(2)}\n
+  Q1 : ${Number(q1).toFixed(2)}\n
+  Med: ${Number(median).toFixed(2)}\n
+  Q3 : ${Number(q3).toFixed(2)}\n
+  Max: ${Number(max).toFixed(2)}`
 
   const [innerWidth, innerHeight] = useMemo(() => [
     width - margin.left - margin.right,
@@ -143,12 +149,14 @@ export function BoxChart({
           </Button>
         )}
       </Box>
-      <svg
-        ref={svgRef}
-        width={width}
-        height={height}
-        style={{ background: theme.palette.background.paper }}
-      />
+      <Tooltip title={toolTip}>
+        <svg
+          ref={svgRef}
+          width={width}
+          height={height}
+          style={{ background: theme.palette.background.paper }}
+        />
+      </Tooltip>
     </Box>
   );
 }
