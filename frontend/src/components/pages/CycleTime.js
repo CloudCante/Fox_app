@@ -89,25 +89,6 @@ export const StationCycleTime =() => {
             .filter(v => v !== undefined && v !== null && v !== "");
     }, [data, selectedFilter]);
 
-
-    // Filter block for data processing
-    // Compute filtered dataset for BoxChart based on selected filter
-    // const filteredData = useMemo(() => {
-    //     if (!Array.isArray(data) || data.length === 0) return [];
-    //     if (!selectedFilter) return [];
-
-    //     const keys = Object.keys(data[0] || {});
-    //     if (keys.length < 3) return [];
-
-    //     const filterCol = keys[1]; // column 2
-    //     const valueCol = keys[2];  // column 3
-
-    //     return data
-    //         .filter(row => row?.[filterCol] === selectedFilter)
-    //         .map(row => row?.[valueCol])   // <-- just column 3 values
-    //         .filter(v => v !== undefined && v !== null && v !== "");
-    // }, [data, selectedFilter]);
-
     return(
         <Box>
             <Header title="Station Cycle Time" subTitle="Charting station cycle times for shipped items" />
@@ -140,18 +121,25 @@ export const StationCycleTime =() => {
             </Box>
             <Divider/>
             
-                {data && data.length > 0 && selectedFilter ? (
-            <Box sx={gridStyle}>
-                <BoxChart
-                    data={filteredData}
-                    width={600}
-                    height={400}/>
-                <ViolinChart
-                    data={filteredData}
-                    width={600}
-                    height={400}
-                    isHorizontal={true}/>
-            </Box>):<Typography>No data available</Typography>}
+            {data && data.length > 0 && selectedFilter ? (
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: 2,
+                    width: '100%',       // take full available width
+                    height: '100%',      // optional
+                }}>
+                    <BoxChart
+                        data={filteredData}
+                        width={600}
+                        height={400}/>
+                    <ViolinChart
+                        data={filteredData}
+                        width={600}
+                        height={400}
+                        isHorizontal={true}/>
+                </Box>
+            ):<Typography>No data available</Typography>}
         </Box>
     )
 }

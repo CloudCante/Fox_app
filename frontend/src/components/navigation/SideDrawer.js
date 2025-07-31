@@ -49,7 +49,8 @@ const MENU_ITEMS = [
   { text: 'Performance', icon: <SpeedIcon />, children:[
     { text: 'Quality Control Charts', icon: <SpeedIcon />, route: '/performance' },
     { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
-    { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' }
+    { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
+    { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' }
   ]}
   //{ text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
 ];
