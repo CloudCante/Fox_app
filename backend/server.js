@@ -44,6 +44,9 @@ app.use('/api/pchart', pchartRouter);
 const workstationRouter = require('./routes/workstationRoutes');
 app.use('/api/workstationRoutes', workstationRouter);
 
+const testboardRouter = require('./routes/testboardRecords');
+app.use('/api/testboardRecords', testboardRouter);
+
 try {
     const uploadHandlerRouter = require('./routes/uploadHandler');
     app.use('/api/upload', uploadHandlerRouter);
