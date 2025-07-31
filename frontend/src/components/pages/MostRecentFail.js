@@ -57,12 +57,16 @@ export const MostRecentFail = () => {
 
         try {
           // Fetch backend results
+            const qs = `?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
+            console.log('>> Request URL:', API_BASE + '/api/testboardRecords/most-recent-fail' + qs);
+            console.log('>> Request body:', { sns });
+          
           const backendData = await importQuery(
             API_BASE,
             '/api/testboardRecords/most-recent-fail',
-            {},
+            {  },
             'POST',
-            { sns, startDate, endDate }
+            { sns,startDate, endDate }
           );
           console.log('Backend data:', backendData);
 

@@ -25,8 +25,7 @@ router.get('/hulk-smash', async (req, res) => {
 
 router.post('/most-recent-fail', async (req, res) => {
   try {
-    const { sns } = req.body;
-    const { startDate, endDate } = req.query;
+    const { sns,startDate, endDate } = req.body;
 
     if (!startDate || !endDate) {
       return res
