@@ -108,7 +108,7 @@ export const MostRecentFail = () => {
       return {
         ...row,
         error_code: match ? cleanCode(match.error_code) : 'Pass',
-        //fail_time: match ? match.history_station_start_time : 'NA'
+        fail_time: match ? match.fail_time : 'NA'
       };
     });
   }, [csvData, codeData]);
@@ -193,7 +193,7 @@ export const MostRecentFail = () => {
         <>
             <Typography>Data accepted.</Typography>
             {mergedDate.map(row => (
-                <Typography>{row['sn']}: {row['error_code']}</Typography>
+                <Typography>{row['sn']}: {row['error_code']}: {row['fail_time']}</Typography>
             ))}
         </>
       ) : (
