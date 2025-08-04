@@ -11,6 +11,7 @@ export function BoxChart({
   isVertical = false,
   color = '#1976d2',
   label,
+  axisLabel,
   ticks = 5,
 }) {
   const svgRef = useRef();
@@ -18,21 +19,22 @@ export function BoxChart({
   const [showBreak, setShowBreak] = useState(false);
 
   // Quartiles & stats
-  const { q1, median, q3, min, max, iqr } = useMemo(() => {
+  const { q1, median, q3, min, max, iqr, mean } = useMemo(() => {
     if (!data.length) return {};
     const s = data.slice().sort(d3.ascending);
     const q1 = d3.quantile(s, 0.25);
     const median = d3.quantile(s, 0.5);
     const q3 = d3.quantile(s, 0.75);
     const iqr = q3 - q1;
-    return { q1, median, q3, min: d3.min(s), max: d3.max(s), iqr };
+    return { q1, median, q3, min: d3.min(s), max: d3.max(s), iqr, mean: d3.mean(s) };
   }, [data]);
 
   const toolTip = `Min: ${Number(min).toFixed(2)}\n
   Q1 : ${Number(q1).toFixed(2)}\n
   Med: ${Number(median).toFixed(2)}\n
   Q3 : ${Number(q3).toFixed(2)}\n
-  Max: ${Number(max).toFixed(2)}`
+  Max: ${Number(max).toFixed(2)}\n
+  Mean: ${Number(mean).toFixed(2)}`
 
   const [innerWidth, innerHeight] = useMemo(() => [
     width - margin.left - margin.right,
@@ -121,6 +123,17 @@ export function BoxChart({
           .attr('transform', `translate(0,${innerHeight})`)
           .call(d3.axisBottom(x).ticks(ticks).tickFormat(d => d.toFixed(2)));
 
+    if(axisLabel){
+      console.log("label detected")
+      g.append('text')
+        .attr('transform',isVertical?'rotate(-90)':'rotate(0)')
+        .attr('x',isVertical?-innerHeight/2:innerWidth/2)
+        .attr('y',isVertical?-margin.left +15:innerHeight+margin.bottom )
+        .attr('text-anchor','middle')
+        .attr('fill',theme.palette.text.primary)
+        .text(axisLabel);
+    }
+
     // Axis break indicator
     if (needsBreak && showBreak) {
       const breakPos = isVertical ? innerHeight : innerWidth;
@@ -132,6 +145,15 @@ export function BoxChart({
     }
 
   }, [data, width, height, margin, x, needsBreak, showBreak]);
+
+  if(!data || data.length === 0) {
+    return(
+          <Box style={{ padding: 16, border: '1px solid #ccc', borderRadius: 4 }}>
+            {label && <Typography style={{ margin: '0 0 16px 0' }}>{label}</Typography>}
+            <Typography>No valid data to display</Typography>
+          </Box>
+    );
+  }
 
   return (
     <Box style={{ padding: 16, border: '1px solid #ccc', borderRadius: 4 }}>
