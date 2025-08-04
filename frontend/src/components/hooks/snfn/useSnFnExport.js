@@ -18,7 +18,7 @@ export function useSnFnExport({ paginatedData, groupByWorkstation, codeDescMap,f
               const stationSecondaryId = station[0][1];
               station.slice(1).forEach(([errorCode, count, snList]) => {
               snList.forEach((sn) => {
-                  rows.push([`'${stationId}'`,`'${stationSecondaryId}'`, errorCode, count, sn[0],sn[1],sn[2]]);
+                  rows.push([`'${stationId}'`,`'${stationSecondaryId}'`, errorCode, sn[3], sn[0],sn[1],sn[2]]);
               });
               });
           });

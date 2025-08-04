@@ -1,5 +1,5 @@
 // src/components/charts/ViolinPlot.jsx
-import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback, forwardRef } from 'react';
 import { Paper, Typography, Box, Button } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import * as d3 from 'd3';
@@ -27,21 +27,22 @@ function kernelDensityEstimator(kernel, X) {
  * ViolinPlot component (called ViolinChart here)
  * Renders an interactive violin plot with zooming/panning
  */
-export function ViolinChart({ 
+export const ViolinChart = forwardRef(function ViolinChart({ 
   data = [], 
   width = 400, 
   height = 200, 
   isHorizontal = false, 
   color = '#69b3a2',
   margin = { top: 20, right: 20, bottom: 30, left: 40 }, 
-  label = '' 
-}) {
+  label = '' ,
+  onExport,
+},ref) {
   // Constants for setup
   const maxZoom = 10;
   const initialFocus = 0.1;
 
   // Refs for SVG rendering and scrollbar
-  const svgRef = useRef();
+  const svgRef = ref || useRef();
   const scrollbarRef = useRef();
   const theme = useTheme();
 
@@ -381,6 +382,16 @@ export function ViolinChart({
       {/* Controls shown if outliers detected (zoom mode useful) */}
       {processedData.hasOutliers && (
         <Box style={{ marginBottom: 8 }}>
+          {onExport &&(
+            <Button 
+              size="small"
+              variant="outlined"
+              onClick={() => onExport(svgRef.current,0,10)}
+              sx={{ marginRight: 1 }}
+            >
+              Export
+            </Button>
+          )}
           <Button 
             size="small"
             variant="outlined"
@@ -493,3 +504,4 @@ export function ViolinChart({
     </Box>
   );
 }
+)

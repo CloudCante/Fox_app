@@ -18,6 +18,9 @@ export const StationCycleTime = () => {
   const [useBuckets, setUseBuckets] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('');
 
+  const boxChartRef = useRef(null);
+  const violinChartRef = useRef(null);
+
   const handleImportClick = () => fileInputRef.current?.click();
 
   const handleFileChange = useCallback(async e => {
@@ -102,8 +105,15 @@ export const StationCycleTime = () => {
             {label : 'Mean', value : Number(d3.mean(s)).toFixed(2)}
         ]
         return {stats}
-    },[filteredData]);
+  },[filteredData]);
 
+    
+  const handleExportSVG=(svgNode, filename, lowerBound,upperBound)=>{
+    if(!svgNode) return;
+    console.log("filename: ",filename);
+    console.log("Minimum value: ",lowerBound);
+    console.log("Maximum value: ",upperBound);
+  }
 
   return (
     <Box>
@@ -144,8 +154,18 @@ export const StationCycleTime = () => {
           </Paper>
         </Fade>
         <Box sx={gridStyle}>
-          <BoxChart data={filteredData} width={600} height={400} axisLabel="Cycle Time in Hours"/>
-          <ViolinChart data={filteredData} width={600} height={400} isHorizontal />
+          <BoxChart 
+          ref = {boxChartRef}
+          data = {filteredData} 
+          width = {600} height = {400} 
+          axisLabel = "Cycle Time in Hours"
+          onExport = {(node,lb,ub)=>handleExportSVG((node,lb,ub),`${selectedFilter}-box`)}/>
+          <ViolinChart 
+          ref = {violinChartRef}
+          data={filteredData} 
+          width={600} height={400} 
+          isHorizontal = {true}
+          onExport = {node=>handleExportSVG(node,`${selectedFilter}-violin`)}/>
         </Box>
         </>
       ) : (

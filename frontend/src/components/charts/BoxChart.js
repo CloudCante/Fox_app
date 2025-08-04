@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState, forwardRef } from 'react';
 import * as d3 from 'd3';
 import { Box, Typography, Button, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
-export function BoxChart({
+export const BoxChart = forwardRef(function BoxChart({
   data = [],
   width = 400,
   height = 120,
@@ -13,8 +13,9 @@ export function BoxChart({
   label,
   axisLabel,
   ticks = 5,
-}) {
-  const svgRef = useRef();
+  onExport,
+},ref) {
+  const svgRef = ref || useRef();
   const theme = useTheme();
   const [showBreak, setShowBreak] = useState(false);
 
@@ -161,15 +162,27 @@ export function BoxChart({
         <Typography variant="h6" gutterBottom color={theme.palette.text.primary}>
           {label}
         </Typography>
-        {needsBreak && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => setShowBreak(prev => !prev)}
-          >
-            {showBreak ? 'Show All' : 'Clamp Outliers'}
-          </Button>
-        )}
+        <Box>
+          {onExport &&(
+            <Button 
+              size="small"
+              variant="outlined"
+              onClick={() => onExport(svgRef.current,0,10)}
+              sx={{ marginRight: 1 }}
+            >
+              Export
+            </Button>
+          )}
+          {needsBreak && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setShowBreak(prev => !prev)}
+            >
+              {showBreak ? 'Show All' : 'Clamp Outliers'}
+            </Button>
+          )}
+        </Box>
       </Box>
       <Tooltip title={toolTip}>
         <svg
@@ -181,4 +194,4 @@ export function BoxChart({
       </Tooltip>
     </Box>
   );
-}
+})
