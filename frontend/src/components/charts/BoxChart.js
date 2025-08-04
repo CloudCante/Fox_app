@@ -125,7 +125,6 @@ export const BoxChart = forwardRef(function BoxChart({
           .call(d3.axisBottom(x).ticks(ticks).tickFormat(d => d.toFixed(2)));
 
     if(axisLabel){
-      console.log("label detected")
       g.append('text')
         .attr('transform',isVertical?'rotate(-90)':'rotate(0)')
         .attr('x',isVertical?-innerHeight/2:innerWidth/2)
@@ -156,6 +155,9 @@ export const BoxChart = forwardRef(function BoxChart({
     );
   }
 
+  const upperBound = showBreak && domain ? domain[1] : max;
+  const lowerBound = showBreak && domain ? domain[0] : min;
+
   return (
     <Box style={{ padding: 16, border: '1px solid #ccc', borderRadius: 4 }}>
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -167,7 +169,7 @@ export const BoxChart = forwardRef(function BoxChart({
             <Button 
               size="small"
               variant="outlined"
-              onClick={() => onExport(svgRef.current,0,10)}
+              onClick={() => onExport(svgRef.current,lowerBound,upperBound)}
               sx={{ marginRight: 1 }}
             >
               Export

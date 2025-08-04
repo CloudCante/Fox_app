@@ -8,6 +8,7 @@ import { gridStyle, buttonStyle } from '../theme/themes.js';
 import { importQuery } from '../../utils/queryUtils.js';
 import { stationBuckets } from '../../data/dataTables';
 import * as d3 from 'd3';
+import { exportSecureCSV } from '../../utils/exportUtils.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) console.error('REACT_APP_API_BASE is not set');
@@ -107,13 +108,47 @@ export const StationCycleTime = () => {
         return {stats}
   },[filteredData]);
 
-    
-  const handleExportSVG=(svgNode, filename, lowerBound,upperBound)=>{
-    if(!svgNode) return;
-    console.log("filename: ",filename);
-    console.log("Minimum value: ",lowerBound);
-    console.log("Maximum value: ",upperBound);
-  }
+  const exportSelection=(selection,filename)=>{
+    const exportData = data
+        .filter(item => selection
+            .includes(item.total_time))
+        .map(item => structuredClone(item));
+    console.log("export",exportData)
+    try {
+        const rows = [];
+        exportData.forEach((row) => {
+            rows.push([row[`sn`],row[`workstation_name`],row['total_time']
+            //, row['fail_time']
+            ]);
+        });
+        const headers = [
+        'Serial Number',
+        'Station Name',
+        'Total Time (Hours)'
+        ];
+        // Use secure export function
+        exportSecureCSV(rows, headers, `${filename}.csv`);
+    } 
+    catch (error) {
+        console.error('Export failed:', error);
+        alert('Export failed. Please try again.');
+    };
+  }  
+
+  const handleExportSVG = (svgNode, filename, lowerBound, upperBound, data) => {
+    if (!svgNode) return;
+    console.log("filename:", filename);
+    console.log("Minimum value:", lowerBound);
+    console.log("Maximum value:", upperBound);
+
+    // this will now reference the passed-in data
+    const limitedData = data.filter(v => v >= lowerBound && v <= upperBound);
+    console.log("limited:", limitedData);
+    //console.log("filtered:", data);
+    const fullName = `${filename}_${Number(lowerBound).toFixed(0)}_${Number(upperBound).toFixed(0)}`
+    exportSelection(limitedData,fullName);
+    // …generate CSV or download…
+  };
 
   return (
     <Box>
@@ -159,13 +194,15 @@ export const StationCycleTime = () => {
           data = {filteredData} 
           width = {600} height = {400} 
           axisLabel = "Cycle Time in Hours"
-          onExport = {(node,lb,ub)=>handleExportSVG((node,lb,ub),`${selectedFilter}-box`)}/>
+          onExport = {(node,lb,ub)=>handleExportSVG((node),`${selectedFilter}-box`,lb,ub,filteredData)}/>
           <ViolinChart 
           ref = {violinChartRef}
           data={filteredData} 
           width={600} height={400} 
           isHorizontal = {true}
-          onExport = {node=>handleExportSVG(node,`${selectedFilter}-violin`)}/>
+          onExport={(node, lb, ub) => 
+            handleExportSVG(node, `${selectedFilter}-violin`, lb, ub, filteredData)
+          }/>
         </Box>
         </>
       ) : (

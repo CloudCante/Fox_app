@@ -375,6 +375,9 @@ export const ViolinChart = forwardRef(function ViolinChart({
   // thumb pos now covers full track
   const thumbPosition = viewStart * (scrollbarLength - thumbSize);
 
+  const upperBound = showFullScale ? processedData.viewMax : processedData.viewMax;
+  const lowerBound = showFullScale ? processedData.viewMin : processedData.viewMin;
+
   return (
     <Box style={{ padding: 16, border: '1px solid #ccc', borderRadius: 4 }}>
       {label && <Typography style={{ margin: '0 0 16px 0' }}>{label}</Typography>}
@@ -386,7 +389,7 @@ export const ViolinChart = forwardRef(function ViolinChart({
             <Button 
               size="small"
               variant="outlined"
-              onClick={() => onExport(svgRef.current,0,10)}
+              onClick={() => onExport(svgRef.current,lowerBound,upperBound)}
               sx={{ marginRight: 1 }}
             >
               Export
