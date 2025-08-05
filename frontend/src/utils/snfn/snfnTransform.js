@@ -35,17 +35,19 @@ export function parseSnFnData(
     if (isNaN(recDate) || recDate < startDate || recDate > endDate) continue;
     if (TN === 0) continue;
 
+    const TEC = (EC === "ECnan"||EC==="EC_na")? "NAN" : EC;
+
     // --- Determine station grouping ---
     const stationKey      = groupByWorkstation ? BT : FN;
     const stationSubLabel = groupByWorkstation ? FN : BT;
 
     // Collect metadata
-    codeSet.add(EC);
+    codeSet.add(TEC);
     stationSet.add(stationKey);
     if (MD) modelSet.add(MD);
 
     // Collect descriptions
-    const descKey = `${stationKey}${EC}`;
+    const descKey = `${stationKey}${TEC}`;
     if (!descMap.has(descKey)) {
       descMap.set(descKey, new Set());
     }
@@ -61,13 +63,13 @@ export function parseSnFnData(
     const stationEntry = stationMap.get(stationKey);
 
     // --- Code setup ---
-    if (!stationEntry.codes.has(EC)) {
-      stationEntry.codes.set(EC, {
+    if (!stationEntry.codes.has(TEC)) {
+      stationEntry.codes.set(TEC, {
         count: 0,
         serials: new Map(),   // key: `${SN}::${PN}::${MD}` → count
       });
     }
-    const codeEntry = stationEntry.codes.get(EC);
+    const codeEntry = stationEntry.codes.get(TEC);
 
     // Update totals
     codeEntry.count += Number(TN);
