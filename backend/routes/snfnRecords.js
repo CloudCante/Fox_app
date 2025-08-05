@@ -36,6 +36,7 @@ router.get('/station-errors', async (req, res) => {
 });
 
 router.get('/model-errors', async (req, res) => {
+    console.log("got here")
     try {
         const { startDate, endDate, model } = req.query;
         if (!startDate || !endDate ) {

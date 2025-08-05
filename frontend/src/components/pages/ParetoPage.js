@@ -29,7 +29,6 @@ console.log('API_BASE:', API_BASE);
 const refreshInterval = 300000; // 5 minutes
 
 export const ParetoPage = () => {
-  const [testStationDataSXM4, setTestStationDataSXM4] = useState([]);
   const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
   const [testStationDataSXM6, setTestStationDataSXM6] = useState([]);
   const [errorcodeDataSXM4, setErrorcodeDataSXM4] = useState([]);
@@ -73,7 +72,6 @@ export const ParetoPage = () => {
       });
 
     const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationDataSXM5});
-    const fetchSXM4 = () => fetchModelData({value:'Tesla SXM4',key:'sxm4',setter: setTestStationDataSXM4});
     const fetchSXM6 = () => fetchModelData({value:'SXM6',key:'sxm6',setter: setTestStationDataSXM6});
     const codesSXM4 = () => fetchErrorData({value:'Tesla SXM4',key:'sxm4',setter: setErrorcodeDataSXM4});
     const codesSXM5 = () => fetchErrorData({value:'Tesla SXM5',key:'sxm5',setter: setErrorcodeDataSXM5});
@@ -90,7 +88,7 @@ export const ParetoPage = () => {
         API_Route: '/api/functional-testing/fixture-performance?'
       });
 
-    Promise.all([fetchSXM4(), fetchSXM5(), fetchSXM6(), fetchFixtures()])
+    Promise.all([codesSXM4(), fetchSXM5(), fetchSXM6(), fetchFixtures()])
       .then(() => setLoading(false)) 
       .catch(error => {
         console.error("Error fetching dashboard data:", error);
