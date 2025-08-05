@@ -32,6 +32,7 @@ export const ParetoPage = () => {
   const [errorcodeDataSXM4, setErrorcodeDataSXM4] = useState([]);
   const [errorcodeDataSXM5, setErrorcodeDataSXM5] = useState([]);
   const [errorcodeDataSXM6, setErrorcodeDataSXM6] = useState([]);
+  const [errocodeDataAll,setErrorcodeDataAll] = useState([]);
   const [topFixturesData, setTopFixturesData] = useState([]);
   //const [failStationsData, setFailStationsData] = useState([]);
   //const [defectCodesData, setDefectCodesData] = useState([]);

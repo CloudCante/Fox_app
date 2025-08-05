@@ -51,17 +51,17 @@ router.get('/model-errors', async (req, res) => {
                         THEN 'NAN'
                     ELSE error_code
                 END AS error_code,
-                COUNT(error_code) as code_count
+                COUNT(*) as code_count
             FROM snfn_aggregate_daily
             WHERE history_station_end_time BETWEEN $1 AND $2
-            AND model = $3
+            AND (model = $3 OR $3 = 'ALL')
             GROUP BY
                 CASE
                     WHEN error_code IN ('ECnan', 'EC_na')
                         THEN 'NAN'
                     ELSE error_code
                 END
-            ORDER BY COUNT(error_code) DESC
+            ORDER BY code_count DESC
             `;
         const params = [startDate, endDate, model];
         const result = await pool.query(query, params);
