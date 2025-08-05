@@ -47,7 +47,7 @@ router.get('/model-errors', async (req, res) => {
         const query = `
             SELECT
                 CASE
-                    WHEN error_code IN ('badCode1', 'badCode2')
+                    WHEN error_code IN ('ECnan', 'EC_na')
                         THEN 'NAN'
                     ELSE error_code
                 END AS error_code,
