@@ -45,7 +45,7 @@ export function parseSnFnData(
     if (MD) modelSet.add(MD);
 
     // Collect descriptions
-    const descKey = `${stationKey}::${EC}`;
+    const descKey = `${stationKey}${EC}`;
     if (!descMap.has(descKey)) {
       descMap.set(descKey, new Set());
     }
