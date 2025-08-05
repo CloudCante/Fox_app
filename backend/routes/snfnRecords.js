@@ -35,6 +35,33 @@ router.get('/station-errors', async (req, res) => {
     }
 });
 
+router.get('/model-errors', async (req, res) => {
+    try {
+        const { startDate, endDate, model } = req.query;
+        if (!startDate || !endDate ) {
+            return res.status(400).json({ error: 'Missing required query parameters: startDate, endDate' });
+        }
+        if(!model){
+            return res.status(400).json({ error: 'Missing required query parameters: model' });
+        }
+        const query = `
+            SELECT
+                error_code,
+                COUNT(error_code) as code_count
+            FROM snfn_aggregate_daily
+            WHERE history_station_end_time BETWEEN $1 AND $2
+            AND model = $3
+            GROUP BY error_code
+            ORDER BY COUNT(error_code) DESC
+            `;
+        const params = [startDate, endDate, model];
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 
 module.exports = router;
