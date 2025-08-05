@@ -22,7 +22,7 @@ router.get('/station-errors', async (req, res) => {
                 MIN(pn) as pn,
                 (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond') AS normalized_end_time
 
-            FROM snfn_master_log
+            FROM snfn_aggregate_daily
             WHERE history_station_end_time BETWEEN $1 AND $2
             GROUP BY fixture_no, sn, error_code, error_disc,model, workstation_name, (date_trunc('day', history_station_end_time) + interval '1 day - 1 microsecond')
             ORDER BY workstation_name
