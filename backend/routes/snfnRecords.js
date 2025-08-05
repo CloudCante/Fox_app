@@ -60,7 +60,7 @@ router.get('/model-errors', async (req, res) => {
                     WHEN error_code IN ('ECnan', 'EC_na')
                         THEN 'NAN'
                     ELSE error_code
-                END AS error_code
+                END
             ORDER BY COUNT(error_code) DESC
             `;
         const params = [startDate, endDate, model];
