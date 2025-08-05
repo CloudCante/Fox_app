@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTheme, Paper, Box, Typography, CircularProgress } from '@mui/material';
 import {
   ComposedChart,
@@ -14,9 +14,26 @@ import {
 } from 'recharts';
 import { paperStyle, flexStyle, typeStyle, boxStyle } from '../theme/themes.js';
 
-export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)" }) => {
+export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)",limit=7 }) => {
     const theme = useTheme();
     const textColor = theme.palette.mode === 'dark' ? '#fff' : '#000';
+
+    const totalFails = useMemo(
+      () => data.reduce((sum, { code_count }) => sum + Number(code_count || 0), 0),
+      [data]
+    );
+
+    const chartData = useMemo(() => {
+      let running = 0;
+      return data.slice(0,limit).map(item => {
+        const count = Number(item.code_count) || 0;
+        running += count;
+        return {
+          ...item,
+          failureRate: totalFails > 0 ? (running || 0) / totalFails : 0,
+        };
+      });
+    },[data, totalFails]);
 
     if (!data || data.length === 0) {
       return (
@@ -48,7 +65,7 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                  data={data}
+                  data={chartData}
                   margin={{
                     top: 8,
                     right: 8,
@@ -61,7 +78,7 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
                     stroke={theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}
                   />
                   <XAxis 
-                    dataKey="station" 
+                    dataKey="error_code" 
                     angle={-45}
                     textAnchor="end"
                     height={70}
@@ -99,12 +116,12 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
                   />
                   <Bar
                     yAxisId="left"
-                    dataKey="fail"
+                    dataKey="code_count"
                     fill="#1976d2"
                     name="Fail Count"
                   >
                     <LabelList 
-                      dataKey="fail" 
+                      dataKey="code_count" 
                       position="inside" 
                       fontSize={12}
                       fill={theme.palette.mode === 'dark' ? '#fff' : '#000'}
@@ -129,7 +146,7 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
                           textAnchor="middle"
                           fontWeight="bold"
                         >
-                          {value !== undefined ? `${(value * 100).toFixed(1)}%` : ''}
+                          {typeof value === 'number' ? `${(value * 100).toFixed(1)}%` : ''}
                         </text>
                       );
                     }}

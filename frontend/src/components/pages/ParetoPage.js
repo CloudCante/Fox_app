@@ -14,7 +14,7 @@ import { DateRange } from '../pagecomp/DateRange.jsx';
 // Utilities and Helpers
 import { dataCache } from '../../utils/cacheUtils.js';
 import { gridStyle } from '../theme/themes.js';
-import { fetchFixtureQuery, fetchWorkstationQuery } from '../../utils/queryUtils.js';
+import { fetchFixtureQuery, fetchWorkstationQuery, fetchErrorQuery } from '../../utils/queryUtils.js';
 import { ParetoChart } from '../charts/ParetoChart.js';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
@@ -29,8 +29,6 @@ console.log('API_BASE:', API_BASE);
 const refreshInterval = 300000; // 5 minutes
 
 export const ParetoPage = () => {
-  const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
-  const [testStationDataSXM6, setTestStationDataSXM6] = useState([]);
   const [errorcodeDataSXM4, setErrorcodeDataSXM4] = useState([]);
   const [errorcodeDataSXM5, setErrorcodeDataSXM5] = useState([]);
   const [errorcodeDataSXM6, setErrorcodeDataSXM6] = useState([]);
@@ -50,18 +48,8 @@ export const ParetoPage = () => {
   useEffect(() => {
     setLoading(true);
 
-    const fetchModelData = ({ value, key, setter }) =>
-      fetchWorkstationQuery({
-        parameters: [{ id: 'model', value: value }],
-        startDate,
-        endDate,
-        key,
-        setDataCache: setter,
-        API_BASE,
-        API_Route: '/api/functional-testing/station-performance?'
-      });
     const fetchErrorData = ({ value, key, setter }) =>
-      fetchWorkstationQuery({
+      fetchErrorQuery({
         parameters: [{ id: 'model', value: value }],
         startDate,
         endDate,
@@ -71,8 +59,6 @@ export const ParetoPage = () => {
         API_Route: '/api/snfn/model-errors?'
       });
 
-    const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationDataSXM5});
-    const fetchSXM6 = () => fetchModelData({value:'SXM6',key:'sxm6',setter: setTestStationDataSXM6});
     const codesSXM4 = () => fetchErrorData({value:'Tesla SXM4',key:'sxm4',setter: setErrorcodeDataSXM4});
     const codesSXM5 = () => fetchErrorData({value:'Tesla SXM5',key:'sxm5',setter: setErrorcodeDataSXM5});
     const codesSXM6 = () => fetchErrorData({value:'SXM6',key:'sxm6',setter: setErrorcodeDataSXM6});
@@ -88,7 +74,7 @@ export const ParetoPage = () => {
         API_Route: '/api/functional-testing/fixture-performance?'
       });
 
-    Promise.all([codesSXM4(), fetchSXM5(), fetchSXM6(), fetchFixtures()])
+    Promise.all([codesSXM4(), codesSXM5(), codesSXM6(), fetchFixtures()])
       .then(() => setLoading(false)) 
       .catch(error => {
         console.error("Error fetching dashboard data:", error);
@@ -98,7 +84,7 @@ export const ParetoPage = () => {
     const interval = setInterval(() => {
       dataCache.clear();
 
-      Promise.all([codesSXM4(), fetchSXM5(), fetchSXM6, fetchFixtures()])
+      Promise.all([codesSXM4(), codesSXM5(), codesSXM6, fetchFixtures()])
         .catch(error => console.error("Error refreshing dashboard data:", error));
     }, refreshInterval);
 
@@ -124,13 +110,13 @@ export const ParetoPage = () => {
           label={"SXM4 Test Station Performance"}
           data={errorcodeDataSXM4} 
           loading={loading}/>
-        <TestStationChart 
+        <ParetoChart 
           label="SXM5 Test Station Performance"
-          data={testStationDataSXM5}
+          data={errorcodeDataSXM5}
           loading={loading} />
-        <TestStationChart 
+        <ParetoChart 
           label="SXM6 Test Station Performance"
-          data={testStationDataSXM6}
+          data={errorcodeDataSXM6}
           loading={loading} />
         <FixtureFailParetoChart 
           label={"Fixture Performance"}

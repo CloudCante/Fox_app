@@ -36,7 +36,7 @@ router.get('/station-errors', async (req, res) => {
 });
 
 router.get('/model-errors', async (req, res) => {
-    console.log("got here")
+    console.log("Query: model-errors")
     try {
         const { startDate, endDate, model } = req.query;
         if (!startDate || !endDate ) {
@@ -47,12 +47,21 @@ router.get('/model-errors', async (req, res) => {
         }
         const query = `
             SELECT
-                error_code,
+                CASE
+                    WHEN error_code IN ('badCode1', 'badCode2')
+                        THEN 'NAN'
+                    ELSE error_code
+                END AS error_code,
                 COUNT(error_code) as code_count
             FROM snfn_aggregate_daily
             WHERE history_station_end_time BETWEEN $1 AND $2
             AND model = $3
-            GROUP BY error_code
+            GROUP BY
+                CASE
+                    WHEN error_code IN ('ECnan', 'EC_na')
+                        THEN 'NAN'
+                    ELSE error_code
+                END AS error_code
             ORDER BY COUNT(error_code) DESC
             `;
         const params = [startDate, endDate, model];
