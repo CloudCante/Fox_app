@@ -121,3 +121,24 @@ export async function fetchFixtureQuery({
 
   return fetchWithCache(url, cacheKey, setDataCache, mapFn);
 }
+
+export async function fetchErrorQuery({
+  parameters = [],
+  startDate,
+  endDate,
+  key,
+  setDataCache,
+  API_BASE,
+  API_Route
+}) {
+  const params = buildParams(parameters, startDate, endDate);
+  const cacheKey = `${key}_${params.toString()}`;
+  const url = `${API_BASE}${API_Route}${params.toString()}`;
+  
+  const mapFn = row => ({
+    error_code: row.error_code,
+    code_count: parseFloat(row.code_count)
+  });
+
+  return fetchWithCache(url, cacheKey, setDataCache, mapFn);
+}

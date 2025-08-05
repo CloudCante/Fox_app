@@ -14,6 +14,7 @@ import UploadPage from './components/pages/uploadPage';
 import StationHourlySummaryPage from './components/pages/StationHourlySummaryPage';
 import StationCycleTime from './components/pages/CycleTime';
 import MostRecentFail from './components/pages/MostRecentFail';
+import ParetoPage from './components/pages/ParetoPage';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 import './components/theme/theme.css';
@@ -45,6 +46,7 @@ const AppRoutes = React.memo(() => (
     <Route path="/station-hourly-summary" element={<StationHourlySummaryPage />} />
     <Route path="/cycle-time" element={<StationCycleTime />} />
     <Route path="/most-recent-fail" element={<MostRecentFail />} />
+    <Route path="/pareto" element={<ParetoPage />} />
     {process.env.NODE_ENV === 'development' && (
       <Route path="/dev/upload" element={<UploadPage />} />
     )}
