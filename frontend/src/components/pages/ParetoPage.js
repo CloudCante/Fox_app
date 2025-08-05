@@ -81,7 +81,7 @@ export const ParetoPage = () => {
 
   return (
     <Box p={1}>
-      <Header title="Pareto Charts" subTitle="Pareto error codes" />
+      <Header title="Pareto Charts" subTitle="Pareto error codes by model" />
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
         <DateRange
           startDate={startDate}
