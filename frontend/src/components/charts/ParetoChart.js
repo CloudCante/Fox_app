@@ -33,7 +33,7 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
           failureRate: totalFails > 0 ? (running || 0) / totalFails : 0,
         };
       });
-    },[data, totalFails]);
+    },[data, totalFails, limit]);
 
     if (!data || data.length === 0) {
       return (
