@@ -27,7 +27,7 @@ console.log('API_BASE:', API_BASE);
 
 const refreshInterval = 300000; // 5 minutes
 
-export const Dashboard = () => {
+export const TestStationPerformancePage = () => {
   const [testStationDataSXM4, setTestStationDataSXM4] = useState([]);
   const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
   const [testStationDataSXM6, setTestStationDataSXM6] = useState([]);
@@ -159,7 +159,7 @@ export const Dashboard = () => {
 
   return (
     <Box p={1}>
-      <Header title="Dashboard" />
+      <Header title="Test Station Performance Charts" />
       <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
         <DateRange
           startDate={startDate}
@@ -220,3 +220,4 @@ export const Dashboard = () => {
     </Box>
   );
 };
+export default TestStationPerformancePage;
