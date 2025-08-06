@@ -23,7 +23,7 @@ export function WidgetManager({
             </Box>
         )
     }
-    console.log(widgets)
+    //console.log(widgets)
     return (
         <Box sx={gridStyle} >
             {widgets.map(widget=>(

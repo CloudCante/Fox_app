@@ -1,8 +1,8 @@
 // Widget for TestStation Reports
 import React,{useState, useEffect, useMemo} from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
-import { gridStyle } from '../../theme/themes.js';
+import { gridStyle, paperStyle } from '../../theme/themes.js';
 import { TestStationChart } from '../../charts/TestStationChart.js'
 import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
@@ -30,7 +30,7 @@ export function TestStationWidget({
     const [loading, setLoading] = useState(true); 
 
     useEffect(() => {
-        if (!model || !key) return;
+        if (!model || !key || model.length === 0) return;
         let isActive = true;
         const fetchData = async () => {
             setLoading(true);
@@ -75,35 +75,36 @@ export function TestStationWidget({
 
     if (model.length === 0 || key.length === 0 ){
         return(
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Header
-                title="Select Model"
-                subTitle="Choose a model to chart"
-                titleVariant="h6"
-                subTitleVariant="body2"
-                titleColor="text.secondary"
-                />
-                <FormControl fullWidth>
-                    <InputLabel id="model-select-label">Choose Model</InputLabel>
-                    <Select
-                    label="Choose Model"
-                    value = {modelKeys.find(mk => mk.model === model)?.id || ''}
-                    onChange={handleSetModelKey}
-                    >
-                    {modelKeys.map(mk =>(
-                        <MenuItem key={mk.id}value={mk.id}>
-                        {mk.id}
-                        </MenuItem>
-                    ))}
-                    </Select>
-                </FormControl>
-            </Box>
-            
+            <Paper sx={paperStyle}>
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <Header
+                    title="Select Model"
+                    subTitle="Choose a model to chart"
+                    titleVariant="h6"
+                    subTitleVariant="body2"
+                    titleColor="text.secondary"
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel id="model-select-label">Choose Model</InputLabel>
+                        <Select
+                        label="Choose Model"
+                        value = {modelKeys.find(mk => mk.model === model)?.id || ''}
+                        onChange={handleSetModelKey}
+                        >
+                        {modelKeys.map(mk =>(
+                            <MenuItem key={mk.id}value={mk.id}>
+                            {mk.id}
+                            </MenuItem>
+                        ))}
+                        </Select>
+                    </FormControl>
+                </Box>
+            </Paper>
         );
     }
     return (
         <TestStationChart
-          label={"SXM4 Test Station Performance"}
+          label={label?label:`${model} Test Station Performance`}
           data={testStationData} 
           loading={loading}/>
     );

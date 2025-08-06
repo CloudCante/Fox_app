@@ -10,9 +10,11 @@ import { Header } from '../pagecomp/Header.jsx';
 import { Toolbar } from '../pagecomp/Toolbar.jsx';
 import { WidgetManager } from '../pagecomp/WidgetManager.jsx'
 import { TestWidget } from '../pagecomp/widget/TestWidget.jsx';
-import { TestStationWidget } from '../pagecomp/widget/TestStationWidget.jsx';
 import { buttonStyle, modalStyle } from '../theme/themes.js';
 import { widgetList } from '../../data/dataTables.js';
+// Widgets
+import { TestStationWidget } from '../pagecomp/widget/TestStationWidget.jsx';
+import { FixtureStationWidget } from '../pagecomp/widget/FixtureStationWidget.jsx';
 
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
@@ -68,14 +70,15 @@ export const Dashboard = () => {
       let v = widgets.length || 0;
       let newWidg = null;
       if(selected===widgetList[0].type){newWidg = <TestStationWidget/>;}
+      else if(selected===widgetList[1].type){newWidg = <FixtureStationWidget/>;}
       else{newWidg = <TestWidget value={v}/>;}
       //console.log(newWidg)
-    setWidgets(prev => [
-      ...prev,
-      {id:v,widget:newWidg}
-    ]);
-    handleCloseSettings();
-  };
+      setWidgets(prev => [
+        ...prev,
+        {id:v,widget:newWidg}
+      ]);
+      handleCloseSettings();
+    };
     return (
       <Modal
         open={openSettings}
