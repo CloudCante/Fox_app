@@ -2,7 +2,7 @@
 import React,{useState, useEffect, useMemo} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
-import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
+import { gridStyle, paperStyle } from '../../theme/themes.js';
 import { TestStationChart } from '../../charts/TestStationChart.js'
 import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
@@ -18,7 +18,7 @@ const modelKeys = [
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function TestStationWidget({ 
+export function PackingOutputWidget({ 
     label,
     startDate = getInitialStartDate(7),
     endDate = normalizeDate.end(new Date()),
@@ -29,10 +29,9 @@ export function TestStationWidget({
     const [model,setModel]= useState([]);
     const [key,setKey]= useState([]);
     const [loading, setLoading] = useState(true); 
-    const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        if (!loaded) return;
+        if (!model || !key || model.length === 0) return;
         let isActive = true;
         const fetchData = async () => {
             setLoading(true);
@@ -62,7 +61,7 @@ export function TestStationWidget({
         isActive = false;
         clearInterval(intervalId);
     };
-    }, [model, key, startDate, endDate, loaded]);
+    }, [model, key, startDate, endDate]);
 
 
     const handleSetModelKey= e => {
@@ -75,7 +74,7 @@ export function TestStationWidget({
         }
     };
 
-    if (!loaded){
+    if (model.length === 0 || key.length === 0 ){
         return(
             <Paper sx={paperStyle}>
                 <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -100,17 +99,11 @@ export function TestStationWidget({
                         ))}
                         </Select>
                     </FormControl>
-                    {model.length > 0 && (
-                        <Button sx={buttonStyle} onClick={() => setLoaded(true)}>Load Chart</Button>
-                    )}
                 </Box>
             </Paper>
         );
     }
     return (
-        <TestStationChart
-          label={label?label:`${model} Test Station Performance`}
-          data={testStationData} 
-          loading={loading}/>
+        <></>
     );
 }

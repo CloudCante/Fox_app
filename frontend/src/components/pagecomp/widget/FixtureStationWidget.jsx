@@ -1,8 +1,5 @@
 // Widget for Fixture Reports
 import React,{useState, useEffect, useMemo} from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
-import { Header } from '../../pagecomp/Header.jsx'
-import { gridStyle, paperStyle } from '../../theme/themes.js';
 import { FixtureFailParetoChart } from '../../charts/FixtureFailParetoChart.js'
 import { fetchFixtureQuery } from '../../../utils/queryUtils.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
@@ -18,6 +15,7 @@ export function FixtureStationWidget({
     startDate = getInitialStartDate(7),
     endDate = normalizeDate.end(new Date()),
     limit = 7,
+    useGlobal = false
 }) {
     const [fixtureData, setFixtureData] = useState([]);
     //const [model,setModel]= useState([]);

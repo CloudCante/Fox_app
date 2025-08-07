@@ -15,6 +15,8 @@ import { widgetList } from '../../data/dataTables.js';
 // Widgets
 import { TestStationWidget } from '../pagecomp/widget/TestStationWidget.jsx';
 import { FixtureStationWidget } from '../pagecomp/widget/FixtureStationWidget.jsx';
+import { PackingChartWidget } from '../pagecomp/widget/PackingChartWidget.jsx'
+import { ParetoWidget } from '../pagecomp/widget/ParetoWidget.jsx';
 
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
@@ -33,6 +35,12 @@ const refreshInterval = 300000; // 5 minutes
 export const Dashboard = () => {
   const [widgets,setWidgets] = useState([]);
   const [tools,setTools] = useState([]);
+
+  // placeholders for global vars
+  const [startDate,setStartDate] = useState([]);
+  const [endDate,setEndDate] = useState([]);
+  const [singleDate,setSingleDate] = useState([]);
+  const [barLimit,setBarLimit] = useState([]);
   
   const [modalInfo, setModalInfo] = useState([]);
   const [openSettings, setOpenSettings] = useState(false);
@@ -71,6 +79,8 @@ export const Dashboard = () => {
       let newWidg = null;
       if(selected===widgetList[0].type){newWidg = <TestStationWidget/>;}
       else if(selected===widgetList[1].type){newWidg = <FixtureStationWidget/>;}
+      else if(selected===widgetList[3].type){newWidg = <PackingChartWidget/>;}
+      else if(selected===widgetList[4].type){newWidg = <ParetoWidget/>;}
       else{newWidg = <TestWidget value={v}/>;}
       //console.log(newWidg)
       setWidgets(prev => [

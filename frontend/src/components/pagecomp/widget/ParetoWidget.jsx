@@ -1,10 +1,9 @@
 // Widget for TestStation Reports
 import React,{useState, useEffect, useMemo} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
-import { Header } from '../../pagecomp/Header.jsx'
+import { Header } from '../Header.jsx'
 import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
-import { TestStationChart } from '../../charts/TestStationChart.js'
-import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
+import { ParetoChart } from '../../charts/ParetoChart.js'
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -12,20 +11,21 @@ if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
 const modelKeys = [
+    {id:"All", model:"ALL", key:"ALL"},
     {id:"Tesla SXM4", model:"Tesla SXM4", key:"sxm4"},
     {id:"Tesla SXM5", model:"Tesla SXM5", key:"sxm5"},
     {id:"Tesla SXM6", model:"SXM6", key:"sxm6"}
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function TestStationWidget({ 
+export function ParetoWidget({ 
     label,
     startDate = getInitialStartDate(7),
     endDate = normalizeDate.end(new Date()),
     limit = 7,
     useGlobal = false
 }) {
-    const [testStationData, setTestStationData] = useState([]);
+    const [data, setData] = useState([]);
     const [model,setModel]= useState([]);
     const [key,setKey]= useState([]);
     const [loading, setLoading] = useState(true); 
@@ -37,20 +37,21 @@ export function TestStationWidget({
         const fetchData = async () => {
             setLoading(true);
             try {
-            await fetchWorkstationQuery({
+            await fetchErrorQuery({
                 parameters: [{ id: 'model', value: model }],
                 startDate,
                 endDate,
-                key: key,
+                key,
                 setDataCache: data => {
-                if (isActive) setTestStationData(data);
+                if (isActive) setData(data);
                 },
                 API_BASE,
-                API_Route: '/api/functional-testing/station-performance?'
+                API_Route: '/api/snfn/model-errors?'
             });
             } catch (err) {
             console.error('Error fetching data', err);
-            if (isActive) setTestStationData([]);
+            setLoaded(false);
+            if (isActive) setData([]);
             } finally {
             if (isActive) setLoading(false);
             }
@@ -71,7 +72,7 @@ export function TestStationWidget({
         if (entry) {
         setModel(entry.model);
         setKey(entry.key);
-        setTestStationData([]); // reset data
+        setData([]); // reset data
         }
     };
 
@@ -108,9 +109,10 @@ export function TestStationWidget({
         );
     }
     return (
-        <TestStationChart
-          label={label?label:`${model} Test Station Performance`}
-          data={testStationData} 
-          loading={loading}/>
+        <ParetoChart
+          label={`${model} Test Station Performance`}
+          data={data} 
+          loading={loading}
+          limit={limit}/>
     );
 }
