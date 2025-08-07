@@ -18,10 +18,21 @@ router.get('/packing-records', async (req, res) => {
 
         const data = {};
         result.rows.forEach(row => {
-            if (!data[row.part_number]) data[row.part_number] = {};
+            if (!data[row.model]) {
+                data[row.model] = {
+                    groupLabel: row.model,
+                    totalLabel: `${row.model} Total`,
+                    parts: {}
+                };
+            }
+
+            if (!data[row.model].parts[row.part_number]) {
+                data[row.model].parts[row.part_number] = {};
+            }
+
             const dateObj = new Date(row.pack_date);
             const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
-            data[row.part_number][dateStr] = row.packed_count;
+            data[row.model].parts[row.part_number][dateStr] = row.packed_count;
         });
 
         res.json(data);
