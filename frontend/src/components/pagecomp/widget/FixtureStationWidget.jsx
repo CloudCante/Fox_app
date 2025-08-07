@@ -1,8 +1,9 @@
 // Widget for Fixture Reports
-import React,{useState, useEffect, useMemo} from 'react';
+import React,{useState, useEffect, useMemo, useContext} from 'react';
 import { FixtureFailParetoChart } from '../../charts/FixtureFailParetoChart.js'
 import { fetchFixtureQuery } from '../../../utils/queryUtils.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
+import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -10,13 +11,8 @@ if (!API_BASE) {
 }
 
 // label, data ,loading
-export function FixtureStationWidget({ 
-    label,
-    startDate = getInitialStartDate(7),
-    endDate = normalizeDate.end(new Date()),
-    limit = 7,
-    useGlobal = false
-}) {
+export function FixtureStationWidget() {
+    const { startDate, endDate,barLimit} = useContext(GlobalSettingsContext);
     const [fixtureData, setFixtureData] = useState([]);
     //const [model,setModel]= useState([]);
     //const [key,setKey]= useState([]);
@@ -58,7 +54,7 @@ export function FixtureStationWidget({
 
     return (
         <FixtureFailParetoChart
-          label={label?label:`Fixture Performance`}
+          label={`Fixture Performance`}
           data={fixtureData} 
           loading={loading}/>
     );

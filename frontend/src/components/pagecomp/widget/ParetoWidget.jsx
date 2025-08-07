@@ -1,11 +1,11 @@
 // Widget for TestStation Reports
-import React,{useState, useEffect, useMemo} from 'react';
+import React,{useState, useEffect, useContext} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../Header.jsx'
 import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
 import { ParetoChart } from '../../charts/ParetoChart.js'
 import { fetchErrorQuery } from '../../../utils/queryUtils.js';
-import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
+import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -19,13 +19,8 @@ const modelKeys = [
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function ParetoWidget({ 
-    label,
-    startDate = getInitialStartDate(7),
-    endDate = normalizeDate.end(new Date()),
-    limit = 7,
-    useGlobal = false
-}) {
+export function ParetoWidget() {
+    const { startDate, endDate,barLimit} = useContext(GlobalSettingsContext);
     const [data, setData] = useState([]);
     const [model,setModel]= useState([]);
     const [key,setKey]= useState([]);
@@ -114,6 +109,6 @@ export function ParetoWidget({
           label={`${model} Test Station Performance`}
           data={data} 
           loading={loading}
-          limit={limit}/>
+          limit={barLimit}/>
     );
 }

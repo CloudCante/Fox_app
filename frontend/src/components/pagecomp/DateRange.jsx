@@ -3,15 +3,16 @@ import React, { memo, useMemo } from 'react';
 import { Box, FormHelperText } from '@mui/material';
 import DatePicker from 'react-datepicker';
 import PropTypes from 'prop-types';
+import { normalizeDate } from '../../utils/dateUtils';
 
 export const DateRange = memo(function DateRange({
   startDate,
   setStartDate,
-  normalizeStart,
+  normalizeStart = normalizeDate.start,
   startLabel = "Start Date",
   endDate,
   setEndDate,
-  normalizeEnd,
+  normalizeEnd = normalizeDate.end,
   endLabel = "End Date",
   format = "yyyy-MM-dd",
   maxDate,
@@ -28,7 +29,7 @@ export const DateRange = memo(function DateRange({
   const effectiveMaxDate = maxDate ?? defaultMaxDate;
   
   // Determine if this is a range picker
-  const isRangePicker = Boolean(setEndDate && typeof setEndDate === 'function');
+  const isRangePicker = Boolean(setEndDate);
   
   // Safe normalization wrapper
   const safeNormalizeStart = (date) => {

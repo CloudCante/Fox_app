@@ -1,11 +1,12 @@
 // Widget for TestStation Reports
-import React,{useState, useEffect, useMemo} from 'react';
+import React,{useState, useEffect, useContext} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
 import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
 import { TestStationChart } from '../../charts/TestStationChart.js'
 import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
+import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -18,13 +19,8 @@ const modelKeys = [
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function TestStationWidget({ 
-    label,
-    startDate = getInitialStartDate(7),
-    endDate = normalizeDate.end(new Date()),
-    limit = 7,
-    useGlobal = false
-}) {
+export function TestStationWidget() {
+    const { startDate, endDate,barLimit} = useContext(GlobalSettingsContext);
     const [testStationData, setTestStationData] = useState([]);
     const [model,setModel]= useState([]);
     const [key,setKey]= useState([]);
@@ -109,7 +105,7 @@ export function TestStationWidget({
     }
     return (
         <TestStationChart
-          label={label?label:`${model} Test Station Performance`}
+          label={`${model} Test Station Performance`}
           data={testStationData} 
           loading={loading}/>
     );

@@ -1,5 +1,5 @@
 // Widget for TestStation Reports
-import React,{useState, useEffect, useMemo} from 'react';
+import React,{useState, useEffect, useContext} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
 import { gridStyle, paperStyle } from '../../theme/themes.js';
@@ -8,6 +8,7 @@ import  PackingOutputBarChart  from '../../charts/PackingOutputBarChart.js';
 import { buttonStyle } from '../../theme/themes.js';
 import { usePackingData } from '../../hooks/packingCharts/usePackingData.js';
 import { useWeekNavigation } from '../../hooks/packingCharts/useWeekNavigation.js';
+import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -20,14 +21,8 @@ const modelKeys = [
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function PackingChartWidget({ 
-    label,
-    startDate = getInitialStartDate(7),
-    endDate = normalizeDate.end(new Date()),
-    initialDate = normalizeDate.end(new Date()),
-    limit = 7,
-    useGlobal = false
-}) {
+export function PackingChartWidget() {
+    const { startDate, endDate,weekRange, barLimit} = useContext(GlobalSettingsContext);
     const [data, setData] = useState([]);
 
     const [model,setModel]= useState('');
@@ -39,7 +34,6 @@ export function PackingChartWidget({
     const [loading, setLoading] = useState(true); 
     const [loaded,setLoaded] = useState(false);
 
-    const { currentISOWeekStart, handlePrevWeek, handleNextWeek, weekRange } = useWeekNavigation();
     const {
         dailyData,
         loadingDaily,
@@ -47,7 +41,7 @@ export function PackingChartWidget({
         weeklyData,
         loadingWeekly,
         errorWeekly
-    } = usePackingData(API_BASE, model||"Tesla SXM4", currentISOWeekStart, limit);
+    } = usePackingData(API_BASE, model||"Tesla SXM4", weekRange, barLimit);
     useEffect(() => {
         if (!loaded) return;
         if(timeFrame === "Daily"){setData(dailyData)}

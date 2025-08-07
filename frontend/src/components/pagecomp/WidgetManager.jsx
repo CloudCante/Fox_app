@@ -3,6 +3,7 @@ import React,{useState} from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import { Header } from '../pagecomp/Header.jsx'
 import { gridStyle } from '../theme/themes.js';
+import { GlobalSettingsContext } from '../../data/GlobalSettingsContext.js';
 
 
 export function WidgetManager({
@@ -26,9 +27,9 @@ export function WidgetManager({
     //console.log(widgets)
     return (
         <Box sx={gridStyle} >
-            {widgets.map(widget=>(
-                <Box key={widget.id} sx={{ textAlign: 'center', py: 8 }}>
-                    {widget.widget}
+            {widgets.map(({id,Widget})=>(
+                <Box key={id} sx={{ textAlign: 'center', py: 8 }}>
+                    <Widget/>
                 </Box>
             ))}
         </Box>
