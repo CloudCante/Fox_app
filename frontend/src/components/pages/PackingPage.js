@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { PackingPageTable } from '../pagecomp/packingPage/PackingPageTable';
+import { DateRange } from '../pagecomp/DateRange';
 import { tableStyle, divStyle, buttonStyle, subTextStyle } from '../theme/themes';
 import { usePackingData } from '../hooks/packingPage/usePackingData';
 
@@ -12,45 +13,83 @@ if (!API_BASE) {
 
 const PackingPage = () => {
   const [copied, setCopied] = useState({ group: '', date: '' });
-  const { packingData, sortData, lastUpdated } = usePackingData(API_BASE);
+  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
+  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
+  
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 6);
+    return normalizeStart(date);
+  });
+  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
+  
+  const { packingData, sortData, lastUpdated } = usePackingData(API_BASE, startDate, endDate);
   const theme = useTheme();
   const navigate = useNavigate();
 
-  // Get unique dates from the data
+  // Get dates between start and end date
   const dateRange = useMemo(() => {
-    if (!packingData || typeof packingData !== 'object') return [];
+    const dates = [];
+    const current = new Date(startDate);
+    const end = new Date(endDate);
     
-    // Collect all unique dates from all parts
-    const uniqueDates = new Set();
-    Object.values(packingData).forEach(model => {
-      Object.values(model.parts || {}).forEach(partData => {
-        Object.keys(partData).forEach(date => uniqueDates.add(date));
-      });
-    });
+    // Helper to format date as M/D/YYYY
+    const formatDate = (date) => {
+      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    };
 
-    // Convert to array and sort
-    return Array.from(uniqueDates).sort((a, b) => {
-      const dateA = new Date(a);
-      const dateB = new Date(b);
-      return dateA - dateB;
-    });
-  }, [packingData]);
+    // Add all dates between start and end
+    while (current <= end) {
+      dates.push(formatDate(new Date(current)));
+      current.setDate(current.getDate() + 1);
+    }
+
+    return dates;
+  }, [startDate, endDate]);
 
   // Transform our new data structure into groups for the table
   const groups = useMemo(() => {
     if (!packingData || typeof packingData !== 'object') return [];
     try {
-      return Object.entries(packingData).map(([modelName, modelData]) => ({
-        key: modelName,
-        label: modelData?.groupLabel || modelName,
-        totalLabel: modelData?.totalLabel || `${modelName} Total`,
-        parts: Object.keys(modelData?.parts || {})
-      }));
+      // Define the desired order of groups
+      const groupOrder = ['Tesla SXM4', 'Tesla SXM5', 'SXM6', 'RED OCTOBER'];
+      
+      return Object.entries(packingData)
+        .map(([modelName, modelData]) => {
+          // Filter parts to only include those with data in our date range
+          const activeParts = Object.entries(modelData?.parts || {})
+            .filter(([_, partData]) => {
+              // Check if this part has any data in our date range
+              return dateRange.some(date => partData[date] !== undefined && partData[date] !== null);
+            })
+            .map(([partNumber]) => partNumber.trim()) // Trim any whitespace
+            .sort((a, b) => a.localeCompare(b)); // Sort part numbers alphabetically
+
+          return {
+            key: modelName,
+            label: modelData?.groupLabel || modelName,
+            totalLabel: modelData?.totalLabel || `${modelName} Total`,
+            parts: activeParts,
+            order: groupOrder.indexOf(modelName) // Will be -1 if not found
+          };
+        })
+        .filter(group => group.parts.length > 0) // Only include groups that have active parts
+        .sort((a, b) => {
+          // If both groups are in groupOrder, sort by their order
+          if (a.order !== -1 && b.order !== -1) {
+            return a.order - b.order;
+          }
+          // If only one is in groupOrder, prioritize it
+          if (a.order !== -1) return -1;
+          if (b.order !== -1) return 1;
+          // If neither is in groupOrder, sort alphabetically
+          return a.key.localeCompare(b.key);
+        })
     } catch (error) {
       console.error('Error processing packing data:', error);
       return [];
     }
-  }, [packingData]);
+  }, [packingData, dateRange]);
 
   // Calculate daily totals from the new structure
   const dailyTotals = useMemo(() => {
@@ -74,7 +113,7 @@ const PackingPage = () => {
         return acc;
       }, {});
 
-      console.log('Daily Totals:', totals); // Debug log
+
       return totals;
     } catch (error) {
       console.error('Error calculating daily totals:', error);
@@ -104,10 +143,29 @@ const PackingPage = () => {
   return (
     <div style={{ padding: '20px' }}>
       <div style={divStyle}>
-        <h1 style={{ margin: 0 }}>Packing Output</h1>
-        <button style={buttonStyle} onClick={() => navigate('/packing-charts')}>
-          Packing Charts
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h1 style={{ margin: 0 }}>Packing Output</h1>
+          <button style={{ ...buttonStyle, marginLeft: '1rem' }} onClick={() => navigate('/packing-charts')}>
+            Packing Charts
+          </button>
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          gap: 16, 
+          marginBottom: 16,
+          position: 'relative',
+          zIndex: 1000 // Higher than table elements
+        }}>
+          <DateRange
+            startDate={startDate}
+            setStartDate={setStartDate}
+            normalizeStart={normalizeStart}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            normalizeEnd={normalizeEnd}
+            inline={true}
+          />
+        </div>
         {lastUpdated && <div style={subTextStyle}>Last updated: {lastUpdated.toLocaleTimeString()}</div>}
       </div>
       <table style={tableStyle}>
@@ -149,10 +207,12 @@ const PackingPage = () => {
           dates={dateRange}
           partLabel="SORT"
           handleOnClick={handleCopyColumn}
-          partsMap={['506', '520']}
-          packingData={sortData}
+          partsMap={['506', '520'].filter(code => 
+            dateRange.some(date => sortData?.[code]?.[date] !== undefined)
+          )}
+          packingData={sortData || {}}
           copied={copied}
-          isSort
+          isSort={true}
         />
       </table>
     </div>

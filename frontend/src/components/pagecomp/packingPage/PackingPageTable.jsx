@@ -130,11 +130,23 @@ export const PackingPageTable = memo(function PackingPageTable({
                }}>
                  {part}
                </td>
-               {dates.map(date => (
-                 <td key={date} style={dataTextStyle}>
-                   {isSort ? packingData[part]?.[date] || '' : packingData[part]?.[date] || ''}
-                 </td>
-               ))}
+               {dates.map(date => {
+                 // Helper function to normalize date format
+                 const normalizeDate = (dateStr) => {
+                   const [month, day, year] = dateStr.split('/');
+                   return `${parseInt(month)}/${parseInt(day)}/${year}`;
+                 };
+
+                 // Normalize the date for lookup
+                 const normalizedDate = normalizeDate(date);
+                 const value = isSort ? packingData[part]?.[normalizedDate] : packingData[part]?.[normalizedDate];
+                 
+                 return (
+                   <td key={date} style={dataTextStyle}>
+                     {value || ''}
+                   </td>
+                 );
+               })}
              </tr>
            ))}
 

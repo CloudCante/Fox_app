@@ -1,5 +1,5 @@
 // src/hooks/usePackingData.js
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, useMemo } from 'react';
 import { rollupWeekendCounts } from '../../../utils/packingPage/packingDataUtils';
 import { rollupSortData      } from '../../../utils/packingPage/sortDataUtils';
 
@@ -26,23 +26,32 @@ function reducer(state, action) {
  * @param {number} pollInterval – ms between automatic refreshes
  */
 export function usePackingData(
-  apiBase, 
-  daysBack     = 30, 
+  apiBase,
+  startDate = null,
+  endDate = null,
   pollInterval = 300_000
 ) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const timerRef = useRef(null);
 
+  // If no dates provided, use last 7 days
+  const computedStartDate = useMemo(() => {
+    if (startDate) return new Date(startDate);
+    const date = new Date();
+    date.setDate(date.getDate() - 6);
+    return date;
+  }, [startDate]);
+
+  const computedEndDate = useMemo(() => {
+    if (endDate) return new Date(endDate);
+    return new Date();
+  }, [endDate]);
+
   useEffect(() => {
     if (!apiBase) return;
 
-    // Compute our start/end once, outside the fetch loop
-    const endDate  = new Date();
-    const startDate = new Date(endDate);
-    startDate.setDate(endDate.getDate() - daysBack);
-
-    const startIso = startDate.toISOString();
-    const endIso   = endDate.toISOString();
+    const startIso = computedStartDate.toISOString();
+    const endIso = computedEndDate.toISOString();
     const query    = `?startDate=${startIso}&endDate=${endIso}`;
 
     const controller = new AbortController();
@@ -53,7 +62,7 @@ export function usePackingData(
         // fire both calls in parallel
         const [pRes, sRes] = await Promise.all([
           fetch(`${apiBase}/api/packing/packing-records${query}`, { signal }),
-          fetch(`${apiBase}/api/sort-record/sort-data${query}`,    { signal })
+          fetch(`${apiBase}/api/sort-record/sort-data${query}`, { signal })
         ]);
         if (!pRes.ok || !sRes.ok) throw new Error('Network response was not ok.');
 
@@ -87,7 +96,7 @@ export function usePackingData(
       controller.abort();
       clearInterval(timerRef.current);
     };
-  }, [apiBase, daysBack, pollInterval]);
+  }, [apiBase, computedStartDate, computedEndDate, pollInterval]);
 
   return state; // { packingData, dates, sortData, lastUpdated }
 }
