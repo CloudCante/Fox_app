@@ -174,7 +174,8 @@ const ThroughputPage = () => {
         const aggregatedStations = {
           'Tesla SXM4': {},
           'Tesla SXM5': {},
-          'SXM6': {}
+          'SXM6': {},
+          'overall': {}
         };
 
         // Process each day's data
@@ -254,14 +255,35 @@ const ThroughputPage = () => {
           weekEnd: weekData.weekEnd,
           weeklyTPY: {
             hardcoded: {
-              SXM4: { tpy: parseFloat(weekModels.SXM4?.hardcodedTPY || 0) },
-              SXM5: { tpy: parseFloat(weekModels.SXM5?.hardcodedTPY || 0) },
-              SXM6: { tpy: parseFloat(weekModels.SXM6?.hardcodedTPY || 0) }
+              SXM4: { 
+                tpy: parseFloat(weekData.sxm4HardcodedTPY || 0),
+                stations: weekData.hardcoded_stations || {}
+              },
+              SXM5: { 
+                tpy: parseFloat(weekData.sxm5HardcodedTPY || 0),
+                stations: weekData.hardcoded_stations || {}
+              },
+              SXM6: { 
+                tpy: parseFloat(weekData.sxm6HardcodedTPY || 0),
+                stations: weekData.hardcoded_stations || {}
+              }
             },
             dynamic: {
-              SXM4: { tpy: parseFloat(weekModels.SXM4?.dynamicTPY || 0) },
-              SXM5: { tpy: parseFloat(weekModels.SXM5?.dynamicTPY || 0) },
-              SXM6: { tpy: parseFloat(weekModels.SXM6?.dynamicTPY || 0) }
+              SXM4: { 
+                tpy: parseFloat(weekData.sxm4DynamicTPY || 0),
+                stations: weekData.dynamic_stations || {},
+                stationCount: weekData.dynamic_station_count || 0
+              },
+              SXM5: { 
+                tpy: parseFloat(weekData.sxm5DynamicTPY || 0),
+                stations: weekData.dynamic_stations || {},
+                stationCount: weekData.dynamic_station_count || 0
+              },
+              SXM6: { 
+                tpy: parseFloat(weekData.sxm6DynamicTPY || 0),
+                stations: weekData.dynamic_stations || {},
+                stationCount: weekData.dynamic_station_count || 0
+              }
             }
           },
           weeklyThroughputYield: {
@@ -381,10 +403,13 @@ const ThroughputPage = () => {
     }
     
     // If hardcoded TPY, filter to only key stations used in calculation
+    // Hardcoded stations based on TPY calculation formulas
     const hardcodedStations = {
-      sxm4: ['VI2', 'ASSY2', 'FI', 'FQC'], // Key SXM4 stations
-      sxm5: ['BBD', 'ASSY2', 'FI', 'FQC'], // Key SXM5 stations
-      sxm6: ['BBD', 'ASSY2', 'FI', 'FQC']  // Key SXM6 stations (same as SXM5)
+      // SXM4 formula: VI2 × ASSY2 × FI × FQC
+      sxm4: ['VI2', 'ASSY2', 'FI', 'FQC'],
+      // SXM5/6 formula: BBD × ASSY2 × FI × FQC
+      sxm5: ['BBD', 'ASSY2', 'FI', 'FQC'],
+      sxm6: ['BBD', 'ASSY2', 'FI', 'FQC']
     };
     
     return {
