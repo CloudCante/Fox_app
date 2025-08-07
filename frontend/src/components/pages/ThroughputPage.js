@@ -173,7 +173,8 @@ const ThroughputPage = () => {
         // Aggregate daily data by station and model
         const aggregatedStations = {
           'Tesla SXM4': {},
-          'Tesla SXM5': {}
+          'Tesla SXM5': {},
+          'SXM6': {}
         };
 
         // Process each day's data
@@ -357,7 +358,8 @@ const ThroughputPage = () => {
     // If hardcoded TPY, filter to only key stations used in calculation
     const hardcodedStations = {
       sxm4: ['VI2', 'ASSY2', 'FI', 'FQC'], // Key SXM4 stations
-      sxm5: ['BBD', 'ASSY2', 'FI', 'FQC']  // Key SXM5 stations
+      sxm5: ['BBD', 'ASSY2', 'FI', 'FQC'], // Key SXM5 stations
+      sxm6: ['BBD', 'ASSY2', 'FI', 'FQC']  // Key SXM6 stations (same as SXM5)
     };
     
     return {
@@ -531,7 +533,7 @@ const ThroughputPage = () => {
       {throughputData && (
         <Box sx={{ mb: 6 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Card elevation={3}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom color="primary">
@@ -547,7 +549,7 @@ const ThroughputPage = () => {
               </Card>
             </Grid>
             
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <Card elevation={3}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom color="primary">
@@ -555,6 +557,22 @@ const ThroughputPage = () => {
                   </Typography>
                   <Typography variant="h3" color="success.main">
                     {processedStationData.tpyData.SXM5?.tpy?.toFixed(1) || '--'}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {useHardcodedTPY ? 'Focused Analysis' : 'Complete Analysis'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card elevation={3}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    SXM6 TPY
+                  </Typography>
+                  <Typography variant="h3" color="info.main">
+                    {processedStationData.tpyData.SXM6?.tpy?.toFixed(1) || '--'}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {useHardcodedTPY ? 'Focused Analysis' : 'Complete Analysis'}
@@ -603,6 +621,26 @@ const ThroughputPage = () => {
               data={tableStationData.sxm5}
               title="Tesla SXM5 Station Details"
               modelName="SXM5"
+              useHardcodedTPY={useHardcodedTPY}
+              processingStyles={processingStyles}
+            />
+          </Box>
+
+          {/* Tesla SXM6 Section */}
+          <Box sx={{ mb: 8 }}>
+            {/* SXM6 Chart */}
+            <MemoizedChart 
+              data={processedStationData.sxm6}
+              title="SXM6 - Station Throughput"
+              containerStyles={chartContainerStyles}
+              processingStyles={processingStyles}
+            />
+
+            {/* SXM6 Table */}
+            <MemoizedTable 
+              data={tableStationData.sxm6}
+              title="SXM6 Station Details"
+              modelName="SXM6"
               useHardcodedTPY={useHardcodedTPY}
               processingStyles={processingStyles}
             />

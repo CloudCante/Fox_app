@@ -111,6 +111,8 @@ router.get('/weekly', async (req, res) => {
                 weekly_tpy_dynamic_sxm4_tpy,
                 weekly_tpy_hardcoded_sxm5_tpy,
                 weekly_tpy_dynamic_sxm5_tpy,
+                weekly_tpy_hardcoded_sxm6_tpy,
+                weekly_tpy_dynamic_sxm6_tpy,
                 weekly_first_pass_yield_breakdown_parts_completed,
                 weekly_first_pass_yield_breakdown_parts_failed,
                 weekly_first_pass_yield_breakdown_parts_stuck_in_limbo,
@@ -138,6 +140,8 @@ router.get('/weekly', async (req, res) => {
             sxm4DynamicTPY: row.weekly_tpy_dynamic_sxm4_tpy,
             sxm5HardcodedTPY: row.weekly_tpy_hardcoded_sxm5_tpy,
             sxm5DynamicTPY: row.weekly_tpy_dynamic_sxm5_tpy,
+            sxm6HardcodedTPY: row.weekly_tpy_hardcoded_sxm6_tpy,
+            sxm6DynamicTPY: row.weekly_tpy_dynamic_sxm6_tpy,
             breakdown: {
                 partsCompleted: row.weekly_first_pass_yield_breakdown_parts_completed,
                 partsFailed: row.weekly_first_pass_yield_breakdown_parts_failed,
@@ -180,7 +184,8 @@ router.get('/summary', async (req, res) => {
                 COUNT(*) as total_records,
                 MAX(week_id) as latest_week,
                 AVG(weekly_tpy_hardcoded_sxm4_tpy) as avg_sxm4_hardcoded,
-                AVG(weekly_tpy_hardcoded_sxm5_tpy) as avg_sxm5_hardcoded
+                AVG(weekly_tpy_hardcoded_sxm5_tpy) as avg_sxm5_hardcoded,
+                AVG(weekly_tpy_hardcoded_sxm6_tpy) as avg_sxm6_hardcoded
             FROM weekly_tpy_metrics
         `;
         
@@ -212,7 +217,8 @@ router.get('/summary', async (req, res) => {
                 totalRecords: parseInt(weeklySummary.total_records),
                 latestWeek: weeklySummary.latest_week,
                 avgSXM4Hardcoded: parseFloat(weeklySummary.avg_sxm4_hardcoded || 0),
-                avgSXM5Hardcoded: parseFloat(weeklySummary.avg_sxm5_hardcoded || 0)
+                avgSXM5Hardcoded: parseFloat(weeklySummary.avg_sxm5_hardcoded || 0),
+                avgSXM6Hardcoded: parseFloat(weeklySummary.avg_sxm6_hardcoded || 0)
             },
             recent: recentResult.rows
         });
