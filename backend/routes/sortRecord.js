@@ -29,7 +29,6 @@ router.get('/sort-data', async (req, res) => {
                 COUNT(*) AS test_count
             FROM workstation_master_log
             WHERE workstation_name = 'TEST'
-                AND history_station_passing_status = 'Pass'
                 AND model IN ('Tesla SXM4', 'Tesla SXM5')
                 ${dateFilter}
             GROUP BY sort_code, test_date
