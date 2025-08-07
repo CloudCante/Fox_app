@@ -1,14 +1,8 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Tooltip, IconButton, } from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import CheckIcon from '@mui/icons-material/Check';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { sxm4Parts, sxm5Parts, redOctoberParts } from '../../data/dataTables';
 import { PackingPageTable } from '../pagecomp/packingPage/PackingPageTable';
-import { headerStyle, tableStyle, divStyle, headerStyleTwo,
-   spacerStyle, buttonStyle, subTextStyle, dataTextStyle, 
-   dataTotalStyle } from '../theme/themes';
+import { tableStyle, divStyle, buttonStyle, subTextStyle } from '../theme/themes';
 import { usePackingData } from '../hooks/packingPage/usePackingData';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -18,31 +12,83 @@ if (!API_BASE) {
 
 const PackingPage = () => {
   const [copied, setCopied] = useState({ group: '', date: '' });
-  const { packingData, dates, sortData, lastUpdated } = usePackingData(API_BASE);
+  const { packingData, sortData, lastUpdated } = usePackingData(API_BASE);
   const theme = useTheme();
   const navigate = useNavigate();
 
-  const groups = useMemo(() => [
-    { key: 'SXM4', parts: sxm4Parts, label: 'TESLA SXM4', totalLabel: 'TESLA SXM4 Total' },
-    { key: 'SXM5', parts: sxm5Parts, label: 'TESLA SXM5', totalLabel: 'TESLA SXM5 Total' },
-    { key: 'RED OCTOBER', parts: redOctoberParts, label: 'RED OCTOBER', totalLabel: 'Red October Total' },
-  ], []);
+  // Get unique dates from the data
+  const dateRange = useMemo(() => {
+    if (!packingData || typeof packingData !== 'object') return [];
+    
+    // Collect all unique dates from all parts
+    const uniqueDates = new Set();
+    Object.values(packingData).forEach(model => {
+      Object.values(model.parts || {}).forEach(partData => {
+        Object.keys(partData).forEach(date => uniqueDates.add(date));
+      });
+    });
 
+    // Convert to array and sort
+    return Array.from(uniqueDates).sort((a, b) => {
+      const dateA = new Date(a);
+      const dateB = new Date(b);
+      return dateA - dateB;
+    });
+  }, [packingData]);
+
+  // Transform our new data structure into groups for the table
+  const groups = useMemo(() => {
+    if (!packingData || typeof packingData !== 'object') return [];
+    try {
+      return Object.entries(packingData).map(([modelName, modelData]) => ({
+        key: modelName,
+        label: modelData?.groupLabel || modelName,
+        totalLabel: modelData?.totalLabel || `${modelName} Total`,
+        parts: Object.keys(modelData?.parts || {})
+      }));
+    } catch (error) {
+      console.error('Error processing packing data:', error);
+      return [];
+    }
+  }, [packingData]);
+
+  // Calculate daily totals from the new structure
   const dailyTotals = useMemo(() => {
-    return dates.reduce((acc, date) => {
-      const total = [...sxm4Parts, ...sxm5Parts, ...redOctoberParts]
-        .reduce((sum, part) => sum + (packingData[part]?.[date] || 0), 0);
-      acc[date] = total;
-      return acc;
-    }, {});
-  }, [dates, packingData]);
+    if (!packingData || typeof packingData !== 'object') return {};
+    try {
+      const totals = dateRange.reduce((acc, date) => {
+        let total = 0;
+        
+        // Sum up all parts from all models for this date
+        Object.values(packingData).forEach(model => {
+          if (model?.parts) {
+            Object.values(model.parts).forEach(partData => {
+              const value = Number(partData[date] || 0);
+              total += value;
+            });
+          }
+        });
+        
+        // Always add the total (even if zero)
+        acc[date] = total;
+        return acc;
+      }, {});
+
+      console.log('Daily Totals:', totals); // Debug log
+      return totals;
+    } catch (error) {
+      console.error('Error calculating daily totals:', error);
+      return {};
+    }
+  }, [dateRange, packingData]);
 
   const handleCopyColumn = useCallback((group, date) => {
     let values = '';
-
-    const parts = ["SXM4", "SXM5", "RED OCTOBER"];
-    if (group in parts) {
-      values = sxm4Parts.map(part => packingData[part]?.[date] || '').join('\n');
+    
+    if (packingData[group]) {
+      values = Object.values(packingData[group].parts)
+        .map(partData => partData[date] || '')
+        .join('\n');
     } else if (group === 'DAILY TOTAL') {
       values = dailyTotals[date]?.toString() || '';
     } else if (group === 'SORT') {
@@ -65,111 +111,49 @@ const PackingPage = () => {
         {lastUpdated && <div style={subTextStyle}>Last updated: {lastUpdated.toLocaleTimeString()}</div>}
       </div>
       <table style={tableStyle}>
+        {/* Dynamically render each model group */}
         {groups.map(g => (
           <PackingPageTable
             key={g.key}
             header={g.label}
             headerTwo={g.totalLabel}
-            dates={dates}
+            dates={dateRange}
             partLabel={g.key}
             handleOnClick={handleCopyColumn}
             partsMap={g.parts}
-            packingData={packingData}
+            packingData={packingData?.[g.key]?.parts || {}}
             copied={copied}
             spacer
           />
         ))}
-        <tbody>
-          {/* Daily Total Section */}
-          <tr style={headerStyle}>
-            <td style={headerStyle}>DAILY TOTAL</td>
-            {dates.map(date => (
-              <td key={date} style={headerStyle}>
-                <div style={divStyle}>
-                  <span>{date}</span>
-                  <Tooltip title={copied.group === 'DAILY TOTAL' && copied.date === date ? 'Copied!' : 'Copy column'}>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleCopyColumn('DAILY TOTAL', date)}
-                      sx={{
-                        padding: 0,
-                        height: '14px',
-                        width: '14px',
-                        minWidth: '14px',
-                        color: copied.group === 'DAILY TOTAL' && copied.date === date ? 'success.main' : 'white'
-                      }}
-                    >
-                      {copied.group === 'DAILY TOTAL' && copied.date === date ?
-                        <CheckIcon sx={{ fontSize: '10px' }} /> :
-                        <ContentCopyIcon sx={{ fontSize: '10px' }} />
-                      }
-                    </IconButton>
-                  </Tooltip>
-                </div>
-              </td>
-            ))}
-          </tr>
-          <tr style={headerStyleTwo}>
-            <td style={headerStyleTwo}>Total Packed</td>
-            {dates.map(date => (
-              <td key={date} style={dataTotalStyle}>
-                {dailyTotals[date] || ''}
-              </td>
-            ))}
-          </tr>
+        
+        {/* Daily Total Section */}
+        <PackingPageTable
+          header="DAILY TOTAL"
+          headerTwo="Total Packed"
+          dates={dateRange}
+          partLabel="DAILY TOTAL"
+          handleOnClick={handleCopyColumn}
+          partsMap={[]}
+          packingData={{}}
+          copied={copied}
+          dailyTotals={dailyTotals}
+          isTotal={true}
+          spacer
+        />
 
-          {/* Spacer */}
-          <tr>
-            <td style={spacerStyle}></td>
-            {dates.map((_, idx) => <td key={idx} style={spacerStyle}></td>)}
-          </tr>
-
-          {/* Sort Section */}
-          <tr style={headerStyle}>
-            <td style={headerStyle}>SORT</td>
-            {dates.map(date => (
-              <td key={date} style={headerStyle}>
-                <div style={divStyle}>
-                  <span>{date}</span>
-                  <Tooltip title={copied.group === 'SORT' && copied.date === date ? 'Copied!' : 'Copy column'}>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleCopyColumn('SORT', date)}
-                      sx={{
-                        padding: 0,
-                        height: '14px',
-                        width: '14px',
-                        minWidth: '14px',
-                        color: copied.group === 'SORT' && copied.date === date ? 'success.main' : 'white'
-                      }}
-                    >
-                      {copied.group === 'SORT' && copied.date === date ?
-                        <CheckIcon sx={{ fontSize: '10px' }} /> :
-                        <ContentCopyIcon sx={{ fontSize: '10px' }} />
-                      }
-                    </IconButton>
-                  </Tooltip>
-                </div>
-              </td>
-            ))}
-          </tr>
-          <tr style={{ backgroundColor: theme.palette.background.paper }}>
-            <td style={{ ...dataTextStyle, fontWeight: 'bold' }}>506</td>
-            {dates.map(date => (
-              <td key={date} style={dataTextStyle}>
-                {sortData['506'][date] || ''}
-              </td>
-            ))}
-          </tr>
-          <tr style={{ backgroundColor: theme.palette.background.default }}>
-            <td style={{ ...dataTextStyle, fontWeight: 'bold' }}>520</td>
-            {dates.map(date => (
-              <td key={date} style={dataTextStyle}>
-                {sortData['520'][date] || ''}
-              </td>
-            ))}
-          </tr>
-        </tbody>
+        {/* Sort Section */}
+        <PackingPageTable
+          header="SORT"
+          headerTwo=""
+          dates={dateRange}
+          partLabel="SORT"
+          handleOnClick={handleCopyColumn}
+          partsMap={['506', '520']}
+          packingData={sortData}
+          copied={copied}
+          isSort
+        />
       </table>
     </div>
   );

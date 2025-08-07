@@ -3,57 +3,64 @@ import { createUTCDate, toUTCDateString } from '../dateUtils';
 
 // src/utils/packingDataUtils.js
 export function rollupWeekendCounts(rawData) {
-  const rolledUp = {};
+  // Helper to format Date d → "M/D/YYYY"
+  function fmt(d) {
+    return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
+  }
+
+  // Helper to adjust weekend dates to Friday
+  function adjustWeekend(dateStr) {
+    const [mo, da, yr] = dateStr.split('/');
+    const d = new Date(Date.UTC(+yr, +mo - 1, +da));
+    const dow = d.getUTCDay();
+    
+    if (dow === 6) d.setUTCDate(d.getUTCDate() - 1);      // Saturday → Friday
+    else if (dow === 0) d.setUTCDate(d.getUTCDate() - 2); // Sunday → Friday
+    
+    return fmt(d);
+  }
+
+  const processedData = {};
   const seen = new Set();
   const allDates = [];
 
-  // helper to format Date d → "MM/DD/YYYY"
-  function fmt(d) {
-    const m = d.getUTCMonth() + 1;
-    const day = d.getUTCDate();
-    const y = d.getUTCFullYear();
-    return (
-      String(m).padStart(2, '0') +
-      '/' +
-      String(day).padStart(2, '0') +
-      '/' +
-      y
-    );
-  }
+  // Process each model group
+  Object.entries(rawData).forEach(([modelName, modelData]) => {
+    const parts = modelData.parts || {};
+    const processedParts = {};
 
-  for (const key in rawData) {
-    const dateObj = rawData[key];
-    const bucket = (rolledUp[key] = {});
+    // Process each part's data
+    Object.entries(parts).forEach(([partNumber, dateData]) => {
+      const adjustedData = {};
 
-    for (const dateStr in dateObj) {
-      const count = dateObj[dateStr];
-      // parse only once
-      const [mo, da, yr] = dateStr.split('/');
-      const d = new Date(Date.UTC(+yr, +mo - 1, +da));
+      // Process each date for this part
+      Object.entries(dateData).forEach(([date, count]) => {
+        const adjustedDate = adjustWeekend(date);
+        adjustedData[adjustedDate] = (adjustedData[adjustedDate] || 0) + count;
 
-      // roll weekends back to Friday
-      const dow = d.getUTCDay();
-      if (dow === 6)       d.setUTCDate(d.getUTCDate() - 1);
-      else if (dow === 0)  d.setUTCDate(d.getUTCDate() - 2);
+        if (!seen.has(adjustedDate)) {
+          seen.add(adjustedDate);
+          allDates.push(adjustedDate);
+        }
+      });
 
-      const rd = fmt(d);
-      bucket[rd] = (bucket[rd] || 0) + count;
+      processedParts[partNumber] = adjustedData;
+    });
 
-      if (!seen.has(rd)) {
-        seen.add(rd);
-        allDates.push(rd);
-      }
-    }
-  }
+    // Create the model group entry
+    processedData[modelName] = {
+      groupLabel: modelData.groupLabel || modelName,
+      totalLabel: modelData.totalLabel || `${modelName} Total`,
+      parts: processedParts
+    };
+  });
 
-  // sort once
+  // Sort dates chronologically
   allDates.sort((a, b) => {
     const [am, ad, ay] = a.split('/');
     const [bm, bd, by] = b.split('/');
-    return (
-      Date.UTC(+ay, +am - 1, +ad) - Date.UTC(+by, +bm - 1, +bd)
-    );
+    return Date.UTC(+ay, +am - 1, +ad) - Date.UTC(+by, +bm - 1, +bd);
   });
 
-  return { rolledUp, sortedDates: allDates };
+  return { rolledUp: processedData, sortedDates: allDates };
 }
