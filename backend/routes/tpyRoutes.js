@@ -6,6 +6,10 @@ router.get('/daily', async (req, res) => {
     try {
         const { startDate, endDate, model } = req.query;
         
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Missing required query parameters: startDate, endDate' });
+        }
+        
         let query = `
             SELECT 
                 date_id,
@@ -62,36 +66,8 @@ router.get('/daily', async (req, res) => {
         
         res.json(Object.values(groupedData));
     } catch (error) {
-    }
-});
-
-router.get('/daily', async (req, res) => {
-    try {
-        const { startDate, endDate, model } = req.query;
-        if (!startDate || !endDate) {
-            return res.status(400).json({ error: 'Missing required query parameters: startDate, endDate' });
-        }
-        let query = `
-            SELECT 
-                date_id,
-                model,
-                workstation_name,
-                total_parts,
-                passed_parts,
-                failed_parts,
-                throughput_yield
-            FROM daily_tpy_metrics
-            WHERE date_id >= $1 AND date_id <= $2
-        `;
-        let params = [startDate, endDate];
-        if (model) {
-            query += ' AND model = $3';
-            params.push(model);
-        }
-        query += ' ORDER BY date_id, model, workstation_name';
-        const result = await pool.query(query, params);
-        res.json(result.rows);
-    } catch (error) {
+        console.error('Error fetching daily TPY metrics:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -100,21 +76,31 @@ router.get('/weekly', async (req, res) => {
     try {
         const { startWeek, endWeek } = req.query;
         
-        const query = `
+        if (!startWeek || !endWeek) {
+            return res.status(400).json({ error: 'Missing required query parameters: startWeek, endWeek' });
+        }
+
+        // Get main weekly metrics
+        const weeklyQuery = `
             SELECT 
                 week_id,
                 week_start,
                 week_end,
+                weekly_first_pass_yield_traditional_parts_started,
+                weekly_first_pass_yield_traditional_first_pass_success,
                 weekly_first_pass_yield_traditional_first_pass_yield,
+                weekly_first_pass_yield_completed_only_active_parts,
+                weekly_first_pass_yield_completed_only_first_pass_success,
                 weekly_first_pass_yield_completed_only_first_pass_yield,
-                weekly_tpy_hardcoded_sxm4_tpy,
-                weekly_tpy_dynamic_sxm4_tpy,
-                weekly_tpy_hardcoded_sxm5_tpy,
-                weekly_tpy_dynamic_sxm5_tpy,
                 weekly_first_pass_yield_breakdown_parts_completed,
                 weekly_first_pass_yield_breakdown_parts_failed,
                 weekly_first_pass_yield_breakdown_parts_stuck_in_limbo,
                 weekly_first_pass_yield_breakdown_total_parts,
+                weekly_overall_yield_total_parts,
+                weekly_overall_yield_completed_parts,
+                weekly_overall_yield_overall_yield,
+                weekly_throughput_yield_station_metrics,
+                weekly_throughput_yield_average_yield,
                 total_stations,
                 best_station_name,
                 best_station_yield,
@@ -126,33 +112,79 @@ router.get('/weekly', async (req, res) => {
             ORDER BY week_id DESC
         `;
         
-        const result = await pool.query(query, [startWeek, endWeek]);
-        
-        const transformedData = result.rows.map(row => ({
-            weekId: row.week_id,
-            weekStart: row.week_start,
-            weekEnd: row.week_end,
-            traditionalFPY: row.weekly_first_pass_yield_traditional_first_pass_yield,
-            completedOnlyFPY: row.weekly_first_pass_yield_completed_only_first_pass_yield,
-            sxm4HardcodedTPY: row.weekly_tpy_hardcoded_sxm4_tpy,
-            sxm4DynamicTPY: row.weekly_tpy_dynamic_sxm4_tpy,
-            sxm5HardcodedTPY: row.weekly_tpy_hardcoded_sxm5_tpy,
-            sxm5DynamicTPY: row.weekly_tpy_dynamic_sxm5_tpy,
-            breakdown: {
-                partsCompleted: row.weekly_first_pass_yield_breakdown_parts_completed,
-                partsFailed: row.weekly_first_pass_yield_breakdown_parts_failed,
-                partsStuckInLimbo: row.weekly_first_pass_yield_breakdown_parts_stuck_in_limbo,
-                totalParts: row.weekly_first_pass_yield_breakdown_total_parts
-            },
-            summary: {
-                totalStations: row.total_stations,
-                bestStation: row.best_station_name,
-                bestStationYield: row.best_station_yield,
-                worstStation: row.worst_station_name,
-                worstStationYield: row.worst_station_yield
-            },
-            createdAt: row.created_at
-        }));
+        // Get model-specific metrics
+        const modelQuery = `
+            SELECT 
+                week_id,
+                model,
+                hardcoded_stations,
+                hardcoded_tpy,
+                dynamic_stations,
+                dynamic_tpy,
+                dynamic_station_count
+            FROM weekly_tpy_model_metrics
+            WHERE week_id >= $1 AND week_id <= $2
+        `;
+
+        const [weeklyResult, modelResult] = await Promise.all([
+            pool.query(weeklyQuery, [startWeek, endWeek]),
+            pool.query(modelQuery, [startWeek, endWeek])
+        ]);
+
+        // Group model metrics by week
+        const modelMetricsByWeek = modelResult.rows.reduce((acc, row) => {
+            if (!acc[row.week_id]) {
+                acc[row.week_id] = {};
+            }
+            
+            // Convert model name to expected format (e.g., 'Tesla SXM4' -> 'SXM4')
+            const modelKey = row.model.replace('Tesla ', '');
+            
+            acc[row.week_id][modelKey] = {
+                hardcodedTPY: row.hardcoded_tpy,
+                dynamicTPY: row.dynamic_tpy,
+                hardcodedStations: JSON.parse(row.hardcoded_stations),
+                dynamicStations: JSON.parse(row.dynamic_stations),
+                stationCount: row.dynamic_station_count
+            };
+            
+            return acc;
+        }, {});
+
+        const transformedData = weeklyResult.rows.map(row => {
+            const weekModels = modelMetricsByWeek[row.week_id] || {};
+            
+            return {
+                weekId: row.week_id,
+                weekStart: row.week_start,
+                weekEnd: row.week_end,
+                traditionalFPY: row.weekly_first_pass_yield_traditional_first_pass_yield,
+                completedOnlyFPY: row.weekly_first_pass_yield_completed_only_first_pass_yield,
+                // Map model-specific TPY values
+                sxm4HardcodedTPY: weekModels.SXM4?.hardcodedTPY || null,
+                sxm4DynamicTPY: weekModels.SXM4?.dynamicTPY || null,
+                sxm5HardcodedTPY: weekModels.SXM5?.hardcodedTPY || null,
+                sxm5DynamicTPY: weekModels.SXM5?.dynamicTPY || null,
+                sxm6HardcodedTPY: weekModels.SXM6?.hardcodedTPY || null,
+                sxm6DynamicTPY: weekModels.SXM6?.dynamicTPY || null,
+                breakdown: {
+                    partsCompleted: row.weekly_first_pass_yield_breakdown_parts_completed,
+                    partsFailed: row.weekly_first_pass_yield_breakdown_parts_failed,
+                    partsStuckInLimbo: row.weekly_first_pass_yield_breakdown_parts_stuck_in_limbo,
+                    totalParts: row.weekly_first_pass_yield_breakdown_total_parts
+                },
+                summary: {
+                    totalStations: row.total_stations,
+                    bestStation: row.best_station_name,
+                    bestStationYield: row.best_station_yield,
+                    worstStation: row.worst_station_name,
+                    worstStationYield: row.worst_station_yield
+                },
+                createdAt: row.created_at,
+                // Add station metrics from the weekly_throughput_yield_station_metrics JSON field
+                stationMetrics: row.weekly_throughput_yield_station_metrics
+            };
+        });
         
         res.json(transformedData);
     } catch (error) {
@@ -172,20 +204,22 @@ router.get('/summary', async (req, res) => {
             FROM daily_tpy_metrics
         `;
         
-        const dailyResult = await pool.query(dailyQuery);
-        const dailySummary = dailyResult.rows[0];
-        
         const weeklyQuery = `
             SELECT 
                 COUNT(*) as total_records,
-                MAX(week_id) as latest_week,
-                AVG(weekly_tpy_hardcoded_sxm4_tpy) as avg_sxm4_hardcoded,
-                AVG(weekly_tpy_hardcoded_sxm5_tpy) as avg_sxm5_hardcoded
+                MAX(week_id) as latest_week
             FROM weekly_tpy_metrics
         `;
         
-        const weeklyResult = await pool.query(weeklyQuery);
-        const weeklySummary = weeklyResult.rows[0];
+        const modelQuery = `
+            SELECT 
+                model,
+                AVG(hardcoded_tpy) as avg_hardcoded_tpy,
+                AVG(dynamic_tpy) as avg_dynamic_tpy,
+                COUNT(DISTINCT week_id) as weeks_count
+            FROM weekly_tpy_model_metrics
+            GROUP BY model
+        `;
         
         const recentQuery = `
             SELECT 
@@ -199,7 +233,26 @@ router.get('/summary', async (req, res) => {
             LIMIT 10
         `;
         
-        const recentResult = await pool.query(recentQuery);
+        const [dailyResult, weeklyResult, modelResult, recentResult] = await Promise.all([
+            pool.query(dailyQuery),
+            pool.query(weeklyQuery),
+            pool.query(modelQuery),
+            pool.query(recentQuery)
+        ]);
+        
+        const dailySummary = dailyResult.rows[0];
+        const weeklySummary = weeklyResult.rows[0];
+        
+        // Process model averages
+        const modelAverages = modelResult.rows.reduce((acc, row) => {
+            const modelKey = row.model.replace('Tesla ', '');
+            acc[modelKey] = {
+                avgHardcodedTPY: parseFloat(row.avg_hardcoded_tpy || 0),
+                avgDynamicTPY: parseFloat(row.avg_dynamic_tpy || 0),
+                weeksCount: parseInt(row.weeks_count)
+            };
+            return acc;
+        }, {});
         
         res.json({
             daily: {
@@ -211,10 +264,13 @@ router.get('/summary', async (req, res) => {
             weekly: {
                 totalRecords: parseInt(weeklySummary.total_records),
                 latestWeek: weeklySummary.latest_week,
-                avgSXM4Hardcoded: parseFloat(weeklySummary.avg_sxm4_hardcoded || 0),
-                avgSXM5Hardcoded: parseFloat(weeklySummary.avg_sxm5_hardcoded || 0)
+                modelAverages: modelAverages
             },
-            recent: recentResult.rows
+            recent: recentResult.rows.map(row => ({
+                date: row.date_id,
+                model: row.model,
+                avgYield: parseFloat(row.avg_yield || 0)
+            }))
         });
     } catch (error) {
         console.error('Error fetching TPY summary:', error);
@@ -224,35 +280,110 @@ router.get('/summary', async (req, res) => {
 
 router.get('/station-performance', async (req, res) => {
     try {
-        const { date, model } = req.query;
+        const { date, model, weekId } = req.query;
         
-        if (!date) {
-            return res.status(400).json({ error: 'Date parameter is required' });
+        if (!date && !weekId) {
+            return res.status(400).json({ error: 'Either date or weekId parameter is required' });
         }
         
-        let query = `
-            SELECT 
-                workstation_name,
-                total_parts,
-                passed_parts,
-                failed_parts,
-                throughput_yield
-            FROM daily_tpy_metrics 
-            WHERE date_id = $1
-        `;
-        
-        let params = [date];
-        
-        if (model) {
-            query += ` AND model = $2`;
-            params.push(model);
+        if (weekId) {
+            // If weekId is provided, get data from weekly_tpy_model_metrics
+            let query = `
+                SELECT 
+                    model,
+                    hardcoded_stations,
+                    dynamic_stations,
+                    hardcoded_tpy,
+                    dynamic_tpy,
+                    dynamic_station_count
+                FROM weekly_tpy_model_metrics 
+                WHERE week_id = $1
+            `;
+            
+            let params = [weekId];
+            
+            if (model) {
+                query += ` AND model = $2`;
+                params.push(model);
+            }
+            
+            const result = await pool.query(query, params);
+            
+            // Transform the results to match the expected format
+            const transformedData = result.rows.map(row => {
+                const hardcodedStations = JSON.parse(row.hardcoded_stations || '{}');
+                const dynamicStations = JSON.parse(row.dynamic_stations || '{}');
+                
+                return {
+                    model: row.model,
+                    hardcodedTPY: row.hardcoded_tpy,
+                    dynamicTPY: row.dynamic_tpy,
+                    stationCount: row.dynamic_station_count,
+                    stations: {
+                        hardcoded: Object.entries(hardcodedStations).map(([name, yield]) => ({
+                            name,
+                            yield
+                        })),
+                        dynamic: Object.entries(dynamicStations).map(([name, data]) => ({
+                            name,
+                            ...data
+                        }))
+                    }
+                };
+            });
+            
+            res.json(transformedData);
+        } else {
+            // If date is provided, get data from daily_tpy_metrics
+            let query = `
+                SELECT 
+                    model,
+                    workstation_name,
+                    total_parts,
+                    passed_parts,
+                    failed_parts,
+                    throughput_yield
+                FROM daily_tpy_metrics 
+                WHERE date_id = $1
+            `;
+            
+            let params = [date];
+            
+            if (model) {
+                query += ` AND model = $2`;
+                params.push(model);
+            }
+            
+            query += ` ORDER BY model, throughput_yield DESC`;
+            
+            const result = await pool.query(query, params);
+            
+            // Group results by model
+            const groupedData = result.rows.reduce((acc, row) => {
+                if (!acc[row.model]) {
+                    acc[row.model] = [];
+                }
+                
+                acc[row.model].push({
+                    name: row.workstation_name,
+                    totalParts: row.total_parts,
+                    passedParts: row.passed_parts,
+                    failedParts: row.failed_parts,
+                    yield: row.throughput_yield
+                });
+                
+                return acc;
+            }, {});
+            
+            const transformedData = Object.entries(groupedData).map(([model, stations]) => ({
+                model,
+                stations: {
+                    daily: stations
+                }
+            }));
+            
+            res.json(transformedData);
         }
-        
-        query += ` ORDER BY throughput_yield DESC`;
-        
-        const result = await pool.query(query, params);
-        
-        res.json(result.rows);
     } catch (error) {
         console.error('Error fetching station performance:', error);
         res.status(500).json({ error: error.message });
