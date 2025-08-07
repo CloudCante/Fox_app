@@ -213,11 +213,29 @@ const ThroughputPage = () => {
                 aggregatedStations['Tesla SXM5'][stationName].failedParts += stationData.failedParts || 0;
               });
             }
+
+            // Process SXM6 stations
+            if (dayData.stations['SXM6']) {
+              Object.entries(dayData.stations['SXM6']).forEach(([stationName, stationData]) => {
+                if (!aggregatedStations['SXM6'][stationName]) {
+                  aggregatedStations['SXM6'][stationName] = {
+                    totalParts: 0,
+                    passedParts: 0,
+                    failedParts: 0,
+                    throughputYield: 0
+                  };
+                }
+                aggregatedStations['SXM6'][stationName].totalParts += stationData.totalParts || 0;
+                aggregatedStations['SXM6'][stationName].passedParts += stationData.passedParts || 0;
+                aggregatedStations['SXM6'][stationName].failedParts += stationData.failedParts || 0;
+              });
+            }
           }
         });
 
         console.log('Aggregated SXM4 stations:', Object.keys(aggregatedStations['Tesla SXM4']).length);
         console.log('Aggregated SXM5 stations:', Object.keys(aggregatedStations['Tesla SXM5']).length);
+        console.log('Aggregated SXM6 stations:', Object.keys(aggregatedStations['SXM6']).length);
 
         // Calculate throughput yield for each station
         Object.keys(aggregatedStations).forEach(model => {
@@ -237,11 +255,13 @@ const ThroughputPage = () => {
           weeklyTPY: {
             hardcoded: {
               SXM4: { tpy: parseFloat(weekData.sxm4HardcodedTPY) },
-              SXM5: { tpy: parseFloat(weekData.sxm5HardcodedTPY) }
+              SXM5: { tpy: parseFloat(weekData.sxm5HardcodedTPY) },
+              SXM6: { tpy: parseFloat(weekData.sxm6HardcodedTPY) }
             },
             dynamic: {
               SXM4: { tpy: parseFloat(weekData.sxm4DynamicTPY) },
-              SXM5: { tpy: parseFloat(weekData.sxm5DynamicTPY) }
+              SXM5: { tpy: parseFloat(weekData.sxm5DynamicTPY) },
+              SXM6: { tpy: parseFloat(weekData.sxm6DynamicTPY) }
             }
           },
           weeklyThroughputYield: {
@@ -266,14 +286,15 @@ const ThroughputPage = () => {
   const processedStationData = useMemo(() => {
     if (!throughputData) {
       console.log('No throughputData available');
-      return { sxm4: [], sxm5: [], tpyData: {} };
+      return { sxm4: [], sxm5: [], sxm6: [], tpyData: {} };
     }
     
     console.log('Processing station data, throughputData:', {
       hasWeeklyThroughputYield: !!throughputData.weeklyThroughputYield,
       hasModelSpecific: !!throughputData.weeklyThroughputYield?.modelSpecific,
       sxm4Keys: Object.keys(throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM4'] || {}),
-      sxm5Keys: Object.keys(throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM5'] || {})
+      sxm5Keys: Object.keys(throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM5'] || {}),
+      sxm6Keys: Object.keys(throughputData.weeklyThroughputYield?.modelSpecific?.['SXM6'] || {})
     });
     
     const processModelData = (modelData) => {
@@ -329,16 +350,19 @@ const ThroughputPage = () => {
     const tpySource = processingState.useHardcodedTPY ? 'hardcoded' : 'dynamic';
     const sxm4Data = throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM4'];
     const sxm5Data = throughputData.weeklyThroughputYield?.modelSpecific?.['Tesla SXM5'];
+    const sxm6Data = throughputData.weeklyThroughputYield?.modelSpecific?.['SXM6'];
     
     const result = {
       sxm4: processModelData(sxm4Data),
       sxm5: processModelData(sxm5Data),
+      sxm6: processModelData(sxm6Data),
       tpyData: throughputData.weeklyTPY?.[tpySource] || {}
     };
     
     console.log('Final processedStationData:', {
       sxm4Count: result.sxm4.length,
       sxm5Count: result.sxm5.length,
+      sxm6Count: result.sxm6.length,
       tpyData: result.tpyData
     });
     
@@ -351,7 +375,8 @@ const ThroughputPage = () => {
       // If dynamic TPY, show all stations (same as charts)
       return {
         sxm4: processedStationData.sxm4,
-        sxm5: processedStationData.sxm5
+        sxm5: processedStationData.sxm5,
+        sxm6: processedStationData.sxm6
       };
     }
     
@@ -368,6 +393,9 @@ const ThroughputPage = () => {
       ),
       sxm5: processedStationData.sxm5.filter(station => 
         hardcodedStations.sxm5.includes(station.station)
+      ),
+      sxm6: processedStationData.sxm6.filter(station => 
+        hardcodedStations.sxm6.includes(station.station)
       )
     };
   }, [processedStationData, processingState.useHardcodedTPY]);
