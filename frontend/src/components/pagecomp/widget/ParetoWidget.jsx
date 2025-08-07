@@ -106,7 +106,7 @@ export function ParetoWidget() {
     }
     return (
         <ParetoChart
-          label={`${model} Test Station Performance`}
+          label={`${model} Test Station Pareto`}
           data={data} 
           loading={loading}
           limit={barLimit}/>

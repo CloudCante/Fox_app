@@ -1,6 +1,6 @@
 // Widget for TestStation Reports
 import React,{useState, useEffect, useContext} from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper, CircularProgress } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
 import { gridStyle, paperStyle } from '../../theme/themes.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
@@ -22,8 +22,10 @@ const modelKeys = [
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
 export function PackingChartWidget() {
-    const { startDate, endDate,weekRange, barLimit} = useContext(GlobalSettingsContext);
+    const { startDate, endDate, weekRange, barLimit, currentISOWeekStart} = useContext(GlobalSettingsContext);
     const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true); 
+    const [error, setError] = useState(true); 
 
     const [model,setModel]= useState('');
     const [timeFrame,setTimeFrame]= useState('');
@@ -31,7 +33,6 @@ export function PackingChartWidget() {
     const [showAvg,setShowAvg]= useState(false);
     const [color,setColor]= useState(false);
 
-    const [loading, setLoading] = useState(true); 
     const [loaded,setLoaded] = useState(false);
 
     const {
@@ -41,11 +42,20 @@ export function PackingChartWidget() {
         weeklyData,
         loadingWeekly,
         errorWeekly
-    } = usePackingData(API_BASE, model||"Tesla SXM4", weekRange, barLimit);
+    } = usePackingData(API_BASE, model||"Tesla SXM4", currentISOWeekStart, barLimit);
+
     useEffect(() => {
         if (!loaded) return;
-        if(timeFrame === "Daily"){setData(dailyData)}
-        else{setData(weeklyData)}
+        if(timeFrame === "Daily"){
+            setData(dailyData);
+            setLoading(loadingDaily);
+            setError(errorDaily);
+        }
+        else{
+            setData(weeklyData);
+            setLoading(loadingWeekly);
+            setError(errorWeekly);
+        }
     }, [model, timeFrame, startDate, endDate, loaded]);
 
 
@@ -105,6 +115,7 @@ export function PackingChartWidget() {
                     <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between', alignItems: 'center',}}>
                         <Button sx={buttonStyle}variant="contained" size='small'
                         onClick={()=>setShowTrend(!showTrend)}>{showTrend?"Don't show Trendline":'Show Trendline'}</Button>
+                        
                         <Button sx={buttonStyle}variant="contained" size='small'
                         onClick={()=>setShowAvg(!showAvg)}>{showAvg?"Don't show Avg line":'Show Avg line'}</Button>
                     </Box>
@@ -115,13 +126,29 @@ export function PackingChartWidget() {
             </Paper>
         );
     }
+    if(data.length === 0){return <Typography color="error">Error: Data failed to load</Typography>}
+    //console.log(data)
     return (
-        <PackingOutputBarChart
-         title={`${timeFrame} Packing Output for ${model}`}
-         data={data}
-         color="#4caf50"
-         showTrendLine={showTrend}
-         showAvgLine={showAvg}
-         />
+        <>
+            {loading ? <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+                    <CircularProgress />
+                </Box> :
+            error ? <Typography color="error">{error}</Typography> :
+            <PackingOutputBarChart
+                title={`${timeFrame} Packing Output for ${model}`}
+                data={data}
+                color="#4caf50"
+                showTrendLine={showTrend}
+                showAvgLine={showAvg}
+            />}
+        </>
+        // <PackingOutputBarChart
+        //  title={`${timeFrame} Packing Output for ${model}`}
+        //  data={data}
+        //  color="#4caf50"
+        //  showTrendLine={showTrend}
+        //  showAvgLine={showAvg}
+        //  />
+
     );
 }
