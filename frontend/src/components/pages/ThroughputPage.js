@@ -254,14 +254,14 @@ const ThroughputPage = () => {
           weekEnd: weekData.weekEnd,
           weeklyTPY: {
             hardcoded: {
-              SXM4: { tpy: parseFloat(weekData.sxm4HardcodedTPY) },
-              SXM5: { tpy: parseFloat(weekData.sxm5HardcodedTPY) },
-              SXM6: { tpy: parseFloat(weekData.sxm6HardcodedTPY) }
+              SXM4: { tpy: parseFloat(weekModels.SXM4?.hardcodedTPY || 0) },
+              SXM5: { tpy: parseFloat(weekModels.SXM5?.hardcodedTPY || 0) },
+              SXM6: { tpy: parseFloat(weekModels.SXM6?.hardcodedTPY || 0) }
             },
             dynamic: {
-              SXM4: { tpy: parseFloat(weekData.sxm4DynamicTPY) },
-              SXM5: { tpy: parseFloat(weekData.sxm5DynamicTPY) },
-              SXM6: { tpy: parseFloat(weekData.sxm6DynamicTPY) }
+              SXM4: { tpy: parseFloat(weekModels.SXM4?.dynamicTPY || 0) },
+              SXM5: { tpy: parseFloat(weekModels.SXM5?.dynamicTPY || 0) },
+              SXM6: { tpy: parseFloat(weekModels.SXM6?.dynamicTPY || 0) }
             }
           },
           weeklyThroughputYield: {
