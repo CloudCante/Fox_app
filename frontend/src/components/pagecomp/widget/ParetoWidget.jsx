@@ -4,6 +4,7 @@ import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Pap
 import { Header } from '../Header.jsx'
 import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
 import { ParetoChart } from '../../charts/ParetoChart.js'
+import { fetchErrorQuery } from '../../../utils/queryUtils.js';
 import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -11,7 +12,7 @@ if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
 const modelKeys = [
-    {id:"All", model:"ALL", key:"ALL"},
+    {id:"All", model:"ALL", key:"sxm4"},
     {id:"Tesla SXM4", model:"Tesla SXM4", key:"sxm4"},
     {id:"Tesla SXM5", model:"Tesla SXM5", key:"sxm5"},
     {id:"Tesla SXM6", model:"SXM6", key:"sxm6"}
