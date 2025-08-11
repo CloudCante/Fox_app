@@ -183,13 +183,13 @@ export const MostRecentFail = () => {
           const rows = [];
           mergedDate.forEach((row) => {
               rows.push([row[`sn`],row[`error_code`]
-                //, row['fail_time']
+                , row['fail_time']
               ]);
           });
           const headers = [
             'Serial Number',
             'Error Code',
-            //'Last Fail Time'
+            'Last Fail/Pass Time'
           ];
           const filename = `most_recent_fail_data_${passCheck?passCheck+'_':''}${getTimestamp()}.csv`;
           // Use secure export function
