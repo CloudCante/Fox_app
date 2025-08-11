@@ -1,9 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { Box, Typography, Button, Divider } from '@mui/material';
+import { Box, Typography, Button, Divider, TextField } from '@mui/material';
 import Papa from 'papaparse';
 import { Header } from '../pagecomp/Header.jsx';
-import { BoxChart } from '../charts/BoxChart.js';
-import { ViolinChart } from '../charts/ViolinChart.js';
 import { buttonStyle } from '../theme/themes.js';
 import { DateRange } from '../pagecomp/DateRange.jsx';
 import { getInitialStartDate, normalizeDate } from '../../utils/dateUtils.js';
@@ -25,6 +23,8 @@ export const MostRecentFail = () => {
   // Data states: csvData holds imported CSV rows, codeData holds backend results
   const [csvData, setCsvData] = useState([]);
   const [codeData, setCodeData] = useState([]);
+  const [passCheck, setPassCheck] = useState('');
+  const [passData, setPassData] = useState([]);
 
   const fileInputRef = useRef(null);
 
@@ -33,6 +33,8 @@ export const MostRecentFail = () => {
   };
 
   const handleFileChange = useCallback(async e => {
+    if(passCheck)console.log('check',passCheck);
+    else console.log("no check");
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -57,7 +59,7 @@ export const MostRecentFail = () => {
         }
 
         try {
-          // Fetch backend results
+          // Fetch backend Fail results
             const qs = `?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
             console.log('>> Request URL:', API_BASE + '/api/testboardRecords/most-recent-fail' + qs);
             console.log('>> Request body:', { sns });
@@ -76,12 +78,38 @@ export const MostRecentFail = () => {
         } catch (err) {
           console.error('Failed to fetch error codes:', err);
         }
+        if(passCheck){
+          const passCheckStations = passCheck
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+          try {
+            // Fetch backend Pass results
+              const qs = `?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
+              console.log('>> Request URL:', API_BASE + '/api/testboardRecords/pass-check' + qs);
+              console.log('>> Request body:', { sns });
+            
+            const backendPassData = await importQuery(
+              API_BASE,
+              '/api/testboardRecords/pass-check',
+              {  },
+              'POST',
+              { sns,startDate, endDate, passCheckStations }
+            );
+            console.log('Backend Pass data:', backendPassData);
+
+            // Store backend query results
+            setPassData(backendPassData);
+          } catch (err) {
+            console.error('Failed to fetch pass check:', err);
+          }
+        }
       },
       error: err => console.error('Error parsing CSV:', err)
     });
 
     e.target.value = null;
-  }, [startDate, endDate]);
+  }, [startDate, endDate, passCheck]);
 
   function cleanCode(code){
     if(code==='Pass')return;
@@ -102,16 +130,21 @@ export const MostRecentFail = () => {
       acc[row.sn] = row;
       return acc;
     }, {});
+    const checkup =passData.reduce((acc, row) => {
+      acc[row.sn] = row;
+      return acc;
+    }, {});
 
     return csvData.map(row => {
       const match = lookup[row.sn];
+      const check = checkup[row.sn];
       return {
         ...row,
-        error_code: match ? cleanCode(match.error_code) : 'Pass',
-        fail_time: match ? match.fail_time : 'NA'
+        error_code: match ? cleanCode(match.error_code) : passCheck ? check ? "Passed":"Pending": "Passed",
+        fail_time: match ? match.fail_time : passCheck ? check ? check.pass_time:"Pending": "NA"
       };
     });
-  }, [csvData, codeData]);
+  }, [csvData, codeData, passData]);
 
     const [exportCooldown, setExportCooldown] = useState(false);
 
@@ -169,7 +202,13 @@ export const MostRecentFail = () => {
           normalizeStart={normalizeDate.start}
           normalizeEnd={normalizeDate.end}
         />
-
+        <TextField 
+          id="passCheckField" 
+          label="Pass Check" 
+          variant="outlined" 
+          value={passCheck}
+          onChange={(e)=>setPassCheck(e.target.value)}
+        />
         <Button sx={buttonStyle} onClick={handleImportClick}>
           Import Serial Numbers (CSV)
         </Button>
