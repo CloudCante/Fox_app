@@ -10,7 +10,7 @@ export function TestWidget({ value
     return (
         <Paper sx={paperStyle}>
             <Box sx={{ textAlign: 'center', py: 8 }} >
-                <Header title="this is a test" subTitle={value}/>
+                <Header title="This is a test Widget" subTitle={` Widget: ${value}`}/>
             </Box>
         </Paper>
     );

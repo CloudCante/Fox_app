@@ -77,7 +77,7 @@ export function ParetoWidget() {
             <Paper sx={paperStyle}>
                 <Box sx={{ textAlign: 'center', py: 8 }}>
                     <Header
-                    title="Select Model"
+                    title="Select Model for Pareto Chart"
                     subTitle="Choose a model to chart"
                     titleVariant="h6"
                     subTitleVariant="body2"
