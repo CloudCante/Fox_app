@@ -25,6 +25,7 @@ export const MostRecentFail = () => {
   const [codeData, setCodeData] = useState([]);
   const [passCheck, setPassCheck] = useState('');
   const [passData, setPassData] = useState([]);
+  const [snData, setSnData] = useState([]);
 
   const fileInputRef = useRef(null);
 
@@ -57,7 +58,26 @@ export const MostRecentFail = () => {
           console.warn('No serial numbers found in CSV');
           return;
         }
+        try {
+          // Fetch sn results
+            const qs = `?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
+            console.log('>> Request URL:', API_BASE + '/api/testboardRecords/sn-check' + qs);
+            console.log('>> Request body:', { sns });
+          
+          const backendSnData = await importQuery(
+            API_BASE,
+            '/api/testboardRecords/sn-check',
+            {  },
+            'POST',
+            { sns,startDate, endDate }
+          );
+          console.log('Backend data:', backendSnData);
 
+          // Store backend query results
+          setSnData(backendSnData);
+        } catch (err) {
+          console.error('Failed to fetch Sn:', err);
+        }
         try {
           // Fetch backend Fail results
             const qs = `?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`;
@@ -94,7 +114,7 @@ export const MostRecentFail = () => {
               '/api/testboardRecords/pass-check',
               {  },
               'POST',
-              { sns,startDate, endDate, passCheckStations }
+              { sns,startDate, endDate, passCheck:passCheckStations }
             );
             console.log('Backend Pass data:', backendPassData);
 
@@ -134,14 +154,19 @@ export const MostRecentFail = () => {
       acc[row.sn] = row;
       return acc;
     }, {});
+    const snup =snData.reduce((acc, row) => {
+      acc[row.sn] = row;
+      return acc;
+    }, {});
 
     return csvData.map(row => {
       const match = lookup[row.sn];
       const check = checkup[row.sn];
+      const sn = snup[row.sn];
       return {
         ...row,
-        error_code: match ? cleanCode(match.error_code) : passCheck ? check ? "Passed":"Pending": "Passed",
-        fail_time: match ? match.fail_time : passCheck ? check ? check.pass_time:"Pending": "NA"
+        error_code: match ? cleanCode(match.error_code) : passCheck ? check ? "Passed":sn?"Pending":"Missing": "Passed",
+        fail_time: match ? match.fail_time : passCheck ? check ? check.pass_time:sn?"Pending":"Missing": "NA"
       };
     });
   }, [csvData, codeData, passData]);
