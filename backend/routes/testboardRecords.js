@@ -62,5 +62,83 @@ router.post('/most-recent-fail', async (req, res) => {
   }
 });
 
+router.post('/pass-check', async (req, res) => {
+  try {
+    const { sns,startDate, endDate,passCheck } = req.body;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required query parameters: startDate, endDate' });
+    }
+    if (!Array.isArray(sns) || sns.length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'Missing or invalid sns array in request body' });
+    }
+    if(!passCheck){
+      return res.status(400).json({error: ' Missing require query parameters: passCheck'});
+    }
+
+    const query = `
+      SELECT DISTINCT ON (sn)
+        sn,
+        history_station_start_time AS pass_time
+      FROM testboard_master_log
+      WHERE sn = ANY($1)
+        AND history_station_start_time >= $2
+        AND history_station_end_time <= $3
+        AND history_station_passing_status = 'Pass'
+        AND workstation_name = ANY($4)
+      ORDER BY
+        sn,
+        history_station_start_time DESC;
+    `;
+
+    const params = [sns, startDate, endDate, passCheck];
+    const result = await pool.query(query, params);
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('pass-check:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/sn-check', async (req, res) => {
+  try {
+    const { sns,startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required query parameters: startDate, endDate' });
+    }
+    if (!Array.isArray(sns) || sns.length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'Missing or invalid sns array in request body' });
+    }
+
+    const query = `
+      SELECT DISTINCT ON (sn)
+        sn,
+        history_station_start_time AS pass_time
+      FROM testboard_master_log
+      WHERE sn = ANY($1)
+        AND history_station_start_time >= $2
+        AND history_station_end_time <= $3
+      ORDER BY
+        sn,
+        history_station_start_time DESC;
+    `;
+
+    const params = [sns, startDate, endDate];
+    const result = await pool.query(query, params);
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('sn-check:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router; 
