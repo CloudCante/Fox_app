@@ -11,24 +11,17 @@ import { DateRange } from '../pagecomp/DateRange.jsx'
 // Utilities and Helpers
 import { Toolbar } from '../pagecomp/Toolbar.jsx';
 import { WidgetManager } from '../pagecomp/WidgetManager.jsx'
-import { TestWidget } from '../pagecomp/widget/TestWidget.jsx';
 import { buttonStyle, modalStyle } from '../theme/themes.js';
-//import { widgetList } from '../../data/dataTables.js';
 // Widgets
-import { TestStationWidget } from '../pagecomp/widget/TestStationWidget.jsx';
-import { FixtureStationWidget } from '../pagecomp/widget/FixtureStationWidget.jsx';
-import { PackingChartWidget } from '../pagecomp/widget/PackingChartWidget.jsx'
-import { ParetoWidget } from '../pagecomp/widget/ParetoWidget.jsx';
+import { widgetList } from '../../data/widgetList.js';
 import { getInitialStartDate, normalizeDate } from '../../utils/dateUtils.js'
 import { useWeekNavigation } from '../hooks/packingCharts/useWeekNavigation.js';
-import { GlobalSettingsContext } from '../../data/GlobalSettingsContext.js';
-
-
-
+import { GlobalSettingsContext, useGlobalSettings } from '../../data/GlobalSettingsContext.js';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
   <input {...props} ref={ref} readOnly />
 ));
+
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -37,44 +30,68 @@ console.log('API_BASE:', API_BASE);
 
 const refreshInterval = 300000; // 5 minutes
 
-const widgetList = [
-  {type:"Station performance chart",comp:TestStationWidget,tools:["dateRange","barLimit"]},
-  {type:"Fixture performance chart",comp:FixtureStationWidget,tools:["dateRange","barLimit"]},
-  {type:"Packing output table",comp:TestWidget,tools:["dateRange"]},
-  {type:"Packing chart",comp:PackingChartWidget,tools:["weekRange"]},
-  {type:"Pareto chart",comp:ParetoWidget,tools:["dateRange","barLimit"]},
-];
-
 export const Dashboard = () => {
-  const [widgets,setWidgets] = useState([]);
+  const { state, dispatch } = useGlobalSettings();
+  const { widgets, startDate, endDate, barLimit } = state;
 
-  // Global Vars
-  const [startDate,setStartDate] = useState(getInitialStartDate(7));
-  const [endDate,setEndDate] = useState(normalizeDate.end(new Date()));
+  // Fixed date change handlers - use dispatch instead of setStartDate/setEndDate
   const handleStartDateChange = useCallback((date) => {
-    setStartDate(normalizeDate.start(date));
-  }, []);
+    dispatch({
+      type: 'SET_DATE_RANGE',
+      startDate: normalizeDate.start(date),
+      endDate: endDate
+    });
+  }, [endDate, dispatch]);
+
   const handleEndDateChange = useCallback((date) => {
-    setEndDate(normalizeDate.end(date));
-  }, []);
-  const [singleDate,setSingleDate] = useState([]);
-  const [barLimit,setBarLimit] = useState(7);
+    dispatch({
+      type: 'SET_DATE_RANGE',
+      startDate: startDate,
+      endDate: normalizeDate.end(date)
+    });
+  }, [startDate, dispatch]);
+
+  // Fixed bar limit handler
+  const handleBarLimitChange = useCallback((limit) => {
+    dispatch({
+      type: 'SET_BAR_LIMIT',
+      barLimit: limit
+    });
+  }, [dispatch]);
+
+  const [singleDate, setSingleDate] = useState([]);
   const { currentISOWeekStart, handlePrevWeek, handleNextWeek, weekRange } = useWeekNavigation();
   
-  // Global Context
-  const contextValue = useMemo(()=>({
-    startDate,setStartDate:handleStartDateChange,endDate,setEndDate:handleEndDateChange,barLimit,setBarLimit,weekRange,handlePrevWeek,handleNextWeek
-  }),[
-    startDate,endDate,barLimit,weekRange
-  ])
+  // Fixed Global Context - removed dispatch call from render
+  const contextValue = useMemo(() => ({
+    startDate,
+    setStartDate: handleStartDateChange,
+    endDate,
+    setEndDate: handleEndDateChange,
+    barLimit,
+    setBarLimit: handleBarLimitChange, // Fixed: use callback instead of dispatch call
+    weekRange,
+    handlePrevWeek,
+    handleNextWeek,
+    currentISOWeekStart
+  }), [
+    startDate,
+    endDate,
+    barLimit,
+    weekRange,
+    currentISOWeekStart,
+    handleStartDateChange,
+    handleEndDateChange,
+    handleBarLimitChange
+  ]);
 
   const tools = useMemo(() => [
     {
       id: 'date-range',
       Part: DateRange
     },
-  ], [startDate, endDate, handleStartDateChange, handleEndDateChange]);
-  
+  ], []);
+
   const [modalInfo, setModalInfo] = useState([]);
   const [openSettings, setOpenSettings] = useState(false);
   const handleOpenSettings = () => setOpenSettings(true);
@@ -84,7 +101,7 @@ export const Dashboard = () => {
     handleOpenSettings();
   };
 
-  const SettingsModal=()=>{
+  const SettingsModal = () => {
     const [tabValue, setTabValue] = useState(0);
     const [selected, setSelected] = useState('');
     const [selectedForRemoval, setSelectedForRemoval] = useState([]);
@@ -98,11 +115,15 @@ export const Dashboard = () => {
     const handleChangeSelect = e => { setSelected(e.target.value); };
 
     const handleAddWidget = () => {
-      const newWidg = widgetList[widgetList.findIndex(i=>i.type===selected)].comp;
-      setWidgets(prev => [
-        ...prev,
-        {id:Date.now(),Widget:newWidg}
-      ]);
+      const widgetConfig = widgetList.find(i => i.type === selected);
+      const newWidget = {
+        id: Date.now(),
+        type: selected, // Store the type for persistence
+        Widget: widgetConfig.comp,
+        position: widgets.length // For ordering
+      };
+      
+      dispatch({ type: 'ADD_WIDGET', widget: newWidget });
       setSelected('');
       handleCloseSettings();
     };
@@ -115,8 +136,9 @@ export const Dashboard = () => {
       );
     };
 
+    // Fixed: use dispatch instead of setWidgets
     const handleRemoveWidgets = () => {
-      setWidgets(prev => prev.filter(widget => !selectedForRemoval.includes(widget.id)));
+      dispatch({ type: 'REMOVE_WIDGETS', widgetIds: selectedForRemoval });
       setSelectedForRemoval([]);
       handleCloseSettings();
     };
@@ -131,6 +153,7 @@ export const Dashboard = () => {
       e.dataTransfer.dropEffect = 'move';
     };
 
+    // Fixed: use dispatch instead of setWidgets
     const handleDrop = (e, dropIndex) => {
       e.preventDefault();
       if (draggedItem === null) return;
@@ -143,13 +166,13 @@ export const Dashboard = () => {
       // Insert at new position
       newWidgets.splice(dropIndex, 0, draggedWidget);
       
-      setWidgets(newWidgets);
+      dispatch({ type: 'REORDER_WIDGETS', widgets: newWidgets });
       setDraggedItem(null);
     };
 
     const getWidgetTypeName = (widget) => {
-      const widgetType = widgetList.find(w => w.comp === widget.Widget);
-      return widgetType ? widgetType.type : 'Unknown Widget';
+      // Fixed: use widget.type instead of trying to match component
+      return widget.type || 'Unknown Widget';
     };
 
     return (
@@ -181,7 +204,7 @@ export const Dashboard = () => {
                   value={selected}
                   onChange={handleChangeSelect}
                 >
-                  {options.map(type =>(
+                  {options.map(type => (
                     <MenuItem key={type} value={type}>
                       {type}
                     </MenuItem>
@@ -278,7 +301,7 @@ export const Dashboard = () => {
         title="Dashboard" 
         subTitle="Foxconn Quality Dashboard" 
         settings={true}
-        settingOnClick = {getSettingsClick}
+        settingOnClick={getSettingsClick}
       />
       <GlobalSettingsContext.Provider value={contextValue}>
         <Toolbar toolbox={tools}/>
