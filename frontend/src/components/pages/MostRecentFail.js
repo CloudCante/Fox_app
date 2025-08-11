@@ -71,7 +71,7 @@ export const MostRecentFail = () => {
             'POST',
             { sns,startDate, endDate }
           );
-          console.log('Backend data:', backendSnData);
+          console.log('Backend SN data:', backendSnData);
 
           // Store backend query results
           setSnData(backendSnData);
@@ -91,7 +91,7 @@ export const MostRecentFail = () => {
             'POST',
             { sns,startDate, endDate }
           );
-          console.log('Backend data:', backendData);
+          console.log('Backend Error data:', backendData);
 
           // Store backend query results
           setCodeData(backendData);
@@ -165,8 +165,8 @@ export const MostRecentFail = () => {
       const sn = snup[row.sn];
       return {
         ...row,
-        error_code: match ? cleanCode(match.error_code) : passCheck ? check ? "Passed":sn?"Pending":"Missing": "Passed",
-        fail_time: match ? match.fail_time : passCheck ? check ? check.pass_time:sn?"Pending":"Missing": "NA"
+        error_code: match ? cleanCode(match.error_code) : passCheck ? check ? "Passed":sn?"Pending":"Missing": sn?"Passed":"Missing",
+        fail_time: match ? match.fail_time : passCheck ? check ? check.pass_time:sn?"Pending":"Missing": sn?"NA":"Missing"
       };
     });
   }, [csvData, codeData, passData]);
@@ -191,7 +191,7 @@ export const MostRecentFail = () => {
             'Error Code',
             //'Last Fail Time'
           ];
-          const filename = `most_recent_fail_data_${getTimestamp()}.csv`;
+          const filename = `most_recent_fail_data_${passCheck?passCheck+'_':''}${getTimestamp()}.csv`;
           // Use secure export function
           exportSecureCSV(rows, headers, filename);
         } 
@@ -214,6 +214,19 @@ export const MostRecentFail = () => {
         setTimeout(()=>setExportCooldown(false),3000);
         }
     }
+
+    const getBG = (status) => {
+      const key = String(status || '').toLowerCase();
+
+      const MAP = {
+        passed: 'lightblue',
+        pending: 'yellow',
+        missing: 'orange',
+      };
+
+      return MAP[key] || 'coral';
+    };
+
   return (
     <Box>
       <Header title="Most Recent Fail" subTitle="Charts most recent fail of imported SNs within a given timeframe" />
@@ -257,7 +270,7 @@ export const MostRecentFail = () => {
         <>
             <Typography>Data accepted.</Typography>
             {mergedDate.map(row => (
-                <Typography>{row['sn']}: {row['error_code']}: {row['fail_time']}</Typography>
+                <Typography sx={{backgroundColor:getBG(row['error_code'])}}>{row['sn']}: {row['error_code']}: {row['fail_time']}</Typography>
             ))}
         </>
       ) : (
