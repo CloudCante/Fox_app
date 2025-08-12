@@ -49,15 +49,17 @@ const MENU_ITEMS = [
   ]},
   { text: 'Performance', icon: <SpeedIcon />, children:[
     { text: 'Quality Control Charts', icon: <SpeedIcon />, route: '/performance' },
-    { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
-    { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
-    { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' }
+    { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' }
   ]}
   //{ text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
 ];
 
 const DEV_MENU_ITEMS = [
-  { text: 'File Upload', icon: <CloudUploadIcon />, route: '/dev/upload' }
+  { text: 'File Upload', icon: <CloudUploadIcon />, route: '/dev/upload' },
+  { text: 'Auxiliary Reports', icon: <SpeedIcon />, children:[
+    { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
+    { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' }]
+  }
 ];
 
 const menuIcons = {
@@ -113,6 +115,7 @@ const MenuList = React.memo(({ onClose }) => (
 export const SideDrawer = React.memo(({ open, onClose }) => {
   const [stationReportsOpen, setStationReportsOpen] = useState(false);
   const [performanceReportsOpen, setPerformanceReportsOpen] = useState(false);
+  const [auxiliaryReportsOpen, setAuxiliaryReportsOpen] = useState(false);
   const [isLowEndDevice, setIsLowEndDevice] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -229,9 +232,53 @@ export const SideDrawer = React.memo(({ open, onClose }) => {
                 primaryTypographyProps={{ variant: 'overline', sx: { opacity: 0.7 } }}
               />
             </ListItem>
-            {DEV_MENU_ITEMS.map(item => (
-              <MenuItem key={item.text} item={item} onClose={onClose} />
-            ))}
+            {DEV_MENU_ITEMS.map(item => {
+          // If it has children, render collapse
+          if (item.children) {
+            const isOpen = item.text === 'Station Reports'
+                            ? stationReportsOpen
+                            : item.text ==='Performance'
+                            ?performanceReportsOpen
+                            :auxiliaryReportsOpen;
+            const toggle  = item.text === 'Station Reports'
+                            ? setStationReportsOpen
+                            : item.text ==='Performance'
+                            ?setPerformanceReportsOpen
+                            :setAuxiliaryReportsOpen;
+            return (
+              <React.Fragment key={item.text}>
+                <ListItem disablePadding>
+                  <ListItemButton onClick={() => toggle(open => !open)}>
+                    <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.text} />
+                    {isOpen ? <ExpandLessIcon/> : <ExpandMoreIcon/>}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {item.children.map(child => (
+                      <MenuItem
+                        key={child.text}
+                        item={child}
+                        onClose={onClose}
+                        nested
+                      />
+                    ))}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            );
+          }
+
+          // Otherwise a normal menu item
+          return (
+            <MenuItem
+              key={item.text}
+              item={item}
+              onClose={onClose}
+            />
+          );
+        })}
           </>
         )}
       </List>
