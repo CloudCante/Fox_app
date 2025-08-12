@@ -60,6 +60,14 @@ export const DateRange = memo(function DateRange({
           aria-required={required}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? 'daterange-error' : helperText ? 'daterange-helper' : undefined}
+          slotProps={{
+            popper: {
+              placement: 'bottom-start',
+              modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
+              sx: { zIndex: (theme) => theme.zIndex.modal + 1 },
+            },
+            textField: { fullWidth: true },
+          }}
         />
         {isRangePicker && (
           <DatePicker

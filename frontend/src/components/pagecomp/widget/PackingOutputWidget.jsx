@@ -1,6 +1,7 @@
 // Widget for TestStation Reports
 import React,{useState, useEffect, useMemo, useCallback} from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper, setRef, } from '@mui/material';
+import { ResponsiveContainer } from 'recharts';
 import { Header } from '../../pagecomp/Header.jsx'
 import { gridStyle, paperStyle } from '../../theme/themes.js';
 import { PackingPageTable } from '../packingPage/PackingPageTable.jsx'
@@ -57,7 +58,9 @@ export function PackingOutputWidget({ widgetId }) {
         });
     };
 
-    const {packingData, sortData, lastUpdated} = usePackingData(API_BASE,startDate,endDate);
+    const enabled = useMemo(()=>{return loaded && !!startDate && !!endDate},[loaded,startDate,endDate]);
+    const [refreshKey,setRefreshKey] = useState(0)
+    const {packingData, sortData, lastUpdated, refetch } = usePackingData(API_BASE,startDate,endDate,300_000,{enabled,refreshKey});
     
     // useEffect(() => {
     //     if (!loaded) return;
@@ -199,6 +202,7 @@ export function PackingOutputWidget({ widgetId }) {
     };
     const handleLoadChart = () => {
         updateWidgetSettings({ loaded: true });
+        setRefreshKey(k=>k+1);
     };
 
     if ( !loaded ){
@@ -236,21 +240,57 @@ export function PackingOutputWidget({ widgetId }) {
             </Paper>
         );
     }
+    const selectedGroup = useMemo(
+        ()=> groups.find(g => g.key ===model) || null,[groups,model]
+    );
+    if(!selectedGroup){
+        return(
+            <Paper sx={paperStyle}>
+                <Box sx={{p:2}}>
+                    <Typography variant='body2'>
+                        {`No data yet for "${model}" in this date range.`}
+                    </Typography>
+                </Box>
+            </Paper>
+        )
+    }
     return (
-        <>
-        <Typography>{console.log("groups",groups[groups.findIndex(i=>i.key===model)])}</Typography>
-        
-        <PackingPageTable
-        key={groups[groups.findIndex(i=>i.key===model)].key}
-        header={groups[groups.findIndex(i=>i.key===model)].label}
-        headerTwo={groups[groups.findIndex(i=>i.key===model)].totalLabel}
-        dates={dateRange}
-        partLabel={groups[groups.findIndex(i=>i.key===model)].key}
-        handleOnClick={handleCopyColumn}
-        partsMap={groups[groups.findIndex(i=>i.key===model)].parts}
-        packingData={packingData?.[groups[groups.findIndex(i=>i.key===model)].key]?.parts || {}}
-        copied={copied}
-        />
-        </>
+        <Paper
+            sx={{...paperStyle,
+                display:'flex',
+                flexDirection:'column',
+                height:'100%',
+                maxHeight: 520,
+                minHeight: 280,
+                maxWidth: 620,
+                zIndex:0,
+            }}
+        >
+            <Box
+                role="region"
+                aria-label={`${selectedGroup.label} packing table`}
+                tabIndex={0}
+                sx={{
+                    flex:1,
+                    overflow:'auto',
+                    overscrollBehavior:'contain',
+                    WebkitOverflowScrolling: 'touch',
+                    position: 'relative',
+                    zIndex: 0,       
+                }}
+            >
+                <PackingPageTable
+                    key={selectedGroup.key}
+                    header={selectedGroup.label}
+                    headerTwo={selectedGroup.totalLabel}
+                    dates={dateRange}
+                    partLabel={selectedGroup.key}
+                    handleOnClick={handleCopyColumn}
+                    partsMap={selectedGroup.parts}
+                    packingData={packingData?.[selectedGroup.key]?.parts || {}}
+                    copied={copied}
+                />
+            </Box>
+        </Paper>
     );
 }
