@@ -9,6 +9,7 @@ import { buttonStyle } from '../../theme/themes.js';
 import { usePackingData } from '../../hooks/packingCharts/usePackingData.js';
 import { useWeekNavigation } from '../../hooks/packingCharts/useWeekNavigation.js';
 import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
+import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -25,7 +26,7 @@ export function PackingChartWidget() {
     const { startDate, endDate, weekRange, barLimit, currentISOWeekStart} = useContext(GlobalSettingsContext);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true); 
-    const [error, setError] = useState(true); 
+    const [error, setError] = useState(null); 
 
     const [model,setModel]= useState('');
     const [timeFrame,setTimeFrame]= useState('');
@@ -119,7 +120,7 @@ export function PackingChartWidget() {
                         <Button sx={buttonStyle}variant="contained" size='small'
                         onClick={()=>setShowAvg(!showAvg)}>{showAvg?"Don't show Avg line":'Show Avg line'}</Button>
                     </Box>
-                    {(model.length > 0 & timeFrame.length > 0) && (
+                    {(model.length > 0 && timeFrame.length > 0) && (
                         <Button sx={buttonStyle} onClick={() => setLoaded(true)}>Load Chart</Button>
                     )}
                 </Box>
@@ -142,13 +143,6 @@ export function PackingChartWidget() {
                 showAvgLine={showAvg}
             />}
         </>
-        // <PackingOutputBarChart
-        //  title={`${timeFrame} Packing Output for ${model}`}
-        //  data={data}
-        //  color="#4caf50"
-        //  showTrendLine={showTrend}
-        //  showAvgLine={showAvg}
-        //  />
 
     );
 }

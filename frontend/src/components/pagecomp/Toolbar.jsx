@@ -5,8 +5,8 @@
 // import { NumberRange } from '../NumberRange.jsx';
 import React,{useContext, useMemo} from 'react';
 import { Box, Button, Typography } from '@mui/material';
-import { toolbarStyle } from '../theme/themes';
-import { GlobalSettingsContext } from '../../data/GlobalSettingsContext';
+import { toolbarStyle } from '../theme/themes.js';
+import { GlobalSettingsContext } from '../../data/GlobalSettingsContext.js';
 
 
 export function Toolbar({

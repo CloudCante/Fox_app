@@ -2,8 +2,9 @@
 import React,{useState, useEffect, useMemo, useContext} from 'react';
 import { FixtureFailParetoChart } from '../../charts/FixtureFailParetoChart.js'
 import { fetchFixtureQuery } from '../../../utils/queryUtils.js';
-import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
-import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
+import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
+import { Paper,Box,  } from '@mui/material';
+import { paperStyle } from '../../theme/themes.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -11,8 +12,31 @@ if (!API_BASE) {
 }
 
 // label, data ,loading
-export function FixtureStationWidget() {
-    const { startDate, endDate,barLimit} = useContext(GlobalSettingsContext);
+export function FixtureStationWidget({widgetId}) {
+    
+    const { state, dispatch } = useGlobalSettings();
+    const { 
+        startDate,endDate
+     } = state;
+    if (!state) {
+        return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Loading global state...</Box></Paper>;
+    }    
+    if (!widgetId) {
+        return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Widget ID missing</Box></Paper>;
+    }    
+    const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
+
+    // Initialize widget settings if they don't exist
+    useEffect(() => {
+        if (!state.widgetSettings || !state.widgetSettings[widgetId]) {
+            dispatch({
+                type: 'UPDATE_WIDGET_SETTINGS',
+                widgetId,
+                settings: {}
+            });
+        }
+    }, [widgetId, state.widgetSettings, dispatch]);
+    //const { startDate, endDate,barLimit} = useContext(GlobalSettingsContext);
     const [fixtureData, setFixtureData] = useState([]);
     //const [model,setModel]= useState([]);
     //const [key,setKey]= useState([]);

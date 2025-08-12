@@ -48,7 +48,7 @@ export function usePackingData(
   }, [endDate]);
 
   useEffect(() => {
-    if (!apiBase) return;
+    if (!apiBase) {console.log("no API found"); return;};
 
     const startIso = computedStartDate.toISOString();
     const endIso = computedEndDate.toISOString();

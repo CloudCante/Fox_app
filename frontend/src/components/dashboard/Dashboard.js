@@ -34,6 +34,14 @@ export const Dashboard = () => {
   const { state, dispatch } = useGlobalSettings();
   const { widgets, startDate, endDate, barLimit } = state;
 
+  // Add debugging for Dashboard
+  // console.log('Dashboard Debug:', {
+  //   state,
+  //   widgets,
+  //   widgetsLength: widgets?.length,
+  //   widgetTypes: widgets?.map(w => ({ id: w.id, type: w.type, hasWidget: !!w.Widget }))
+  // });
+
   // Fixed date change handlers - use dispatch instead of setStartDate/setEndDate
   const handleStartDateChange = useCallback((date) => {
     dispatch({
@@ -62,14 +70,14 @@ export const Dashboard = () => {
   const [singleDate, setSingleDate] = useState([]);
   const { currentISOWeekStart, handlePrevWeek, handleNextWeek, weekRange } = useWeekNavigation();
   
-  // Fixed Global Context - removed dispatch call from render
+  // Context value for the old-style context (for Toolbar and DateRange components)
   const contextValue = useMemo(() => ({
     startDate,
     setStartDate: handleStartDateChange,
     endDate,
     setEndDate: handleEndDateChange,
     barLimit,
-    setBarLimit: handleBarLimitChange, // Fixed: use callback instead of dispatch call
+    setBarLimit: handleBarLimitChange,
     weekRange,
     handlePrevWeek,
     handleNextWeek,
@@ -116,12 +124,21 @@ export const Dashboard = () => {
 
     const handleAddWidget = () => {
       const widgetConfig = widgetList.find(i => i.type === selected);
+      //console.log('Adding widget:', { selected, widgetConfig });
+      
+      if (!widgetConfig) {
+        console.error('Widget config not found for type:', selected);
+        return;
+      }
+      
       const newWidget = {
         id: Date.now(),
         type: selected, // Store the type for persistence
         Widget: widgetConfig.comp,
         position: widgets.length // For ordering
       };
+      
+      //console.log('New widget object:', newWidget);
       
       dispatch({ type: 'ADD_WIDGET', widget: newWidget });
       setSelected('');
@@ -303,10 +320,14 @@ export const Dashboard = () => {
         settings={true}
         settingOnClick={getSettingsClick}
       />
+      {/* Keep the old context provider only for Toolbar components that need individual properties */}
       <GlobalSettingsContext.Provider value={contextValue}>
         <Toolbar toolbox={tools}/>
-        <WidgetManager widgets={widgets}/>   
-      </GlobalSettingsContext.Provider>   
+      </GlobalSettingsContext.Provider>
+      
+      {/* WidgetManager doesn't need the old context wrapper since widgets use useGlobalSettings() */}
+      <WidgetManager widgets={widgets}/>   
+      
       {openSettings && <SettingsModal/>}
     </Box>
   );

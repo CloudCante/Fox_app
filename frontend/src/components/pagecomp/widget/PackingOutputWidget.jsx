@@ -1,11 +1,12 @@
 // Widget for TestStation Reports
-import React,{useState, useEffect, useMemo} from 'react';
+import React,{useState, useEffect, useMemo, useCallback} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
 import { gridStyle, paperStyle } from '../../theme/themes.js';
-import { TestStationChart } from '../../charts/TestStationChart.js'
-import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
-import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
+import { PackingPageTable } from '../packingPage/PackingPageTable.jsx'
+import { usePackingData } from '../../hooks/packingPage/usePackingData.js';
+import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
+import { buttonStyle } from '../../theme/themes.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -18,63 +19,189 @@ const modelKeys = [
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function PackingOutputWidget({ 
-    label,
-    startDate = getInitialStartDate(7),
-    endDate = normalizeDate.end(new Date()),
-    limit = 7,
-    useGlobal = false
-}) {
-    const [testStationData, setTestStationData] = useState([]);
-    const [model,setModel]= useState([]);
-    const [key,setKey]= useState([]);
-    const [loading, setLoading] = useState(true); 
-
+export function PackingOutputWidget({ widgetId }) {
+    const { state, dispatch } = useGlobalSettings();
+    const { startDate, endDate, barLimit } = state;
+    if (!state) {
+        return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Loading global state...</Box></Paper>;
+    }    
+    if (!widgetId) {
+        return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Widget ID missing</Box></Paper>;
+    }    
+    const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
+    
+    // Initialize widget settings if they don't exist
     useEffect(() => {
-        if (!model || !key || model.length === 0) return;
-        let isActive = true;
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-            await fetchWorkstationQuery({
-                parameters: [{ id: 'model', value: model }],
-                startDate,
-                endDate,
-                key: key,
-                setDataCache: data => {
-                if (isActive) setTestStationData(data);
-                },
-                API_BASE,
-                API_Route: '/api/functional-testing/station-performance?'
+        if (!state.widgetSettings || !state.widgetSettings[widgetId]) {
+            dispatch({
+                type: 'UPDATE_WIDGET_SETTINGS',
+                widgetId,
+                settings: {}
             });
-            } catch (err) {
-            console.error('Error fetching data', err);
-            if (isActive) setTestStationData([]);
-            } finally {
-            if (isActive) setLoading(false);
+        }
+    }, [widgetId, state.widgetSettings, dispatch]);
+
+    const [data, setData] = useState([]);
+    const [copied, setCopied] = useState({ group: '', date: '' });
+    //const [dateRange,setDateRange] = useState([]);
+
+    const model = widgetSettings.model || '';
+    //const key = widgetSettings.key || '';
+    const loaded = widgetSettings.loaded || false;
+
+    const updateWidgetSettings = (updates) => {
+        dispatch({
+            type: 'UPDATE_WIDGET_SETTINGS',
+            widgetId,
+            settings: { ...widgetSettings, ...updates }
+        });
+    };
+
+    const {packingData, sortData, lastUpdated} = usePackingData(API_BASE,startDate,endDate);
+    
+    // useEffect(() => {
+    //     if (!loaded) return;
+    //     //get Date Range
+    //     const dates = []
+    //     const current = new Date(startDate);
+    //     const formatDate = (date) => {return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`};
+    //     while(current <= endDate){
+    //         dates.push(formatDate(new Date(current)));
+    //         current.setDate(current.getDate()+1);
+    //     }
+    //     setDateRange(dates);
+    //     // fetch Data
+    //     console.log("Fetched:",packingData[model]);
+    //     setData(packingData[model]);
+    // }, [model, key, startDate, endDate,loaded,widgetId]);
+    const dateRange = useMemo(() => {
+        const dates = [];
+        const current = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Helper to format date as M/D/YYYY
+        const formatDate = (date) => {
+          return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+        };
+    
+        // Add all dates between start and end
+        while (current <= end) {
+          dates.push(formatDate(new Date(current)));
+          current.setDate(current.getDate() + 1);
+        }
+    
+        return dates;
+    }, [startDate, endDate]);
+    
+    
+    const groups = useMemo(() => {
+        if (!packingData || typeof packingData !== 'object') return [];
+        try {
+        // Define the desired order of groups
+        const groupOrder = ['Tesla SXM4', 'Tesla SXM5', 'SXM6', 'RED OCTOBER'];
+        
+        return Object.entries(packingData)
+            .map(([modelName, modelData]) => {
+            // Filter parts to only include those with data in our date range
+            const activeParts = Object.entries(modelData?.parts || {})
+                .filter(([_, partData]) => {
+                // Check if this part has any data in our date range
+                return dateRange.some(date => partData[date] !== undefined && partData[date] !== null);
+                })
+                .map(([partNumber]) => partNumber.trim()) // Trim any whitespace
+                .sort((a, b) => a.localeCompare(b)); // Sort part numbers alphabetically
+
+            return {
+                key: modelName,
+                label: modelData?.groupLabel || modelName,
+                totalLabel: modelData?.totalLabel || `${modelName} Total`,
+                parts: activeParts,
+                order: groupOrder.indexOf(modelName) // Will be -1 if not found
+            };
+            })
+            .filter(group => group.parts.length > 0) // Only include groups that have active parts
+            .sort((a, b) => {
+            // If both groups are in groupOrder, sort by their order
+            if (a.order !== -1 && b.order !== -1) {
+                return a.order - b.order;
             }
-    };
+            // If only one is in groupOrder, prioritize it
+            if (a.order !== -1) return -1;
+            if (b.order !== -1) return 1;
+            // If neither is in groupOrder, sort alphabetically
+            return a.key.localeCompare(b.key);
+            })
+        } catch (error) {
+        console.error('Error processing packing data:', error);
+        return [];
+        }
+    }, [packingData, dateRange]);
 
-    fetchData();
-    const intervalId = setInterval(fetchData, 300000);
-    return () => {
-        isActive = false;
-        clearInterval(intervalId);
-    };
-    }, [model, key, startDate, endDate]);
+    // Calculate daily totals from the new structure
+    const dailyTotals = useMemo(() => {
+        if (!packingData || typeof packingData !== 'object') return {};
+        try {
+        const totals = dateRange.reduce((acc, date) => {
+            let total = 0;
+            
+            // Sum up all parts from all models for this date
+            Object.values(packingData).forEach(model => {
+            if (model?.parts) {
+                Object.values(model.parts).forEach(partData => {
+                const value = Number(partData[date] || 0);
+                total += value;
+                });
+            }
+            });
+            
+            // Always add the total (even if zero)
+            acc[date] = total;
+            return acc;
+        }, {});
 
+
+        return totals;
+        } catch (error) {
+        console.error('Error calculating daily totals:', error);
+        return {};
+        }
+    }, [dateRange, packingData]);
+
+    const handleCopyColumn = useCallback((group, date) => {
+        let values = '';
+        
+        if (packingData[group]) {
+        values = Object.values(packingData[group].parts)
+            .map(partData => partData[date] || '')
+            .join('\n');
+        } else if (group === 'DAILY TOTAL') {
+        values = dailyTotals[date]?.toString() || '';
+        } else if (group === 'SORT') {
+        values = ['506', '520'].map(model => sortData[model]?.[date] || '').join('\n');
+        }
+
+        navigator.clipboard.writeText(values).then(() => {
+        setCopied({ group, date });
+        setTimeout(() => setCopied({ group: '', date: '' }), 1200);
+        });
+    }, [packingData, sortData, dailyTotals]);
 
     const handleSetModelKey= e => {
         const selectedId = e.target.value;
         const entry = modelKeys.find(mk => mk.id === selectedId);
         if (entry) {
-        setModel(entry.model);
-        setKey(entry.key);
-        setTestStationData([]); // reset data
+            updateWidgetSettings({
+                model: entry.model,
+                //key: entry.key
+            });
+            setData([]); // reset data
         }
     };
+    const handleLoadChart = () => {
+        updateWidgetSettings({ loaded: true });
+    };
 
-    if (model.length === 0 || key.length === 0 ){
+    if ( !loaded ){
         return(
             <Paper sx={paperStyle}>
                 <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -99,11 +226,31 @@ export function PackingOutputWidget({
                         ))}
                         </Select>
                     </FormControl>
+                    {model.length > 0 && (
+                    <Button sx={buttonStyle} onClick={handleLoadChart}>
+                        Load Chart
+                    </Button>
+                )}
                 </Box>
+                
             </Paper>
         );
     }
     return (
-        <></>
+        <>
+        <Typography>{console.log("groups",groups[groups.findIndex(i=>i.key===model)])}</Typography>
+        
+        <PackingPageTable
+        key={groups[groups.findIndex(i=>i.key===model)].key}
+        header={groups[groups.findIndex(i=>i.key===model)].label}
+        headerTwo={groups[groups.findIndex(i=>i.key===model)].totalLabel}
+        dates={dateRange}
+        partLabel={groups[groups.findIndex(i=>i.key===model)].key}
+        handleOnClick={handleCopyColumn}
+        partsMap={groups[groups.findIndex(i=>i.key===model)].parts}
+        packingData={packingData?.[groups[groups.findIndex(i=>i.key===model)].key]?.parts || {}}
+        copied={copied}
+        />
+        </>
     );
 }
