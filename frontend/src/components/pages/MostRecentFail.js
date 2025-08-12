@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { Box, Typography, Button, Divider, TextField } from '@mui/material';
+import { Box, Typography, Button, Divider, TextField, useTheme } from '@mui/material';
 import Papa from 'papaparse';
 import { Header } from '../pagecomp/Header.jsx';
 import { buttonStyle } from '../theme/themes.js';
@@ -26,6 +26,8 @@ export const MostRecentFail = () => {
   const [passCheck, setPassCheck] = useState('');
   const [passData, setPassData] = useState([]);
   const [snData, setSnData] = useState([]);
+
+  const theme = useTheme();
 
   const fileInputRef = useRef(null);
 
@@ -219,12 +221,12 @@ export const MostRecentFail = () => {
       const key = String(status || '').toLowerCase();
 
       const MAP = {
-        passed: 'lightblue',
-        pending: 'yellow',
-        missing: 'orange',
+        passed: theme.palette.mode === 'dark'? theme.palette.info.dark:theme.palette.info.light,
+        pending: theme.palette.mode === 'dark'? '#A29415':'#E9DB5D',
+        missing: theme.palette.mode === 'dark'? '#e65100':'#ff9800',
       };
 
-      return MAP[key] || 'coral';
+      return MAP[key] || (theme.palette.mode === 'dark'? theme.palette.error.dark:theme.palette.error.light);
     };
 
   return (
@@ -268,10 +270,22 @@ export const MostRecentFail = () => {
 
       {mergedDate.length > 0 ? (
         <>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             <Typography>Data accepted.</Typography>
-            {mergedDate.map(row => (
-                <Typography sx={{backgroundColor:getBG(row['error_code'])}}>{row['sn']}: {row['error_code']}: {row['fail_time']}</Typography>
-            ))}
+            <Typography>Total SN: {mergedDate.length}</Typography>
+            <Typography>Passed: {mergedDate.filter(i=>i.error_code==="Passed").length}</Typography>
+            <Typography>Failed: {
+              mergedDate.length - 
+              mergedDate.filter(i=>i.error_code==="Missing").length - 
+              mergedDate.filter(i=>i.error_code==="Pending").length - 
+              mergedDate.filter(i=>i.error_code==="Passed").length
+            }</Typography>
+            <Typography>Pending: {mergedDate.filter(i=>i.error_code==="Pending").length}</Typography>
+            <Typography>Missing: {mergedDate.filter(i=>i.error_code==="Missing").length}</Typography>
+          </Box>
+          {mergedDate.map(row => (
+              <Typography sx={{backgroundColor:getBG(row['error_code'])}}>{row['sn']}: {row['error_code']}: {row['fail_time']}</Typography>
+          ))}
         </>
       ) : (
         <Typography>No data available. Import a CSV to get started.</Typography>
