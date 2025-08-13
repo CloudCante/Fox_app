@@ -36,21 +36,13 @@ class ErrorBoundary extends Component {
 export function WidgetManager({
     widgets = []
 }) {
-    // Add debugging
-    // console.log('WidgetManager Debug:', {
-    //     widgets,
-    //     widgetsLength: widgets.length,
-    //     widgetsType: typeof widgets,
-    //     isArray: Array.isArray(widgets)
-    // });
 
     if (!Array.isArray(widgets) || widgets.length === 0) {
-        //console.log('WidgetManager: No widgets to render');
         return (
             <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Header
                     title="Add Widget to Dashboard"
-                    subTitle="Choose a Widget first, then select from available parameter for that Widget"
+                    subTitle="Choose a Widget first, then select from available parameters for that Widget"
                     titleVariant="h6"
                     subTitleVariant="body2"
                     titleColor="text.secondary"
@@ -58,19 +50,10 @@ export function WidgetManager({
             </Box>
         )
     }
-    
-    //console.log('WidgetManager: Rendering widgets');
-    
+        
     return (
         <Box sx={gridStyle} >
-            {widgets.map(({ id, Widget }, index) => {
-                // console.log(`WidgetManager: Rendering widget ${index}`, {
-                //     id,
-                //     Widget,
-                //     WidgetName: Widget?.name,
-                //     hasWidget: !!Widget
-                // });
-                
+            {widgets.map(({ id, Widget }, index) => {                
                 return (
                     <Box key={id} sx={{ textAlign: 'center', py: 8 }}>
                         {/* Add error boundary check */}
