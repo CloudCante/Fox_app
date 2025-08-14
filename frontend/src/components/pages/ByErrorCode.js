@@ -7,6 +7,7 @@ import { DateRange } from '../pagecomp/DateRange.jsx';
 import { getInitialStartDate, normalizeDate } from '../../utils/dateUtils.js';
 import { importQuery } from '../../utils/queryUtils.js';
 import { exportSecureCSV } from '../../utils/exportUtils.js';
+import { tableStyle, headerStyle,divStyle, dataTextStyle } from '../theme/themes.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
@@ -22,16 +23,15 @@ export const ByErrorCode = () => {
 
   // Data states: csvData holds imported CSV rows, codeData holds backend results
   const [data, setData] = useState([]);
-  const [codeCheck,setCodeCheck]=useState('')
-//   const [codeData, setCodeData] = useState([]);
-//   const [passCheck, setPassCheck] = useState('');
-//   const [passData, setPassData] = useState([]);
-//   const [snData, setSnData] = useState([]);
+  const [codeCheck,setCodeCheck]=useState('');
+  
+  const [tableView, setTableView] = useState(false);
 
     const theme = useTheme();
 
-    useEffect(()=>{
-        if(!!codeCheck)return;
+    const handleFileChange = useCallback(async e => {
+        if(!codeCheck)return;
+        console.log('check found: ',codeCheck)
         try{
             console.log('Checking on: ',codeCheck)
             const checkArray = codeCheck
@@ -45,11 +45,16 @@ export const ByErrorCode = () => {
                 'POST',
                 { checkArray,startDate, endDate, }
             );
-            console.log('Backend query results: ',backendData)
-            setData(backendData);
+            //console.log('Backend query results: ',backendData)
+            setData(await(backendData));
+            console.log('Backend query results: ',data);
         }
-        catch(err){ console.error('Failed to fetch Sn:', err); }
+        catch(err){ console.log('Failed to fetch Sn:', err); }
     },[codeCheck,startDate,endDate])
+
+    useEffect(()=>{handleFileChange()},[codeCheck,startDate,endDate])
+    
+    const [exportCooldown, setExportCooldown] = useState(false);
 
     const getTimestamp = () => {
         const now = new Date();
@@ -77,7 +82,7 @@ export const ByErrorCode = () => {
           console.error('Export failed:', error);
           alert('Export failed. Please try again.');
         };
-    }, [date]);
+    }, [data]);
 
     function handleExportCSV() {
         if (exportCooldown) return;
@@ -105,6 +110,20 @@ export const ByErrorCode = () => {
       return MAP[key] || (theme.palette.mode === 'dark'? theme.palette.error.dark:theme.palette.error.light);
     };
 
+    function handleTable(){setTableView(!tableView)}
+
+    const errorCodes = [...new Set(data.map(item => item.error_code))];
+
+    // Unique part numbers (rows)
+    const partNumbers = [...new Set(data.map(item => item.pn))];
+
+    // Lookup { pn: { error_code: count } }
+    const counts = data.reduce((acc, { pn, error_code }) => {
+    if (!acc[pn]) acc[pn] = {};
+    acc[pn][error_code] = (acc[pn][error_code] || 0) + 1;
+    return acc;
+    }, {});
+
   return (
     <Box>
       <Header title="Get Serial number and Part number by Error code" subTitle="Retreive Serial number and Partnumber of all parts in a range that failed a certain Error code" />
@@ -120,32 +139,79 @@ export const ByErrorCode = () => {
         />
         <TextField 
           id="ErrorCodeField" 
-          label="Errorcode" 
+          label="Error code" 
           variant="outlined" 
           value={codeCheck}
           onChange={(e)=>setCodeCheck(e.target.value)}
         />
-        {date.length>0 ?(
-        <Button sx={buttonStyle} onClick={handleExportCSV}>
-          Export Data (CSV)
-        </Button>):
-        <></>}
+        {data.length>0 ?(
+            <>
+                <Button sx={buttonStyle} onClick={handleExportCSV}>
+                Export Data (CSV)
+                </Button>
+                <Button sx={buttonStyle} onClick={handleTable}>
+                    {tableView?'List View':'Table View'}
+                </Button>
+            </>):
+            <></>}
       </Box>
 
       <Divider />
 
-      {mergedDate.length > 0 ? (
-        <>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            <Typography>Data accepted.</Typography>
-            <Typography>Total SN: {date.length}</Typography>
-          </Box>
-          {date.map(row => (
-              <Typography sx={{/*backgroundColor:getBG(row['error_code'])*/}}>{row['sn']}: {row['pn']}: {row['error_code']}</Typography>
-          ))}
-        </>
+      {data.length > 0 ? (
+        tableView?(
+            <Box sx={{ gap: 3 }}>
+                <table>
+                    <thead>
+                    <tr>
+                        <th style={headerStyle}>Part Number</th>
+                        {errorCodes.map(code => (
+                        <th style={headerStyle} key={code}>{code}</th>
+                        ))}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {partNumbers.map(pn => (
+                        <tr key={pn}>
+                        <td style={dataTextStyle}>{pn}</td>
+                        {errorCodes.map(code => (
+                            <td style={dataTextStyle} key={code}>
+                            {counts[pn]?.[code] || ""}
+                            </td>
+                        ))}
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+                </Box>
+        ):(
+            <>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                    <Typography>Data accepted.</Typography>
+                    <Typography>Total SN: {data.length}</Typography>
+                    {
+                        Object.entries(
+                                data.reduce((acc, item) => {
+                                const key = item.error_code;
+                                acc[key] = (acc[key] || 0) + 1;
+                                return acc;
+                                }, {})
+                            ).map(([code, count]) => (
+                                <Typography key={code}>
+                                {code}: {count}
+                                </Typography>
+                            ))
+                    }
+                </Box>
+                {data.map((row,idx) => (
+                    <Typography key={idx} sx={{/*backgroundColor:getBG(row['error_code'])*/}}>
+                        {row['sn']}: {row['pn']}: {row['error_code']}
+                    </Typography>
+                ))}
+            </>
+        )
       ) : (
-        <Typography>No data available. Import a CSV to get started.</Typography>
+        <Typography>No data available. Input an error code to get started.</Typography>
       )}
     </Box>
   );
