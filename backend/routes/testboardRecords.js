@@ -141,4 +141,43 @@ router.post('/sn-check', async (req, res) => {
   }
 });
 
+router.post('/by-error', async (req, res) => {
+  try {
+    const { checkArray,startDate, endDate } = req.body;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required query parameters: startDate, endDate' });
+    }
+    if (!Array.isArray(checkArray) || checkArray.length === 0) {
+      return res
+        .status(400)
+        .json({ error: 'Missing or invalid error code array in request body' });
+    }
+
+    const query = `
+      SELECT 
+        sn,
+        pn,
+        failure_reasons as error_code
+      FROM testboard_master_log
+      WHERE failure_reasons = ANY($1)
+        AND history_station_start_time >= $2
+        AND history_station_end_time <= $3
+      ORDER BY
+        failure_reasons,
+        pn,
+        history_station_start_time DESC;
+    `;
+
+    const params = [checkArray, startDate, endDate];
+    const result = await pool.query(query, params);
+    return res.json(result.rows);
+  } catch (error) {
+    console.error('by-error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router; 
