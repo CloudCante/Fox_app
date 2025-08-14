@@ -19,6 +19,7 @@ import ByErrorCode from './components/pages/ByErrorCode';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 import './components/theme/theme.css';
+import { GlobalSettingsProvider } from './data/GlobalSettingsContext';
 
 const MainContent = React.memo(({ children }) => {
   const mainContentStyle = useMemo(() => ({ 

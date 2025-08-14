@@ -1,5 +1,5 @@
 // src/hooks/usePackingData.js
-import { useEffect, useReducer, useRef, useMemo } from 'react';
+import { useEffect, useReducer, useRef, useMemo, useCallback, useState } from 'react';
 import { rollupWeekendCounts } from '../../../utils/packingPage/packingDataUtils';
 import { rollupSortData      } from '../../../utils/packingPage/sortDataUtils';
 
@@ -29,10 +29,17 @@ export function usePackingData(
   apiBase,
   startDate = null,
   endDate = null,
-  pollInterval = 300_000
+  pollInterval = 300_000,
+  opts={}
 ) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const timerRef = useRef(null);
+
+  const {enabled=true,refreshKey} = opts;
+  const [loading, setLoading] = useState(false);
+  const [error,setError] = useState(null);
+  const [tick,setTick] = useState(0);
+  const refetch = useCallback(()=>setTick(t => t+1),[]);
 
   // If no dates provided, use last 7 days
   const computedStartDate = useMemo(() => {
@@ -48,7 +55,11 @@ export function usePackingData(
   }, [endDate]);
 
   useEffect(() => {
-    if (!apiBase) return;
+    if (!apiBase || !enabled) {
+      console.log("no API found");
+      if(timerRef.current) clearInterval(timerRef.current);
+      return;
+    };
 
     const startIso = computedStartDate.toISOString();
     const endIso = computedEndDate.toISOString();
@@ -59,6 +70,8 @@ export function usePackingData(
 
     async function fetchAll() {
       try {
+        setLoading(true);
+        setError(null);
         // fire both calls in parallel
         const [pRes, sRes] = await Promise.all([
           fetch(`${apiBase}/api/packing/packing-records${query}`, { signal }),
@@ -82,9 +95,14 @@ export function usePackingData(
             lastUpdated: new Date()
           }
         });
+        setLoading(false);
       } catch (err) {
         // ignore abort errors
-        if (err.name !== 'AbortError') console.error('usePackingData:', err);
+        if (err.name !== 'AbortError'){ 
+          console.error('usePackingData:', err);
+          setError(err.message || 'Fetch failed');
+        }
+        setLoading(false);
       }
     }
 
@@ -96,7 +114,8 @@ export function usePackingData(
       controller.abort();
       clearInterval(timerRef.current);
     };
-  }, [apiBase, computedStartDate, computedEndDate, pollInterval]);
+  }, [apiBase, computedStartDate, computedEndDate, pollInterval,enabled,refreshKey,tick]);
 
-  return state; // { packingData, dates, sortData, lastUpdated }
+  //return state; // { packingData, dates, sortData, lastUpdated }
+  return {...state,loading,error,refetch};
 }
