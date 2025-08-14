@@ -53,16 +53,6 @@ export function TestStationWidget({ widgetId }) {
     const key = widgetSettings.key || '';
     const loaded = widgetSettings.loaded || false;
 
-    // Add some debugging
-    // console.log('TestStationWidget Debug:', {
-    //     widgetId,
-    //     widgetSettings,
-    //     model,
-    //     key,
-    //     loaded,
-    //     stateWidgetSettings: state.widgetSettings
-    // });
-
     // Helper function to update widget settings
     const updateWidgetSettings = (updates) => {
         dispatch({
