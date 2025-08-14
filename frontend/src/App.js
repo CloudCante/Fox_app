@@ -16,6 +16,7 @@ import StationCycleTime from './components/pages/CycleTime';
 import MostRecentFail from './components/pages/MostRecentFail';
 import ParetoPage from './components/pages/ParetoPage';
 import TestStationPerformancePage from './components/pages/TestStationPerformancePage';
+import ByErrorCode from './components/pages/ByErrorCode';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 import './components/theme/theme.css';
@@ -50,7 +51,7 @@ const AppRoutes = React.memo(() => (
       <Route path="/cycle-time" element={<StationCycleTime />} />
       <Route path="/most-recent-fail" element={<MostRecentFail />} />
       <Route path="/pareto" element={<ParetoPage />} />
-      <Route path="/station-performance" element={<TestStationPerformancePage />} />
+      <Route path="/by-error" element={<ByErrorCode/>}/>
       {process.env.NODE_ENV === 'development' && (
         <Route path="/dev/upload" element={<UploadPage />} />
       )}
