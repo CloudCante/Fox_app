@@ -44,7 +44,6 @@ const MENU_ITEMS = [
   { text: 'Station Performance Charts', icon: <TableChartIcon/>, route: '/station-performance'},
   { text: 'Packing', icon: <Inventory2Icon />, route: '/packing' },
   { text: 'Pareto', icon: <TrendingUpIcon />, route: '/pareto' },
-  { text: 'Get by Error', icon: <TableChartIcon />, route: '/by-error' },
   { text: 'Station Reports', icon: <GradingIcon />, children:[
     { text: 'SnFn Reports', icon: <GridViewIcon />, route: '/snfn' },
     { text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
@@ -60,7 +59,8 @@ const DEV_MENU_ITEMS = [
   { text: 'File Upload', icon: <CloudUploadIcon />, route: '/dev/upload' },
   { text: 'Auxiliary Reports', icon: <SpeedIcon />, children:[
     { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
-    { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' }]
+    { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' },
+    { text: 'Get by Error', icon: <TableChartIcon />, route: '/by-error' }]
   }
 ];
 

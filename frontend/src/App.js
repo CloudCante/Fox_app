@@ -51,6 +51,7 @@ const AppRoutes = React.memo(() => (
       <Route path="/cycle-time" element={<StationCycleTime />} />
       <Route path="/most-recent-fail" element={<MostRecentFail />} />
       <Route path="/pareto" element={<ParetoPage />} />
+      <Route path="/station-performance" element={<TestStationPerformancePage/>}/>
       <Route path="/by-error" element={<ByErrorCode/>}/>
       {process.env.NODE_ENV === 'development' && (
         <Route path="/dev/upload" element={<UploadPage />} />
