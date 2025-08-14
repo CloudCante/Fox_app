@@ -1,27 +1,24 @@
 // React Core
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 // Material UI Components
-import { Box, Modal, FormControl, Select, MenuItem, InputLabel, Typography, Button, Tabs, Tab, List, ListItem, ListItemText, Checkbox, IconButton } from '@mui/material';
-import { DragIndicator, Delete } from '@mui/icons-material';
+import { Box, Paper, Typography, CircularProgress } from '@mui/material';
 // Third Party Libraries
 import 'react-datepicker/dist/react-datepicker.css';
+// Custom Charts
+import { TestStationChart } from '../charts/TestStationChart';
+import { FixtureFailParetoChart } from '../charts/FixtureFailParetoChart';
+//import { ParetoChart } from '../charts/ParetoChart';
 // Page Components
 import { Header } from '../pagecomp/Header.jsx';
-import { DateRange } from '../pagecomp/DateRange.jsx'
+import { DateRange } from '../pagecomp/DateRange.jsx';
 // Utilities and Helpers
-import { Toolbar } from '../pagecomp/Toolbar.jsx';
-import { WidgetManager } from '../pagecomp/WidgetManager.jsx'
-import { buttonStyle, modalStyle } from '../theme/themes.js';
-// Widgets
-import { widgetList } from '../../data/widgetList.js';
-import { getInitialStartDate, normalizeDate } from '../../utils/dateUtils.js'
-import { useWeekNavigation } from '../hooks/packingCharts/useWeekNavigation.js';
-import { GlobalSettingsContext, useGlobalSettings } from '../../data/GlobalSettingsContext.js';
+import { dataCache } from '../../utils/cacheUtils';
+import { gridStyle } from '../theme/themes.js';
+import { fetchFixtureQuery, fetchWorkstationQuery } from '../../utils/queryUtils.js';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
   <input {...props} ref={ref} readOnly />
 ));
-
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -31,304 +28,195 @@ console.log('API_BASE:', API_BASE);
 const refreshInterval = 300000; // 5 minutes
 
 export const Dashboard = () => {
-  const { state, dispatch } = useGlobalSettings();
-  const { widgets, startDate, endDate, barLimit } = state;
+  const [testStationDataSXM4, setTestStationDataSXM4] = useState([]);
+  const [testStationDataSXM5, setTestStationDataSXM5] = useState([]);
+  const [testStationDataSXM6, setTestStationDataSXM6] = useState([]);
+  const [topFixturesData, setTopFixturesData] = useState([]);
+  //const [failStationsData, setFailStationsData] = useState([]);
+  //const [defectCodesData, setDefectCodesData] = useState([]);
+  const normalizeStart = (date) => new Date(new Date(date).setHours(0, 0, 0, 0));
+  const normalizeEnd = (date) => new Date(new Date(date).setHours(23, 59, 59, 999));
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return normalizeStart(date);
+  });
+  const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
+  const [loading, setLoading] = useState(true); 
 
-  // Add debugging for Dashboard
-  // console.log('Dashboard Debug:', {
-  //   state,
-  //   widgets,
-  //   widgetsLength: widgets?.length,
-  //   widgetTypes: widgets?.map(w => ({ id: w.id, type: w.type, hasWidget: !!w.Widget }))
-  // });
+  useEffect(() => {
+    setLoading(true);
 
-  // Fixed date change handlers - use dispatch instead of setStartDate/setEndDate
-  const handleStartDateChange = useCallback((date) => {
-    dispatch({
-      type: 'SET_DATE_RANGE',
-      startDate: normalizeDate.start(date),
-      endDate: endDate
-    });
-  }, [endDate, dispatch]);
+    const fetchModelData = ({ value, key, setter }) =>
+      fetchWorkstationQuery({
+        parameters: [{ id: 'model', value: value }],
+        startDate,
+        endDate,
+        key,
+        setDataCache: setter,
+        API_BASE,
+        API_Route: '/api/functional-testing/station-performance?'
+      });
 
-  const handleEndDateChange = useCallback((date) => {
-    dispatch({
-      type: 'SET_DATE_RANGE',
-      startDate: startDate,
-      endDate: normalizeDate.end(date)
-    });
-  }, [startDate, dispatch]);
+    const fetchSXM5 = () => fetchModelData({value:'Tesla SXM5',key:'sxm5',setter: setTestStationDataSXM5});
+    const fetchSXM4 = () => fetchModelData({value:'Tesla SXM4',key:'sxm4',setter: setTestStationDataSXM4});
+    const fetchSXM6 = () => fetchModelData({value:'SXM6',key:'sxm6',setter: setTestStationDataSXM6});
 
-  // Fixed bar limit handler
-  const handleBarLimitChange = useCallback((limit) => {
-    dispatch({
-      type: 'SET_BAR_LIMIT',
-      barLimit: limit
-    });
-  }, [dispatch]);
+    const fetchFixtures = () => 
+      fetchFixtureQuery({
+        startDate,
+        endDate,
+        key: 'fixtures',
+        setDataCache: setTopFixturesData,
+        API_BASE,
+        API_Route: '/api/functional-testing/fixture-performance?'
+      });
 
-  const [singleDate, setSingleDate] = useState([]);
-  const { currentISOWeekStart, handlePrevWeek, handleNextWeek, weekRange } = useWeekNavigation();
-  
-  // Context value for the old-style context (for Toolbar and DateRange components)
-  const contextValue = useMemo(() => ({
-    startDate,
-    setStartDate: handleStartDateChange,
-    endDate,
-    setEndDate: handleEndDateChange,
-    barLimit,
-    setBarLimit: handleBarLimitChange,
-    weekRange,
-    handlePrevWeek,
-    handleNextWeek,
-    currentISOWeekStart
-  }), [
-    startDate,
-    endDate,
-    barLimit,
-    weekRange,
-    currentISOWeekStart,
-    handleStartDateChange,
-    handleEndDateChange,
-    handleBarLimitChange
-  ]);
+    // const fetchFailStations = () => {
+    //   const params = new URLSearchParams();
+    //   if (startDate) {
+    //     const utcStartDate = new Date(startDate);
+    //     utcStartDate.setUTCHours(0, 0, 0, 0);
+    //     params.append('startDate', utcStartDate.toISOString());
+    //   }
+    //   if (endDate) {
+    //     const utcEndDate = new Date(endDate);
+    //     utcEndDate.setUTCHours(23, 59, 59, 999);
+    //     params.append('endDate', utcEndDate.toISOString());
+    //   }
 
-  const tools = useMemo(() => [
-    {
-      id: 'date-range',
-      Part: DateRange
-    },
-  ], []);
+    //   const cacheKey = `failStations_${params.toString()}`;
 
-  const [modalInfo, setModalInfo] = useState([]);
-  const [openSettings, setOpenSettings] = useState(false);
-  const handleOpenSettings = () => setOpenSettings(true);
-  const handleCloseSettings = () => setOpenSettings(false);
-  
-  const getSettingsClick = () => {
-    handleOpenSettings();
-  };
+    //   const cachedData = dataCache.get(cacheKey);
+    //   if (cachedData) {
+    //     setFailStationsData(cachedData);
+    //     return Promise.resolve(cachedData);
+    //   }
 
-  const SettingsModal = () => {
-    const [tabValue, setTabValue] = useState(0);
-    const [selected, setSelected] = useState('');
-    const [selectedForRemoval, setSelectedForRemoval] = useState([]);
-    const [draggedItem, setDraggedItem] = useState(null);
+    //   return fetch(`${API_BASE}/api/defect-records/fail-stations?${params.toString()}`)
+    //     .then(res => res.json())
+    //     .then(data => {
+    //       setFailStationsData(data);
+    //       dataCache.set(cacheKey, data);
+    //       return data;
+    //     })
+    //     .catch(() => {
+    //       setFailStationsData([]);
+    //       return [];
+    //     });
+    // };
 
-    // Memoize the options array so we don't recreate on every render
-    const options = useMemo(() => widgetList.map(w => w.type), []);
+    // const fetchDefectCodes = () => {
+    //   const params = new URLSearchParams();
+    //   if (startDate) {
+    //     const utcStartDate = new Date(startDate);
+    //     utcStartDate.setUTCHours(0, 0, 0, 0);
+    //     params.append('startDate', utcStartDate.toISOString());
+    //   }
+    //   if (endDate) {
+    //     const utcEndDate = new Date(endDate);
+    //     utcEndDate.setUTCHours(23, 59, 59, 999);
+    //     params.append('endDate', utcEndDate.toISOString());
+    //   }
 
-    const handleTabChange = (event, newValue) => { setTabValue(newValue); };
+    //   const cacheKey = `defectCodes_${params.toString()}`;
 
-    const handleChangeSelect = e => { setSelected(e.target.value); };
+    //   const cachedData = dataCache.get(cacheKey);
+    //   if (cachedData) {
+    //     setDefectCodesData(cachedData);
+    //     return Promise.resolve(cachedData);
+    //   }
 
-    const handleAddWidget = () => {
-      const widgetConfig = widgetList.find(i => i.type === selected);
-      //console.log('Adding widget:', { selected, widgetConfig });
-      
-      if (!widgetConfig) {
-        console.error('Widget config not found for type:', selected);
-        return;
-      }
-      
-      const newWidget = {
-        id: Date.now(),
-        type: selected, // Store the type for persistence
-        Widget: widgetConfig.comp,
-        position: widgets.length // For ordering
-      };
-      
-      //console.log('New widget object:', newWidget);
-      
-      dispatch({ type: 'ADD_WIDGET', widget: newWidget });
-      setSelected('');
-      handleCloseSettings();
-    };
+    //   return fetch(`${API_BASE}/api/defect-records/defect-codes?${params.toString()}`)
+    //     .then(res => res.json())
+    //     .then(data => {
+    //       setDefectCodesData(data);
+    //       dataCache.set(cacheKey, data);
+    //       return data;
+    //     })
+    //     .catch(() => {
+    //       setDefectCodesData([]);
+    //       return [];
+    //     });
+    // };
 
-    const handleRemovalToggle = (widgetId) => {
-      setSelectedForRemoval(prev => 
-        prev.includes(widgetId) 
-          ? prev.filter(id => id !== widgetId)
-          : [...prev, widgetId]
-      );
-    };
+    Promise.all([fetchSXM4(), fetchSXM5(), fetchSXM6(), fetchFixtures()])
+      .then(() => setLoading(false)) 
+      .catch(error => {
+        console.error("Error fetching dashboard data:", error);
+        setLoading(false); 
+      });
 
-    // Fixed: use dispatch instead of setWidgets
-    const handleRemoveWidgets = () => {
-      dispatch({ type: 'REMOVE_WIDGETS', widgetIds: selectedForRemoval });
-      setSelectedForRemoval([]);
-      handleCloseSettings();
-    };
+    const interval = setInterval(() => {
+      dataCache.clear();
 
-    const handleDragStart = (e, index) => {
-      setDraggedItem(index);
-      e.dataTransfer.effectAllowed = 'move';
-    };
+      Promise.all([fetchSXM4(), fetchSXM5(), fetchSXM6, fetchFixtures()])
+        .catch(error => console.error("Error refreshing dashboard data:", error));
+    }, refreshInterval);
 
-    const handleDragOver = (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    };
+    return () => clearInterval(interval); 
+  }, [startDate, endDate]);
 
-    // Fixed: use dispatch instead of setWidgets
-    const handleDrop = (e, dropIndex) => {
-      e.preventDefault();
-      if (draggedItem === null) return;
-
-      const newWidgets = [...widgets];
-      const draggedWidget = newWidgets[draggedItem];
-      
-      // Remove the dragged item
-      newWidgets.splice(draggedItem, 1);
-      // Insert at new position
-      newWidgets.splice(dropIndex, 0, draggedWidget);
-      
-      dispatch({ type: 'REORDER_WIDGETS', widgets: newWidgets });
-      setDraggedItem(null);
-    };
-
-    const getWidgetTypeName = (widget) => {
-      // Fixed: use widget.type instead of trying to match component
-      return widget.type || 'Unknown Widget';
-    };
-
-    return (
-      <Modal
-        open={openSettings}
-        onClose={handleCloseSettings}
-        aria-labelledby="modal-title"
-        aria-describedby="modal-description"
-      >
-        <Box sx={{...modalStyle, width: 500, height: 400}}>
-          <Typography variant="h6" component="h2" mb={2}>
-            Dashboard Settings
-          </Typography>
-          
-          <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-            <Tab label="Add" />
-            <Tab label="Remove" />
-            <Tab label="Move" />
-          </Tabs>
-
-          {/* Add Tab */}
-          {tabValue === 0 && (
-            <Box>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="widget-select-label">Choose Widget type</InputLabel>
-                <Select
-                  labelId="widget-select-label"
-                  label="Choose Widget type"
-                  value={selected}
-                  onChange={handleChangeSelect}
-                >
-                  {options.map(type => (
-                    <MenuItem key={type} value={type}>
-                      {type}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              {selected.length > 0 && (
-                <Button 
-                  sx={buttonStyle}
-                  onClick={handleAddWidget}
-                  fullWidth
-                >
-                  Add Widget
-                </Button>
-              )}
-            </Box>
-          )}
-
-          {/* Remove Tab */}
-          {tabValue === 1 && (
-            <Box>
-              {widgets.length === 0 ? (
-                <Typography>No widgets to remove</Typography>
-              ) : (
-                <>
-                  <List>
-                    {widgets.map((widget) => (
-                      <ListItem key={widget.id} dense>
-                        <Checkbox
-                          checked={selectedForRemoval.includes(widget.id)}
-                          onChange={() => handleRemovalToggle(widget.id)}
-                        />
-                        <ListItemText primary={getWidgetTypeName(widget)} />
-                      </ListItem>
-                    ))}
-                  </List>
-                  {selectedForRemoval.length > 0 && (
-                    <Button
-                      sx={buttonStyle}
-                      onClick={handleRemoveWidgets}
-                      fullWidth
-                      color="error"
-                    >
-                      Remove Selected ({selectedForRemoval.length})
-                    </Button>
-                  )}
-                </>
-              )}
-            </Box>
-          )}
-
-          {/* Move Tab */}
-          {tabValue === 2 && (
-            <Box>
-              {widgets.length === 0 ? (
-                <Typography>No widgets to reorder</Typography>
-              ) : (
-                <List>
-                  {widgets.map((widget, index) => (
-                    <ListItem
-                      key={widget.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, index)}
-                      sx={{
-                        cursor: 'move',
-                        border: draggedItem === index ? '2px dashed #ccc' : '1px solid transparent',
-                        mb: 1,
-                        borderRadius: 1,
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                        }
-                      }}
-                    >
-                      <IconButton size="small" sx={{ mr: 1 }}>
-                        <DragIndicator />
-                      </IconButton>
-                      <ListItemText primary={`${index + 1}. ${getWidgetTypeName(widget)}`} />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </Box>
-          )}
-        </Box>
-      </Modal>
-    );
-  }
-  
   return (
     <Box p={1}>
-      <Header 
-        title="Dashboard" 
-        subTitle="Foxconn Quality Dashboard" 
-        settings={true}
-        settingOnClick={getSettingsClick}
-      />
-      {/* Keep the old context provider only for Toolbar components that need individual properties */}
-      <GlobalSettingsContext.Provider value={contextValue}>
-        <Toolbar toolbox={tools}/>
-      </GlobalSettingsContext.Provider>
-      
-      {/* WidgetManager doesn't need the old context wrapper since widgets use useGlobalSettings() */}
-      <WidgetManager widgets={widgets}/>   
-      
-      {openSettings && <SettingsModal/>}
+      <Header title="Dashboard" />
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+        <DateRange
+          startDate={startDate}
+          setStartDate={setStartDate}
+          normalizeStart={normalizeStart}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          normalizeEnd={normalizeEnd}
+          inline= {true}
+        />
+      </div>
+      <Box sx={gridStyle}>
+        <TestStationChart 
+          label={"SXM4 Test Station Performance"}
+          data={testStationDataSXM4} 
+          loading={loading}/>
+        <TestStationChart 
+          label="SXM5 Test Station Performance"
+          data={testStationDataSXM5}
+          loading={loading} />
+        <TestStationChart 
+          label="SXM6 Test Station Performance"
+          data={testStationDataSXM6}
+          loading={loading} />
+        <FixtureFailParetoChart 
+          label={"Fixture Performance"}
+          data={topFixturesData}
+          loading={loading} />
+        {/* <Paper sx={{ p: 2 }}>
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
+              Defect Fail Stations
+            </Typography>
+          </Box>
+          <Box sx={boxStyle}>
+            {loading ? (
+              <CircularProgress />
+            ) : (
+              <ParetoChart data={failStationsData} lineLabel="Cumulative %" />
+            )}
+          </Box>
+        </Paper>
+        <Paper sx={{ p: 2 }}>
+          <Box sx={flexStyle}>
+            <Typography variant="h6" sx={typeStyle} >
+              Most Common Defects
+            </Typography>
+          </Box>
+          <Box sx={boxStyle}>
+            {loading ? (
+              <CircularProgress />
+            ) : (
+              <ParetoChart data={defectCodesData} lineLabel="Cumulative %" />
+            )}
+          </Box>
+        </Paper> */}
+      </Box>
     </Box>
   );
 };
