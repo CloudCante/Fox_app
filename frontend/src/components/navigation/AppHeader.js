@@ -1,13 +1,22 @@
 import React, { useMemo } from 'react';
 import { AppBar, Toolbar, IconButton, Typography, Box } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import { useNavigate } from 'react-router-dom';
 
 const MenuIconElement = <MenuIcon />;
 
 const AppTitle = React.memo(() => {
+  const navigate = useNavigate();
   const version = window?.electronApp?.getVersion?.() || '0.0.0';
+
+  const handleTitleClick = () =>{
+    navigate('/');
+  }
+
   return(
-  <Typography variant="h6" noWrap component="div">
+  <Typography variant="h6" noWrap component="div" onClick={handleTitleClick}
+    sx={{cursor:'pointer', WebkitAppRegion:'no-drag', '&:hover':{opacity:0.8}}}
+  >
     Quality Dashboard
     <Typography component="sub" variant="caption" sx={{ marginLeft: 0.5 }}>
       v{version}

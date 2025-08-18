@@ -12,11 +12,26 @@ import {
   LabelList,
 } from 'recharts';
 import { useTheme, Paper, Box, Typography, CircularProgress } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 // Styles
 import { paperStyle, flexStyle, typeStyle, boxStyle } from '../theme/themes.js';
 
 export const FixtureFailParetoChart = memo(({ label, data, lineLabel = "Failure Rate (%)", loading}) => {
     const theme = useTheme();
+    const navigate = useNavigate();
+
+    const handleBarClick = (data,index) => {
+      if (data && data.activePayload && data.activePayload[0]){
+        const stationName = data.activePayload[0].payload.station;
+        navigate('/snfn',{
+          state:{
+            stationFilter:[stationName],
+            autoFilled:true
+          }
+        });
+      }
+    };
+
     return (
       <Paper sx={paperStyle}>
         <Box sx={flexStyle}>
@@ -38,6 +53,7 @@ export const FixtureFailParetoChart = memo(({ label, data, lineLabel = "Failure 
                   left: 8,
                   bottom: 1,
                 }}
+                onClick={handleBarClick}
               >
                 <CartesianGrid 
                   strokeDasharray="3 3" 
