@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Box, Pagination } from '@mui/material';
 import { useTheme } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import 'react-datepicker/dist/react-datepicker.css';
 
 // Page components
@@ -26,6 +27,8 @@ if (!API_BASE) {
 }
 
 const SnFnPage = () => {
+  const location = useLocation();
+
   // Date range state
   const [startDate, setStartDate] = useState(getInitialStartDate());
   const [endDate, setEndDate] = useState(normalizeDate.end(new Date()));
@@ -79,6 +82,7 @@ const SnFnPage = () => {
   const toggleAsc = useCallback(() => setSortAsc(x => !x), []);
   const toggleByCount = useCallback(() => setByCount(x => !x), []);
 
+
   // Sort options for menu
   const sortOptions = useMemo(() => [
     {
@@ -120,8 +124,21 @@ const SnFnPage = () => {
 
   // Reset station filter on group toggle
   useEffect(() => {
+    console.log('station changed');
     onStationChange({ target: { value: ['__CLEAR__'] } });
   }, [groupByWorkstation]);
+
+  // Handle navigation from dashboardchart
+  useEffect(()=>{
+    if(location.state?.stationFilter && location.state?.autoFilled){
+      onStationChange({
+        target:{
+          value: location.state.stationFilter
+        }
+      });
+      window.history.replaceState({},document.title);
+    }
+  },[location.state,onStationChange]);
 
   // Pagination handler
   const handleChangePage = (event, value) => setPage(value);

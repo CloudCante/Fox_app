@@ -1,5 +1,6 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const packageJson = require('./package.json');
 
 module.exports = {
   packagerConfig: {
@@ -14,6 +15,7 @@ module.exports = {
       config: {
         iconUrl: 'https://raw.githubusercontent.com/CloudCante/fox/main/frontend/build/icons/icon.ico',
         setupIcon: './build/icons/icon.ico',
+        setupExe: `${packageJson.name}-${packageJson.version}-Setup.exe`
       },
     },
     {
