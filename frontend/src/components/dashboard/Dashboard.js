@@ -6,9 +6,6 @@ import { DragIndicator, Delete } from '@mui/icons-material';
 // Third Party Libraries
 import 'react-datepicker/dist/react-datepicker.css';
 
-
-
-
 // Page Components
 import { Header } from '../pagecomp/Header.jsx';
 import { DateRange } from '../pagecomp/DateRange.jsx'
@@ -21,6 +18,8 @@ import { widgetList } from '../../data/widgetList.js';
 import { getInitialStartDate, normalizeDate } from '../../utils/dateUtils.js'
 import { useWeekNavigation } from '../hooks/packingCharts/useWeekNavigation.js';
 import { GlobalSettingsContext, useGlobalSettings } from '../../data/GlobalSettingsContext.js';
+
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const ReadOnlyInput = React.forwardRef((props, ref) => (
   <input {...props} ref={ref} readOnly />
@@ -94,7 +93,7 @@ export const Dashboard = () => {
     },
   ], []);
 
-  const [modalInfo, setModalInfo] = useState([]);
+  //const [modalInfo, setModalInfo] = useState([]);
   const [openSettings, setOpenSettings] = useState(false);
   const handleOpenSettings = () => setOpenSettings(true);
   const handleCloseSettings = () => setOpenSettings(false);
@@ -108,6 +107,7 @@ export const Dashboard = () => {
     const [selected, setSelected] = useState('');
     const [selectedForRemoval, setSelectedForRemoval] = useState([]);
     const [draggedItem, setDraggedItem] = useState(null);
+    const [dragOverIndex, setDragOverIndex] = useState(null);
 
     // Memoize the options array so we don't recreate on every render
     const options = useMemo(() => widgetList.map(w => w.type), []);
@@ -118,7 +118,6 @@ export const Dashboard = () => {
 
     const handleAddWidget = () => {
       const widgetConfig = widgetList.find(i => i.type === selected);
-      //console.log('Adding widget:', { selected, widgetConfig });
       
       if (!widgetConfig) {
         console.error('Widget config not found for type:', selected);
@@ -131,8 +130,6 @@ export const Dashboard = () => {
         Widget: widgetConfig.comp,
         position: widgets.length // For ordering
       };
-      
-      //console.log('New widget object:', newWidget);
       
       dispatch({ type: 'ADD_WIDGET', widget: newWidget });
       setSelected('');
@@ -159,15 +156,25 @@ export const Dashboard = () => {
       e.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleDragOver = (e) => {
+    const handleDragOver = (e, index) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
+      setDragOverIndex(index);
     };
+
+    const handleDragLeave = () => {
+      setDragOverIndex(null);
+    }
 
     // Fixed: use dispatch instead of setWidgets
     const handleDrop = (e, dropIndex) => {
       e.preventDefault();
-      if (draggedItem === null) return;
+      setDragOverIndex(null);
+
+      if (draggedItem === null || draggedItem === dropIndex) {
+        setDraggedItem(null);
+        return;
+      }
 
       const newWidgets = [...widgets];
       const draggedWidget = newWidgets[draggedItem];
@@ -186,6 +193,33 @@ export const Dashboard = () => {
       return widget.type || 'Unknown Widget';
     };
 
+    const resetGlobals = () => {
+      dispatch({ type: 'SET_DATE_RANGE', startDate: getInitialStartDate(7), endDate: normalizeDate.end(new Date()) });
+    }
+
+    // Styles for scrollable containers
+    const scrollableListStyle = {
+      maxHeight: '200px', // Limit height to show about 4-5 items
+      overflow: 'auto',
+      border: '1px solid #e0e0e0',
+      borderRadius: '4px',
+      backgroundColor: '#fafafa',
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: '#f1f1f1',
+        borderRadius: '4px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#c1c1c1',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#a8a8a8',
+        },
+      },
+    };
+
     return (
       <Modal
         open={openSettings}
@@ -193,10 +227,24 @@ export const Dashboard = () => {
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
       >
-        <Box sx={{...modalStyle, width: 500, height: 400}}>
-          <Typography variant="h6" component="h2" mb={2}>
-            Dashboard Settings
-          </Typography>
+        <Box sx={{...modalStyle, width: 500, height: 450}}> {/* Increased height slightly */}
+          <Box sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 1}}>
+            <Typography variant="h6" component="h2" mb={2}>
+              Dashboard Settings
+            </Typography>
+            <IconButton
+              aria-label="settings"
+              size="small"
+              onClick={resetGlobals}
+              title="Reset date range to default"
+            >
+              <AccessTimeIcon />
+            </IconButton>
+          </Box>
           
           <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
             <Tab label="Add" />
@@ -236,28 +284,49 @@ export const Dashboard = () => {
 
           {/* Remove Tab */}
           {tabValue === 1 && (
-            <Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {widgets.length === 0 ? (
-                <Typography>No widgets to remove</Typography>
+                <Typography color="text.secondary">No widgets to remove</Typography>
               ) : (
                 <>
-                  <List>
-                    {widgets.map((widget) => (
-                      <ListItem key={widget.id} dense>
-                        <Checkbox
-                          checked={selectedForRemoval.includes(widget.id)}
-                          onChange={() => handleRemovalToggle(widget.id)}
-                        />
-                        <ListItemText primary={getWidgetTypeName(widget)} />
-                      </ListItem>
-                    ))}
-                  </List>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Select widgets to remove ({widgets.length} total):
+                  </Typography>
+                  <Box sx={scrollableListStyle}>
+                    <List dense>
+                      {widgets.map((widget) => (
+                        <ListItem 
+                          key={widget.id} 
+                          dense
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                            }
+                          }}
+                        >
+                          <Checkbox
+                            checked={selectedForRemoval.includes(widget.id)}
+                            onChange={() => handleRemovalToggle(widget.id)}
+                            size="small"
+                          />
+                          <ListItemText 
+                            primary={getWidgetTypeName(widget)}
+                            secondary={`ID: ${widget.id}`}
+                            primaryTypographyProps={{ variant: 'body2' }}
+                            secondaryTypographyProps={{ variant: 'caption' }}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
                   {selectedForRemoval.length > 0 && (
                     <Button
-                      sx={buttonStyle}
+                      sx={{ ...buttonStyle, mt: 2 }}
                       onClick={handleRemoveWidgets}
                       fullWidth
                       color="error"
+                      variant="contained"
+                      startIcon={<Delete />}
                     >
                       Remove Selected ({selectedForRemoval.length})
                     </Button>
@@ -269,35 +338,65 @@ export const Dashboard = () => {
 
           {/* Move Tab */}
           {tabValue === 2 && (
-            <Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {widgets.length === 0 ? (
-                <Typography>No widgets to reorder</Typography>
+                <Typography color="text.secondary">No widgets to reorder</Typography>
               ) : (
-                <List>
-                  {widgets.map((widget, index) => (
-                    <ListItem
-                      key={widget.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, index)}
-                      sx={{
-                        cursor: 'move',
-                        border: draggedItem === index ? '2px dashed #ccc' : '1px solid transparent',
-                        mb: 1,
-                        borderRadius: 1,
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                        }
-                      }}
-                    >
-                      <IconButton size="small" sx={{ mr: 1 }}>
-                        <DragIndicator />
-                      </IconButton>
-                      <ListItemText primary={`${index + 1}. ${getWidgetTypeName(widget)}`} />
-                    </ListItem>
-                  ))}
-                </List>
+                <>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Drag and drop to reorder widgets ({widgets.length} total):
+                  </Typography>
+                  <Box sx={scrollableListStyle}>
+                    <List dense>
+                      {widgets.map((widget, index) => (
+                        <ListItem
+                          key={widget.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, index)}
+                          sx={{
+                            cursor: 'move',
+                            border: draggedItem === index 
+                              ? '2px dashed #1976d2' 
+                              : dragOverIndex === index 
+                                ? '2px dashed #4caf50' 
+                                : '1px solid transparent',
+                            mb: 0.5,
+                            borderRadius: 1,
+                            backgroundColor: dragOverIndex === index 
+                              ? 'rgba(76, 175, 80, 0.1)' 
+                              : draggedItem === index
+                                ? 'rgba(25, 118, 210, 0.1)'
+                                : 'transparent',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              backgroundColor: dragOverIndex === index 
+                                ? 'rgba(76, 175, 80, 0.1)'
+                                : draggedItem === index
+                                  ? 'rgba(25, 118, 210, 0.1)'
+                                  : 'rgba(0, 0, 0, 0.04)'
+                            }
+                          }}
+                        >
+                          <IconButton size="small" sx={{ mr: 1, cursor: 'grab' }}>
+                            <DragIndicator fontSize="small" />
+                          </IconButton>
+                          <ListItemText 
+                            primary={`${index + 1}. ${getWidgetTypeName(widget)}`}
+                            secondary={`ID: ${widget.id}`}
+                            primaryTypographyProps={{ variant: 'body2' }}
+                            secondaryTypographyProps={{ variant: 'caption' }}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+                    💡 Tip: Drag items to reorder them in the dashboard
+                  </Typography>
+                </>
               )}
             </Box>
           )}
@@ -323,49 +422,6 @@ export const Dashboard = () => {
       <WidgetManager widgets={widgets}/>   
       
       {openSettings && <SettingsModal/>}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     </Box>
   );
 };
