@@ -1,35 +1,112 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
-  Divider, FormControl, Grid, InputLabel, MenuItem,
+  Divider, FormControl, InputLabel, MenuItem,
   Select, Typography, Alert, Stack
 } from '@mui/material';
 import { DateRange } from '../pagecomp/DateRange';
 import PChart from '../charts/PChart';
 import { Header } from '../pagecomp/Header';
-import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
+import { normalizeDate, getInitialStartDate } from '../../utils/dateUtils.js';
 
+// ===== CONSTANTS =====
+const CHART_CONFIG = {
+  MIN_WORKDAYS: 8,
+  MIN_TOTAL_DAYS: 10,
+  LOW_VOLUME_THRESHOLD: 31
+};
+
+const RESET_MAP = {
+  model: ['workstation', 'serviceFlow', 'partNumber'],
+  workstation: ['serviceFlow', 'partNumber'],
+  serviceFlow: ['partNumber'],
+  partNumber: []
+};
+
+// ===== DATA PROCESSING UTILITIES =====
+const groupDataByDate = (rawData) => {
+  return rawData.reduce((acc, point) => {
+    const dateKey = point.date;
+    if (!acc[dateKey]) {
+      acc[dateKey] = {
+        date: point.date,
+        fails: 0,
+        passes: 0,
+        total: 0
+      };
+    }
+    acc[dateKey].fails += point.fail_count;
+    acc[dateKey].passes += point.pass_count;
+    acc[dateKey].total += point.total_count;
+    return acc;
+  }, {});
+};
+
+const mergeLowVolumeDays = (dailyData) => {
+  const processedData = [];
+  for (let i = 0; i < dailyData.length; i++) {
+    const currentDay = dailyData[i];
+    
+    if (currentDay.total < CHART_CONFIG.LOW_VOLUME_THRESHOLD && processedData.length > 0) {
+      const previousDay = processedData[processedData.length - 1];
+      previousDay.fails += currentDay.fails;
+      previousDay.passes += currentDay.passes;
+      previousDay.total += currentDay.total;
+      console.log(`Merged low-volume day ${currentDay.date} (${currentDay.total} parts) into ${previousDay.date}`);
+    } else {
+      processedData.push({ ...currentDay });
+    }
+  }
+  return processedData;
+};
+
+const consolidateDataByDate = (rawData, applyLowVolumeMerging = true) => {
+  const consolidatedByDate = groupDataByDate(rawData);
+  const dailyData = Object.values(consolidatedByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  return applyLowVolumeMerging ? mergeLowVolumeDays(dailyData) : dailyData;
+};
+
+// ===== REUSABLE COMPONENTS =====
+const FilterSelect = ({ config, value, onChange, disabled, loading }) => (
+  <FormControl sx={{ minWidth: 200 }} size="small" disabled={disabled || loading}>
+    <InputLabel>{config.label}{config.required ? ' *' : ''}</InputLabel>
+    <Select
+      value={value}
+      label={`${config.label}${config.required ? ' *' : ''}`}
+      onChange={(e) => onChange(config.key, e.target.value)}
+    >
+      <MenuItem value="">
+        <em>{config.placeholder || `All ${config.label}s`}</em>
+      </MenuItem>
+      {config.options.map(option => (
+        <MenuItem key={option} value={option}>{option}</MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+);
+
+// ===== MAIN COMPONENT =====
 const PerformancePage = () => {
-  // Date handling - Default to 14 days back (15 days total including today)
+  // ===== STATE MANAGEMENT =====
+  // Date handling
   const [startDate, setStartDate] = useState(getInitialStartDate(14));
   const [endDate, setEndDate] = useState(normalizeDate.end(new Date()));
-  const handleStartDateChange = useCallback((date) => {
-    setStartDate(normalizeDate.start(date));
-  }, []);
-  const handleEndDateChange = useCallback((date) => {
-    setEndDate(normalizeDate.end(date));
-  }, []);
-
-  // Filter states (restored selectedPartNumber)
-  const [selectedModel, setSelectedModel] = useState('');
-  const [selectedWorkstation, setSelectedWorkstation] = useState('');
-  const [selectedServiceFlow, setSelectedServiceFlow] = useState('');
-  const [selectedPartNumber, setSelectedPartNumber] = useState('');
-
-  // Available options from API (restored availablePartNumbers)
-  const [availableModels, setAvailableModels] = useState([]);
-  const [availableWorkstations, setAvailableWorkstations] = useState([]);
-  const [availableServiceFlows, setAvailableServiceFlows] = useState([]);
-  const [availablePartNumbers, setAvailablePartNumbers] = useState([]);
+  
+  // Filter states - consolidated into single object for better management
+  const [filters, setFilters] = useState({
+    selected: {
+      model: '',
+      workstation: '',
+      serviceFlow: '',
+      partNumber: ''
+    },
+    available: {
+      models: [],
+      workstations: [],
+      serviceFlows: [],
+      partNumbers: []
+    }
+  });
 
   // Loading and data states
   const [filtersLoading, setFiltersLoading] = useState(false);
@@ -39,69 +116,60 @@ const PerformancePage = () => {
 
   const API_BASE = process.env.REACT_APP_API_BASE;
 
-  // Validate date range for P-Chart requirements (updated for 4-day work week)
-  const validateDateRange = () => {
+  // ===== VALIDATION FUNCTIONS =====
+  const validateDateRange = useCallback(() => {
     const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-    return daysDiff >= 9; // Minimum 10 days total for 8 workdays (4-day work week * 2 weeks)
-  };
+    return daysDiff >= CHART_CONFIG.MIN_TOTAL_DAYS - 1;
+  }, [startDate, endDate]);
 
-  // Enhanced frontend consolidation function
-  const consolidateDataByDate = (rawData, applyLowVolumeMerging = true) => {
-    const consolidatedByDate = rawData.reduce((acc, point) => {
-      const dateKey = point.date;
-      
-      if (!acc[dateKey]) {
-        acc[dateKey] = {
-          date: point.date,
-          fails: 0,
-          passes: 0,
-          total: 0
-        };
-      }
-      
-      acc[dateKey].fails += point.fail_count;
-      acc[dateKey].passes += point.pass_count;
-      acc[dateKey].total += point.total_count;
-      
-      return acc;
-    }, {});
+  // ===== EVENT HANDLERS =====
+  const handleStartDateChange = useCallback((date) => {
+    setStartDate(normalizeDate.start(date));
+  }, []);
 
-    // Convert to array and sort by date
-    let dailyData = Object.values(consolidatedByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const handleEndDateChange = useCallback((date) => {
+    setEndDate(normalizeDate.end(date));
+  }, []);
+
+  // Generic filter change handler
+  const handleFilterChange = useCallback((filterKey, value) => {
+    setFilters(prev => {
+      const newSelected = { ...prev.selected, [filterKey]: value };
+      
+      // Reset dependent filters
+      const toReset = RESET_MAP[filterKey] || [];
+      toReset.forEach(key => {
+        newSelected[key] = '';
+      });
+      
+      return {
+        ...prev,
+        selected: newSelected
+      };
+    });
     
-    // Handle low-volume days (< 31 total parts) - only when viewing all service flows
-    if (applyLowVolumeMerging) {
-      const processedData = [];
-      for (let i = 0; i < dailyData.length; i++) {
-        const currentDay = dailyData[i];
-        
-        if (currentDay.total < 31 && processedData.length > 0) {
-          // Merge into previous day
-          const previousDay = processedData[processedData.length - 1];
-          previousDay.fails += currentDay.fails;
-          previousDay.passes += currentDay.passes;
-          previousDay.total += currentDay.total;
-          
-          console.log(`Merged low-volume day ${currentDay.date} (${currentDay.total} parts) into ${previousDay.date}`);
-        } else {
-          // Add as new day
-          processedData.push({
-            date: currentDay.date,
-            fails: currentDay.fails,
-            passes: currentDay.passes,
-            total: currentDay.total
+    // Trigger cascading API calls
+    if (filterKey === 'model' && value) {
+      fetchFilters(value);
+    } else if (filterKey === 'workstation' && value && filters.selected.model) {
+      fetchFilters(filters.selected.model, value);
+    } else if (!value) {
+      // Clear dependent available options when clearing a filter
+      const toReset = RESET_MAP[filterKey] || [];
+      if (toReset.length > 0) {
+        setFilters(prev => {
+          const newAvailable = { ...prev.available };
+          toReset.forEach(key => {
+            newAvailable[`${key}s`] = [];
           });
-        }
+          return { ...prev, available: newAvailable };
+        });
       }
-      return processedData;
-    } else {
-      // No low-volume merging for specific service flow analysis
-      return dailyData;
     }
-  };
+  }, [filters.selected.model]);
 
-  // Fetch available filter options with cascading logic
-  const fetchFilters = async (model = '', workstation = '') => {
+  // ===== API FUNCTIONS =====
+  const fetchFilters = useCallback(async (model = '', workstation = '') => {
     setFiltersLoading(true);
     try {
       const params = new URLSearchParams();
@@ -114,29 +182,17 @@ const PerformancePage = () => {
         throw new Error(`Filter API error: ${response.status}`);
       }
 
-      const filters = await response.json();
+      const filterData = await response.json();
       
-      // Always update models
-      setAvailableModels(filters.models || []);
-      
-      // Update workstations if model is selected
-      if (model && filters.workstations) {
-        setAvailableWorkstations(filters.workstations);
-      } else {
-        setAvailableWorkstations([]);
-        setSelectedWorkstation('');
-      }
-      
-      // Update service flows and part numbers if both model and workstation are selected
-      if (model && workstation) {
-        setAvailableServiceFlows(filters.serviceFlows || []);
-        setAvailablePartNumbers(filters.partNumbers || []);
-      } else {
-        setAvailableServiceFlows([]);
-        setAvailablePartNumbers([]);
-        setSelectedServiceFlow('');
-        setSelectedPartNumber('');
-      }
+      setFilters(prev => ({
+        ...prev,
+        available: {
+          models: filterData.models || prev.available.models,
+          workstations: model && filterData.workstations ? filterData.workstations : [],
+          serviceFlows: model && workstation ? (filterData.serviceFlows || []) : [],
+          partNumbers: model && workstation ? (filterData.partNumbers || []) : []
+        }
+      }));
 
     } catch (error) {
       console.error('Error fetching filters:', error);
@@ -144,17 +200,19 @@ const PerformancePage = () => {
     } finally {
       setFiltersLoading(false);
     }
-  };
+  }, [API_BASE]);
 
-  // Fetch P-Chart data
-  const fetchPChartData = async () => {
-    if (!selectedModel || !selectedWorkstation) {
+  const fetchPChartData = useCallback(async () => {
+    const { model, workstation, serviceFlow, partNumber } = filters.selected;
+    
+    if (!model || !workstation) {
       setPChartData([]);
       return;
     }
 
     if (!validateDateRange()) {
-      setError('P-Chart requires minimum 10 days for 8 workdays (4-day work week). Please select a larger date range.');
+      const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      setError(`P-Chart requires minimum ${CHART_CONFIG.MIN_TOTAL_DAYS} days for ${CHART_CONFIG.MIN_WORKDAYS} workdays (4-day work week). Current range: ${daysDiff} days`);
       setPChartData([]);
       return;
     }
@@ -163,18 +221,15 @@ const PerformancePage = () => {
     setError('');
     
     try {
-      const params = new URLSearchParams();
-      params.append('startDate', startDate.toISOString().split('T')[0]);
-      params.append('endDate', endDate.toISOString().split('T')[0]);
-      params.append('model', selectedModel);
-      params.append('workstation', selectedWorkstation);
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        model,
+        workstation
+      });
       
-      if (selectedServiceFlow) {
-        params.append('serviceFlow', selectedServiceFlow);
-      }
-      if (selectedPartNumber) {
-        params.append('pn', selectedPartNumber);
-      }
+      if (serviceFlow) params.append('serviceFlow', serviceFlow);
+      if (partNumber) params.append('pn', partNumber);
 
       const response = await fetch(`${API_BASE}/api/pchart/data?${params.toString()}`);
       
@@ -185,25 +240,21 @@ const PerformancePage = () => {
 
       const rawData = await response.json();
       
-      // Frontend consolidation: Group multiple part numbers per day (unless specific part number selected)
+      // Process data based on selection
       let processedData;
-      if (selectedPartNumber) {
-        // If specific part number selected, use raw data
+      if (partNumber) {
         processedData = rawData.map(point => ({
           date: point.date,
           fails: point.fail_count,
           passes: point.pass_count
         }));
       } else {
-        // If no specific part number, consolidate all part numbers per day
-        // Only apply low-volume merging when NOT filtering by specific service flow
-        const shouldApplyLowVolumeMerging = !selectedServiceFlow;
+        const shouldApplyLowVolumeMerging = !serviceFlow;
         processedData = consolidateDataByDate(rawData, shouldApplyLowVolumeMerging);
       }
 
-      // Validate we have enough data points after consolidation (updated for 4-day work week)
-      if (processedData.length < 8) {
-        setError(`P-Chart requires minimum 8 data points for 4-day work week. Found ${processedData.length} points after consolidation.`);
+      if (processedData.length < CHART_CONFIG.MIN_WORKDAYS) {
+        setError(`P-Chart requires minimum ${CHART_CONFIG.MIN_WORKDAYS} data points for 4-day work week. Found ${processedData.length} points after consolidation.`);
         setPChartData([]);
         return;
       }
@@ -217,88 +268,114 @@ const PerformancePage = () => {
     } finally {
       setDataLoading(false);
     }
-  };
+  }, [filters.selected, startDate, endDate, validateDateRange, API_BASE]);
 
-  // Handle model selection change
-  const handleModelChange = (event) => {
-    const newModel = event.target.value;
-    setSelectedModel(newModel);
-    setSelectedWorkstation('');
-    setSelectedServiceFlow('');
-    setSelectedPartNumber('');
+  // ===== COMPUTED VALUES =====
+  const chartLabels = useMemo(() => {
+    const { model, workstation, serviceFlow, partNumber } = filters.selected;
     
-    if (newModel) {
-      fetchFilters(newModel);
-    } else {
-      setAvailableWorkstations([]);
-      setAvailableServiceFlows([]);
-      setAvailablePartNumbers([]);
-    }
-  };
-
-  // Handle workstation selection change
-  const handleWorkstationChange = (event) => {
-    const newWorkstation = event.target.value;
-    setSelectedWorkstation(newWorkstation);
-    setSelectedServiceFlow('');
-    setSelectedPartNumber('');
+    const title = workstation && model 
+      ? `${workstation} Station - ${model}` 
+      : 'P-Chart Analysis';
+      
+    const subtitle = [
+      `Analysis Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`,
+      serviceFlow ? `Service Flow: ${serviceFlow}` : null,
+      partNumber ? `Part Number: ${partNumber}` : 'All Part Numbers Combined'
+    ].filter(Boolean).join(' | ');
     
-    if (newWorkstation && selectedModel) {
-      fetchFilters(selectedModel, newWorkstation);
-    } else {
-      setAvailableServiceFlows([]);
-      setAvailablePartNumbers([]);
-    }
-  };
+    return { title, subtitle };
+  }, [filters.selected, startDate, endDate]);
 
-  // Initial load - fetch models
+  const filterConfigs = useMemo(() => [
+    {
+      key: 'model',
+      label: 'Model',
+      required: true,
+      placeholder: 'Select Model',
+      options: filters.available.models,
+      disabled: false
+    },
+    {
+      key: 'workstation',
+      label: 'Workstation',
+      required: true,
+      placeholder: 'Select Workstation',
+      options: filters.available.workstations,
+      disabled: !filters.selected.model
+    },
+    {
+      key: 'serviceFlow',
+      label: 'Service Flow',
+      required: false,
+      options: filters.available.serviceFlows,
+      disabled: !filters.selected.workstation
+    },
+    {
+      key: 'partNumber',
+      label: 'Part Number',
+      required: false,
+      options: filters.available.partNumbers,
+      disabled: !filters.selected.workstation
+    }
+  ], [filters]);
+
+  // ===== EFFECTS =====
   useEffect(() => {
     fetchFilters();
-  }, []);
+  }, [fetchFilters]);
 
-  // Fetch data when filters or dates change (restored selectedPartNumber dependency)
   useEffect(() => {
-    if (selectedModel && selectedWorkstation) {
+    if (filters.selected.model && filters.selected.workstation) {
       fetchPChartData();
     }
-  }, [startDate, endDate, selectedModel, selectedWorkstation, selectedServiceFlow, selectedPartNumber]);
+  }, [fetchPChartData]);
 
-  // Generate chart title and subtitle
-  const getChartTitle = () => {
-    let title = 'P-Chart Analysis';
-    if (selectedWorkstation && selectedModel) {
-      title = `${selectedWorkstation} Station - ${selectedModel}`;
-    }
-    return title;
-  };
+  // ===== COMPONENT DEFINITIONS =====
+  const FilterControls = () => (
+    <Box sx={{ mb: 4, position: 'relative', zIndex: 999 }}>
+      <Typography variant="h6" gutterBottom>Filters</Typography>
+      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+        {filterConfigs.map(config => (
+          <FilterSelect
+            key={config.key}
+            config={config}
+            value={filters.selected[config.key]}
+            onChange={handleFilterChange}
+            disabled={config.disabled}
+            loading={filtersLoading}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
 
-  const getChartSubtitle = () => {
-    let subtitle = `Analysis Period: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-    if (selectedServiceFlow) {
-      subtitle += ` | Service Flow: ${selectedServiceFlow}`;
-    }
-    if (selectedPartNumber) {
-      subtitle += ` | Part Number: ${selectedPartNumber}`;
-    } else {
-      subtitle += ` | All Part Numbers Combined`;
-    }
-    return subtitle;
-  };
+  // ===== RENDER =====
+  const isDateRangeValid = validateDateRange();
+  const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
   return (
     <Container maxWidth="xl">
-      <Box >
+      <Box>
         <Header
           title="Quality Control Charts"
-          subTitle="Statistical Process Control (SPC) Analysis using P-Charts - Minimum 8 workdays required (4-day work week)"
+          subTitle={`Statistical Process Control (SPC) Analysis using P-Charts - Minimum ${CHART_CONFIG.MIN_WORKDAYS} workdays required (4-day work week)`}
         />
       </Box>
 
       <Divider />
 
       {/* Date Range Controls */}
-      <Box sx={{ mb: 4, position: 'relative', zIndex: 1000, display: 'flex', alignItems:'center', justifyItems:'start',gap:2 } }>
-        <Header title="Date Range" titleVariant="h6"/>
+      <Box sx={{ 
+        mb: 4, 
+        position: 'relative', 
+        zIndex: 1000, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyItems: 'start', 
+        gap: 2 
+      }}>
+        <Header title="Date Range" titleVariant="h6" />
         <DateRange
           startDate={startDate}
           setStartDate={handleStartDateChange}
@@ -309,82 +386,15 @@ const PerformancePage = () => {
           inline={true}
         />
         
-        {!validateDateRange() && (
+        {!isDateRangeValid && (
           <Alert severity="warning" sx={{ mt: 2 }}>
-            P-Chart requires minimum 10 days for 8 workdays (4-day work week). Current range: {Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1} days
+            P-Chart requires minimum {CHART_CONFIG.MIN_TOTAL_DAYS} days for {CHART_CONFIG.MIN_WORKDAYS} workdays (4-day work week). Current range: {daysDiff} days
           </Alert>
         )}
       </Box>
 
       {/* Filter Controls */}
-      <Box sx={{ mb: 4, position: 'relative', zIndex: 999 }}>
-        <Typography variant="h6" gutterBottom>Filters</Typography>
-        <Stack 
-          direction="row"
-          spacing={2}
-          alignItems="center"
-          flexWrap="wrap"
-        >
-          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading}>
-            <InputLabel>Model *</InputLabel>
-            <Select
-              value={selectedModel}
-              label="Model *"
-              onChange={handleModelChange}
-            >
-              <MenuItem value=""><em>Select Model</em></MenuItem>
-              {availableModels.map(model => (
-                <MenuItem key={model} value={model}>{model}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading || !selectedModel}>
-            <InputLabel>Workstation *</InputLabel>
-            <Select
-              value={selectedWorkstation}
-              label="Workstation *"
-              onChange={handleWorkstationChange}
-            >
-              <MenuItem value=""><em>Select Workstation</em></MenuItem>
-              {availableWorkstations.map(ws => (
-                <MenuItem key={ws} value={ws}>{ws}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading || !selectedWorkstation}>
-            <InputLabel>Service Flow *</InputLabel>
-            <Select
-              value={selectedServiceFlow}
-              label="Service Flow *"
-              onChange={e => setSelectedServiceFlow(e.target.value)}
-              disabled={filtersLoading || !selectedWorkstation || availableServiceFlows.length === 0}
-            >
-              <MenuItem value=""><em>All Service Flow</em></MenuItem>
-              {availableServiceFlows.map(sf => (
-                <MenuItem key={sf} value={sf}>{sf}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 200 }} size="small" disabled={filtersLoading || !selectedWorkstation}>
-            <InputLabel>Part Number *</InputLabel>
-            <Select
-              value={selectedPartNumber}
-              label="Part Number *"
-              onChange={e => setSelectedPartNumber(e.target.value)}
-              disabled={filtersLoading || !selectedWorkstation || availablePartNumbers.length === 0}
-            >
-              <MenuItem value=""><em>All Part Numbers</em></MenuItem>
-              {availablePartNumbers.map(pn => (
-                <MenuItem key={pn} value={pn}>{pn}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {/* ...and so on for Service Flow and Part Number */}
-        </Stack>
-      </Box>
+      <FilterControls />
 
       {/* Error Display */}
       {error && (
@@ -396,11 +406,11 @@ const PerformancePage = () => {
       {/* Chart */}
       <Card>
         <CardHeader 
-          title={getChartTitle()}
+          title={chartLabels.title}
           subheader="Statistical Process Control Analysis"
         />
         <CardContent>
-          {!selectedModel || !selectedWorkstation ? (
+          {!filters.selected.model || !filters.selected.workstation ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <Header
                 title="Select Model and Workstation to View P-Chart"
@@ -417,10 +427,10 @@ const PerformancePage = () => {
           ) : (
             <PChart
               data={pChartData}
-              title={getChartTitle()}
-              subtitle={getChartSubtitle()}
-              station={selectedWorkstation}
-              model={selectedModel}
+              title={chartLabels.title}
+              subtitle={chartLabels.subtitle}
+              station={filters.selected.workstation}
+              model={filters.selected.model}
             />
           )}
         </CardContent>
