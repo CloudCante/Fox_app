@@ -15,6 +15,7 @@ import StationHourlySummaryPage from './components/pages/StationHourlySummaryPag
 import StationCycleTime from './components/pages/CycleTime';
 import MostRecentFail from './components/pages/MostRecentFail';
 import ParetoPage from './components/pages/ParetoPage';
+import TestStationPerformancePage from './components/pages/TestStationPerformancePage';
 import ByErrorCode from './components/pages/ByErrorCode';
 import TestStationPerformancePage from './components/pages/TestStationPerformancePage';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';

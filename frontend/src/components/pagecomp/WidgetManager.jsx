@@ -1,9 +1,12 @@
 // Global Variable Toolbar for Dashboard - Fixed prop name with debugging
-import React, { useState, Component } from 'react';
+import React, { useState, Component, useEffect, useMemo } from 'react';
 import { Box, Button, Typography } from '@mui/material';
 import { Header } from '../pagecomp/Header.jsx'
 import { gridStyle } from '../theme/themes.js';
-import { GlobalSettingsContext } from '../../data/GlobalSettingsContext.js';
+import { GlobalSettingsContext, useGlobalSettings } from '../../data/GlobalSettingsContext.js';
+import { useTestStationData } from '../hooks/widget/useTestStationData.js';
+
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 // Error Boundary to catch widget rendering errors
 class ErrorBoundary extends Component {
@@ -36,6 +39,14 @@ class ErrorBoundary extends Component {
 export function WidgetManager({
     widgets = []
 }) {
+    const { state, dispatch } = useGlobalSettings();
+    const { startDate, endDate } = state;
+
+    // const {testStationData,loading} = useTestStationData(API_BASE,startDate,endDate);
+    // useEffect(()=>{ test to confrim memo is working
+    //     console.log('Station Data: ',testStationData);
+    //     return;
+    // },[testStationData])
 
     if (!Array.isArray(widgets) || widgets.length === 0) {
         return (
@@ -53,13 +64,13 @@ export function WidgetManager({
         
     return (
         <Box sx={gridStyle} >
-            {widgets.map(({ id, Widget }, index) => {                
+            {widgets.map(({ id, Widget }, index) => {             
                 return (
                     <Box key={id} sx={{ textAlign: 'center', py: 8 }}>
                         {/* Add error boundary check */}
                         {Widget ? (
                             <ErrorBoundary widgetId={id}>
-                                <Widget widgetId={id} />
+                                <Widget widgetId={id}/>
                             </ErrorBoundary>
                         ) : (
                             <Typography>Widget component missing for id: {id}</Typography>
