@@ -30,3 +30,11 @@ export const stationBuckets = {
   shipping:["RECEIVE","PACKING","SHIPPING"],
   sorting:["Warehouse","SORTING"]
 };
+
+export const widgetList = [
+  {type:"Station performance chart",params:[{type:"list",values:["Model"]}],tools:["dateRange","barRange"]},
+  {type:"Fixture performance chart",params:[],tools:["dateRange","barRange"]},
+  {type:"Packing output table",params:[{type:"list",values:["Model"]}],tools:["dateRange"]},
+  {type:"Packing chart",params:[{type:"list",values:["Model"]},{type:"list",values:["daily","weekly"]}],tools:["dateRange"]},
+  {type:"Pareto chart",params:[{type:"list",values:["Model"]}],tools:["dateRange","barRange"]},
+];
