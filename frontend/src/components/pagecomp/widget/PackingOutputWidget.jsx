@@ -204,6 +204,9 @@ export function PackingOutputWidget({ widgetId }) {
         updateWidgetSettings({ loaded: true });
         setRefreshKey(k=>k+1);
     };
+    const selectedGroup = useMemo(
+        ()=> groups.find(g => g.key ===model) || null,[groups,model]
+    );
 
     if ( !loaded ){
         return(
@@ -240,9 +243,6 @@ export function PackingOutputWidget({ widgetId }) {
             </Paper>
         );
     }
-    const selectedGroup = useMemo(
-        ()=> groups.find(g => g.key ===model) || null,[groups,model]
-    );
     if(!selectedGroup){
         return(
             <Paper sx={paperStyle}>

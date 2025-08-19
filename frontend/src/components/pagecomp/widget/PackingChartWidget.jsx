@@ -160,7 +160,8 @@ export function PackingChartWidget({widgetId}) {
     if(data.length === 0){return <Typography color="error">Error: Data failed to load</Typography>}
     //console.log(data)
     return (
-        <>
+        <Paper
+        sx={paperStyle}>
             {loading ? <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
                     <CircularProgress />
                 </Box> :
@@ -172,7 +173,7 @@ export function PackingChartWidget({widgetId}) {
                 showTrendLine={showTrend}
                 showAvgLine={showAvg}
             />}
-        </>
+        </Paper>
 
     );
 }
