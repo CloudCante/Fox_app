@@ -279,6 +279,7 @@ export function PackingOutputWidget({ widgetId }) {
                     zIndex: 0,       
                 }}
             >
+                <Header title = {`${model} Packing Output`} titleVariant = 'h6'/>
                 <PackingPageTable
                     key={selectedGroup.key}
                     header={selectedGroup.label}

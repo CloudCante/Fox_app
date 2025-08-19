@@ -22,19 +22,45 @@ const modelKeys = [
 ]
 const options =  modelKeys.map(w => w.id);
 // label, data ,loading
-export function PackingChartWidget() {
-    const { startDate, endDate, weekRange, barLimit, currentISOWeekStart} = useContext(GlobalSettingsContext);
+export function PackingChartWidget({widgetId}) {
+    const { state, dispatch } = useGlobalSettings();
+    const { startDate, endDate, barLimit, currentISOWeekStart } = state;
+    if (!state) {
+        return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Loading global state...</Box></Paper>;
+    }    
+    if (!widgetId) {
+        return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Widget ID missing</Box></Paper>;
+    }    
+    const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
+
+    //const { startDate, endDate, weekRange, barLimit, currentISOWeekStart} = useContext(GlobalSettingsContext);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true); 
     const [error, setError] = useState(null); 
-
-    const [model,setModel]= useState('');
-    const [timeFrame,setTimeFrame]= useState('');
     const [showTrend,setShowTrend]= useState(false);
     const [showAvg,setShowAvg]= useState(false);
     const [color,setColor]= useState(false);
 
-    const [loaded,setLoaded] = useState(false);
+    useEffect(() => {
+        if (!state.widgetSettings || !state.widgetSettings[widgetId]) {
+            dispatch({
+                type: 'UPDATE_WIDGET_SETTINGS',
+                widgetId,
+                settings: {}
+            });
+        }
+    }, [widgetId, state.widgetSettings, dispatch]);
+    const model = widgetSettings.model || '';
+    const timeFrame = widgetSettings.timeFrame || '';
+    const loaded = widgetSettings.loaded || false;
+
+    const updateWidgetSettings = (updates) => {
+        dispatch({
+            type: 'UPDATE_WIDGET_SETTINGS',
+            widgetId,
+            settings: { ...widgetSettings, ...updates }
+        });
+    };
 
     const {
         dailyData,
@@ -64,13 +90,17 @@ export function PackingChartWidget() {
         const selectedId = e.target.value;
         const entry = modelKeys.find(mk => mk.id === selectedId);
         if (entry) {
-        setModel(entry.model);
+        updateWidgetSettings({model:entry.model});
         setData([]); // reset data
         }
     };
     const handleSetTimeFrame= e => {
         const selectedId = e.target.value;
-        setTimeFrame(selectedId);
+        updateWidgetSettings({timeFrame:selectedId});
+    };
+    
+    const handleLoadChart = () => {
+        updateWidgetSettings({ loaded: true });
     };
 
     if (!loaded){
@@ -121,7 +151,7 @@ export function PackingChartWidget() {
                         onClick={()=>setShowAvg(!showAvg)}>{showAvg?"Don't show Avg line":'Show Avg line'}</Button>
                     </Box>
                     {(model.length > 0 && timeFrame.length > 0) && (
-                        <Button sx={buttonStyle} onClick={() => setLoaded(true)}>Load Chart</Button>
+                        <Button sx={buttonStyle} onClick={handleLoadChart}>Load Chart</Button>
                     )}
                 </Box>
             </Paper>
