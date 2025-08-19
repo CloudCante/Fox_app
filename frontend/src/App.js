@@ -17,6 +17,7 @@ import MostRecentFail from './components/pages/MostRecentFail';
 import ParetoPage from './components/pages/ParetoPage';
 import TestStationPerformancePage from './components/pages/TestStationPerformancePage';
 import ByErrorCode from './components/pages/ByErrorCode';
+import JsonToCsv from './components/pages/JsonToCSV';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 import './components/theme/theme.css';
@@ -53,6 +54,7 @@ const AppRoutes = React.memo(() => (
       <Route path="/pareto" element={<ParetoPage />} />
       <Route path="/station-performance" element={<TestStationPerformancePage/>}/>
       <Route path="/by-error" element={<ByErrorCode/>}/>
+      <Route path="/json-to-csv" element={<JsonToCsv/>}/>
       {process.env.NODE_ENV === 'development' && (
         <Route path="/dev/upload" element={<UploadPage />} />
       )}

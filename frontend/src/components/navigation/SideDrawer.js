@@ -60,7 +60,8 @@ const DEV_MENU_ITEMS = [
   { text: 'Auxiliary Reports', icon: <SpeedIcon />, children:[
     { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
     { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' },
-    { text: 'Get by Error', icon: <TableChartIcon />, route: '/by-error' }
+    { text: 'Get by Error', icon: <TableChartIcon />, route: '/by-error' },
+    { text: 'Json to CSV', icon: <TableChartIcon />, route: '/json-to-csv' }
   ]
   }
 ];
