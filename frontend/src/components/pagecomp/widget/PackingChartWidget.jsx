@@ -1,14 +1,11 @@
 // Widget for TestStation Reports
-import React,{useState, useEffect, useContext} from 'react';
+import React,{useState, useEffect} from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper, CircularProgress } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
-import { gridStyle, paperStyle } from '../../theme/themes.js';
-import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
+import { paperStyle } from '../../theme/themes.js';
 import  PackingOutputBarChart  from '../../charts/PackingOutputBarChart.js';
 import { buttonStyle } from '../../theme/themes.js';
 import { usePackingData } from '../../hooks/packingCharts/usePackingData.js';
-import { useWeekNavigation } from '../../hooks/packingCharts/useWeekNavigation.js';
-import { GlobalSettingsContext } from '../../../data/GlobalSettingsContext.js';
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -33,7 +30,6 @@ export function PackingChartWidget({widgetId}) {
     }    
     const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
 
-    //const { startDate, endDate, weekRange, barLimit, currentISOWeekStart} = useContext(GlobalSettingsContext);
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true); 
     const [error, setError] = useState(null); 
@@ -98,7 +94,6 @@ export function PackingChartWidget({widgetId}) {
         const selectedId = e.target.value;
         updateWidgetSettings({timeFrame:selectedId});
     };
-    
     const handleLoadChart = () => {
         updateWidgetSettings({ loaded: true });
     };
@@ -117,9 +112,9 @@ export function PackingChartWidget({widgetId}) {
                     <FormControl fullWidth>
                         <InputLabel id="model-select-label">Choose Model</InputLabel>
                         <Select
-                        label="Choose Model"
-                        value = {modelKeys.find(mk => mk.model === model)?.id || ''}
-                        onChange={handleSetModelKey}
+                            label="Choose Model"
+                            value = {modelKeys.find(mk => mk.model === model)?.id || ''}
+                            onChange={handleSetModelKey}
                         >
                         {modelKeys.map(mk =>(
                             <MenuItem key={mk.id}value={mk.id}>
@@ -131,9 +126,9 @@ export function PackingChartWidget({widgetId}) {
                     <FormControl fullWidth>
                         <InputLabel id="model-select-label">Select Time Frame</InputLabel>
                         <Select
-                        label="Choose Timeframe"
-                        value = {timeFrame}
-                        onChange={handleSetTimeFrame}
+                            label="Choose Timeframe"
+                            value = {timeFrame}
+                            onChange={handleSetTimeFrame}
                         >
                             <MenuItem value={'Daily'}>
                             Daily
@@ -143,12 +138,19 @@ export function PackingChartWidget({widgetId}) {
                             </MenuItem>
                         </Select>
                     </FormControl>
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between', alignItems: 'center',}}>
-                        <Button sx={buttonStyle}variant="contained" size='small'
-                        onClick={()=>setShowTrend(!showTrend)}>{showTrend?"Don't show Trendline":'Show Trendline'}</Button>
-                        
-                        <Button sx={buttonStyle}variant="contained" size='small'
-                        onClick={()=>setShowAvg(!showAvg)}>{showAvg?"Don't show Avg line":'Show Avg line'}</Button>
+                    <Box 
+                        sx={{ display: 'flex', gap: 2, justifyContent: 'space-between', alignItems: 'center',}}
+                    >
+                        <Button 
+                            sx={buttonStyle}variant="contained" size='small'
+                        onClick={()=>setShowTrend(!showTrend)}>
+                            {showTrend?"Don't show Trendline":'Show Trendline'}
+                        </Button>                        
+                        <Button 
+                            sx={buttonStyle}variant="contained" size='small'
+                        onClick={()=>setShowAvg(!showAvg)}>
+                            {showAvg?"Don't show Avg line":'Show Avg line'}
+                        </Button>
                     </Box>
                     {(model.length > 0 && timeFrame.length > 0) && (
                         <Button sx={buttonStyle} onClick={handleLoadChart}>Load Chart</Button>
@@ -157,7 +159,13 @@ export function PackingChartWidget({widgetId}) {
             </Paper>
         );
     }
-    if(data.length === 0){return <Typography color="error">Error: Data failed to load</Typography>}
+    if(data.length === 0){
+        return( 
+            <Paper sx={paperStyle}>
+                <Typography color="error">Error: Data failed to load</Typography>
+            </Paper>
+        )
+    }
     //console.log(data)
     return (
         <Paper
@@ -166,13 +174,14 @@ export function PackingChartWidget({widgetId}) {
                     <CircularProgress />
                 </Box> :
             error ? <Typography color="error">{error}</Typography> :
-            <PackingOutputBarChart
+                <PackingOutputBarChart
                 title={`${timeFrame} Packing Output for ${model}`}
                 data={data}
                 color="#4caf50"
                 showTrendLine={showTrend}
                 showAvgLine={showAvg}
-            />}
+            />
+            }
         </Paper>
 
     );

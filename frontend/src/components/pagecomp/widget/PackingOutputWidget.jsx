@@ -13,12 +13,13 @@ const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
 }
-const modelKeys = [
-    {id:"Tesla SXM4", model:"Tesla SXM4", key:"sxm4"},
-    {id:"Tesla SXM5", model:"Tesla SXM5", key:"sxm5"},
-    {id:"Tesla SXM6", model:"SXM6", key:"sxm6"}
+const widgetKeys = [
+    {id:"Tesla SXM4", model:"Tesla SXM4"},
+    {id:"Tesla SXM5", model:"Tesla SXM5"},
+    {id:"Tesla SXM6", model:"SXM6"},
+    {id:"Red October",model:"Red October"},
 ]
-const options =  modelKeys.map(w => w.id);
+const options =  widgetKeys.map(w => w.id);
 // label, data ,loading
 export function PackingOutputWidget({ widgetId }) {
     const { state, dispatch } = useGlobalSettings();
@@ -44,10 +45,8 @@ export function PackingOutputWidget({ widgetId }) {
 
     const [data, setData] = useState([]);
     const [copied, setCopied] = useState({ group: '', date: '' });
-    //const [dateRange,setDateRange] = useState([]);
 
     const model = widgetSettings.model || '';
-    //const key = widgetSettings.key || '';
     const loaded = widgetSettings.loaded || false;
 
     const updateWidgetSettings = (updates) => {
@@ -62,21 +61,6 @@ export function PackingOutputWidget({ widgetId }) {
     const [refreshKey,setRefreshKey] = useState(0)
     const {packingData, sortData, lastUpdated, refetch } = usePackingData(API_BASE,startDate,endDate,300_000,{enabled,refreshKey});
     
-    // useEffect(() => {
-    //     if (!loaded) return;
-    //     //get Date Range
-    //     const dates = []
-    //     const current = new Date(startDate);
-    //     const formatDate = (date) => {return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`};
-    //     while(current <= endDate){
-    //         dates.push(formatDate(new Date(current)));
-    //         current.setDate(current.getDate()+1);
-    //     }
-    //     setDateRange(dates);
-    //     // fetch Data
-    //     console.log("Fetched:",packingData[model]);
-    //     setData(packingData[model]);
-    // }, [model, key, startDate, endDate,loaded,widgetId]);
     const dateRange = useMemo(() => {
         const dates = [];
         const current = new Date(startDate);
@@ -146,7 +130,6 @@ export function PackingOutputWidget({ widgetId }) {
         try {
         const totals = dateRange.reduce((acc, date) => {
             let total = 0;
-            
             // Sum up all parts from all models for this date
             Object.values(packingData).forEach(model => {
             if (model?.parts) {
@@ -156,12 +139,10 @@ export function PackingOutputWidget({ widgetId }) {
                 });
             }
             });
-            
             // Always add the total (even if zero)
             acc[date] = total;
             return acc;
         }, {});
-
 
         return totals;
         } catch (error) {
@@ -191,7 +172,7 @@ export function PackingOutputWidget({ widgetId }) {
 
     const handleSetModelKey= e => {
         const selectedId = e.target.value;
-        const entry = modelKeys.find(mk => mk.id === selectedId);
+        const entry = widgetKeys.find(mk => mk.id === selectedId);
         if (entry) {
             updateWidgetSettings({
                 model: entry.model,
@@ -223,10 +204,10 @@ export function PackingOutputWidget({ widgetId }) {
                         <InputLabel id="model-select-label">Choose Model</InputLabel>
                         <Select
                         label="Choose Model"
-                        value = {modelKeys.find(mk => mk.model === model)?.id || ''}
+                        value = {widgetKeys.find(mk => mk.model === model)?.id || ''}
                         onChange={handleSetModelKey}
                         >
-                        {modelKeys.map(mk =>(
+                        {widgetKeys.map(mk =>(
                             <MenuItem key={mk.id}value={mk.id}>
                             {mk.id}
                             </MenuItem>
@@ -260,9 +241,8 @@ export function PackingOutputWidget({ widgetId }) {
                 display:'flex',
                 flexDirection:'column',
                 height:'100%',
-                maxHeight: 520,
-                minHeight: 280,
-                maxWidth: 620,
+                maxWidth: { xs: '100vh', md: '50vw' },
+                maxHeight: { xs: '50vh', md: '50vh' },
                 zIndex:0,
             }}
         >
