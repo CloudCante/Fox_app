@@ -269,7 +269,7 @@ export function PackingOutputWidget({ widgetId }) {
         display:'flex',
         flexDirection:'column',
         height:'100%',
-        maxWidth: { xs: '95vh', md: '46vw' },
+        maxWidth: { xs: '100vh', md: '50vw' },
         maxHeight: { xs: '50vh', md: '50vh' },
         zIndex:0,
       }}

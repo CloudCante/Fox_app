@@ -3,6 +3,7 @@
 // Imports
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper, CircularProgress } from '@mui/material';
+import { format, parseISO, addWeeks, startOfISOWeek, endOfISOWeek } from 'date-fns';
 // Page Comps
 import { Header } from '../../pagecomp/Header.jsx';
 // Style Guides
@@ -11,6 +12,7 @@ import { paperStyle, buttonStyle } from '../../theme/themes.js';
 import PackingOutputBarChart from '../../charts/PackingOutputBarChart.js';
 // Hooks
 import { usePackingData } from '../../hooks/packingCharts/usePackingData.js';
+import { useWeekNavigation } from '../../hooks/packingCharts/useWeekNavigation';
 // Global Settings
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
@@ -33,7 +35,7 @@ const options = modelKeys.map(w => w.id);
 export function PackingChartWidget({ widgetId }) {
   // ----- Global settings and guards
   const { state, dispatch } = useGlobalSettings();
-  const { startDate, endDate, barLimit, currentISOWeekStart } = state;
+  const { startDate, endDate, barLimit } = state;
 
   if (!state) {
     return (
@@ -91,6 +93,13 @@ export function PackingChartWidget({ widgetId }) {
 
   // ----------------------------------------------------------
   // Data hooks: fetch daily/weekly series for selected model
+  
+  const [currentISOWeekStart, setCurrentISOWeekStart] = useState(
+      format(startOfISOWeek(endDate), 'yyyy-MM-dd')
+    );
+
+  useEffect (()=>{setCurrentISOWeekStart(format(startOfISOWeek(endDate), 'yyyy-MM-dd'))},[endDate]);
+
   const {
     dailyData,
     loadingDaily,
