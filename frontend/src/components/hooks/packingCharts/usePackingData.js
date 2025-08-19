@@ -14,8 +14,13 @@ import { fetchPackingRecords } from '../../../utils/packingCharts/packingChartsA
 import { getDateRangeArray } from '../../../utils/dateUtils';
 
 // Process the data structure returned by the API
-const processPackingData = (apiData, selectedModel) => {
-  console.log('Processing data for model:', selectedModel);
+const processPackingData = (apiData, selectedModelsOrModel) => {
+  // Handle both array of models and single model
+  const selectedModels = Array.isArray(selectedModelsOrModel) 
+    ? selectedModelsOrModel 
+    : [selectedModelsOrModel];
+    
+  console.log('Processing data for models:', selectedModels);
   console.log('API Response structure:', apiData);
   console.log('Available models in API data:', Object.keys(apiData || {}));
   
@@ -27,76 +32,81 @@ const processPackingData = (apiData, selectedModel) => {
     return dateMap;
   }
   
-  // Look for exact match first, then fuzzy match
-  let matchingModelKey = null;
-  
-  // First try exact match
-  if (apiData[selectedModel]) {
-    matchingModelKey = selectedModel;
-    console.log('Found exact model match:', matchingModelKey);
-  } else {
-    // Try to find a model that contains the selected model name or vice versa
-    const modelKeys = Object.keys(apiData);
-    console.log('Trying fuzzy match. Available models:', modelKeys);
+  // Process each selected model
+  selectedModels.forEach(selectedModel => {
+    console.log(`Processing selected model: ${selectedModel}`);
     
-    matchingModelKey = modelKeys.find(key => 
-      key.toLowerCase().includes(selectedModel.toLowerCase()) ||
-      selectedModel.toLowerCase().includes(key.toLowerCase())
-    );
+    // Look for exact match first, then fuzzy match
+    let matchingModelKey = null;
     
-    if (matchingModelKey) {
-      console.log('Found fuzzy model match:', matchingModelKey);
+    // First try exact match
+    if (apiData[selectedModel]) {
+      matchingModelKey = selectedModel;
+      console.log('Found exact model match:', matchingModelKey);
     } else {
-      console.log('No model match found for:', selectedModel);
-      console.log('Available models were:', modelKeys);
-      return dateMap;
-    }
-  }
-  
-  const modelData = apiData[matchingModelKey];
-  console.log(`Processing model data for: ${matchingModelKey}`, modelData);
-  
-  // Check if modelData has the expected structure
-  if (!modelData || !modelData.parts) {
-    console.log('Model data missing or no parts:', modelData);
-    return dateMap;
-  }
-  
-  // Iterate through all parts for this model
-  Object.entries(modelData.parts).forEach(([partNumber, partData]) => {
-    console.log(`Processing part: ${partNumber}`, partData);
-    
-    if (!partData || typeof partData !== 'object') {
-      console.log('Invalid part data for:', partNumber);
-      return;
-    }
-    
-    // partData structure: { "M/D/YYYY": count }
-    Object.entries(partData).forEach(([dateStr, count]) => {
-      try {
-        // Convert "M/D/YYYY" to "YYYY-MM-DD" format
-        const dateParts = dateStr.split('/');
-        if (dateParts.length !== 3) {
-          console.log('Invalid date format:', dateStr);
-          return;
-        }
-        
-        const [month, day, year] = dateParts;
-        const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        
-        const numericCount = parseInt(count, 10);
-        if (isNaN(numericCount)) {
-          console.log('Invalid count value:', count, 'for date:', dateStr);
-          return;
-        }
-        
-        console.log(`Date conversion: ${dateStr} -> ${isoDate}, count: ${numericCount}`);
-        
-        // Sum up counts for the same date across all parts
-        dateMap[isoDate] = (dateMap[isoDate] || 0) + numericCount;
-      } catch (error) {
-        console.error('Error processing date entry:', dateStr, count, error);
+      // Try to find a model that contains the selected model name or vice versa
+      const modelKeys = Object.keys(apiData);
+      console.log('Trying fuzzy match. Available models:', modelKeys);
+      
+      matchingModelKey = modelKeys.find(key => 
+        key.toLowerCase().includes(selectedModel.toLowerCase()) ||
+        selectedModel.toLowerCase().includes(key.toLowerCase())
+      );
+      
+      if (matchingModelKey) {
+        console.log('Found fuzzy model match:', matchingModelKey, 'for selected:', selectedModel);
+      } else {
+        console.log('No model match found for:', selectedModel);
+        console.log('Available models were:', modelKeys);
+        return; // Skip this model
       }
+    }
+    
+    const modelData = apiData[matchingModelKey];
+    console.log(`Processing model data for: ${matchingModelKey}`, modelData);
+    
+    // Check if modelData has the expected structure
+    if (!modelData || !modelData.parts) {
+      console.log('Model data missing or no parts:', modelData);
+      return; // Skip this model
+    }
+    
+    // Iterate through all parts for this model
+    Object.entries(modelData.parts).forEach(([partNumber, partData]) => {
+      console.log(`Processing part: ${partNumber}`, partData);
+      
+      if (!partData || typeof partData !== 'object') {
+        console.log('Invalid part data for:', partNumber);
+        return;
+      }
+      
+      // partData structure: { "M/D/YYYY": count }
+      Object.entries(partData).forEach(([dateStr, count]) => {
+        try {
+          // Convert "M/D/YYYY" to "YYYY-MM-DD" format
+          const dateParts = dateStr.split('/');
+          if (dateParts.length !== 3) {
+            console.log('Invalid date format:', dateStr);
+            return;
+          }
+          
+          const [month, day, year] = dateParts;
+          const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          
+          const numericCount = parseInt(count, 10);
+          if (isNaN(numericCount)) {
+            console.log('Invalid count value:', count, 'for date:', dateStr);
+            return;
+          }
+          
+          console.log(`Date conversion: ${dateStr} -> ${isoDate}, count: ${numericCount} (model: ${selectedModel})`);
+          
+          // Sum up counts for the same date across all parts and models
+          dateMap[isoDate] = (dateMap[isoDate] || 0) + numericCount;
+        } catch (error) {
+          console.error('Error processing date entry:', dateStr, count, error);
+        }
+      });
     });
   });
   
@@ -106,9 +116,9 @@ const processPackingData = (apiData, selectedModel) => {
 
 export function usePackingData(
   apiBase,
-  selectedModel,        // Now expects a single model string like 'Tesla SXM4'
-  currentISOWeekStart,  // ISO week start as an ISO string or Date
-  weeksToShow = 12      // how many weeks for the summary
+  selectedModelsOrModel,   // Can be either array of models or single model string
+  currentISOWeekStart,     // ISO week start as an ISO string or Date
+  weeksToShow = 12         // how many weeks for the summary
 ) {
   // Daily chart state
   const [dailyData, setDailyData]         = useState([]);
@@ -122,8 +132,8 @@ export function usePackingData(
 
   // 1️⃣ Fetch & build daily data whenever week or model changes
   useEffect(() => {
-    if (!apiBase || !currentISOWeekStart || !selectedModel) {
-      console.log('Daily data fetch skipped:', { apiBase: !!apiBase, currentISOWeekStart, selectedModel });
+    if (!apiBase || !currentISOWeekStart || !selectedModelsOrModel) {
+      console.log('Daily data fetch skipped:', { apiBase: !!apiBase, currentISOWeekStart, selectedModelsOrModel });
       return;
     }
     
@@ -136,7 +146,7 @@ export function usePackingData(
     const weekEnd = endOfISOWeek(weekStart);
 
     console.log('Fetching daily data:', {
-      selectedModel,
+      selectedModelsOrModel,
       weekStart: format(weekStart, 'yyyy-MM-dd'),
       weekEnd: format(weekEnd, 'yyyy-MM-dd'),
       apiUrl: `${apiBase}/api/packing/packing-records`
@@ -146,7 +156,7 @@ export function usePackingData(
       .then(apiData => {
         console.log('API Response:', apiData);
         
-        const dateMap = processPackingData(apiData, selectedModel);
+        const dateMap = processPackingData(apiData, selectedModelsOrModel);
         console.log('Processed dateMap:', dateMap);
         
         const allDates = getDateRangeArray(
@@ -169,11 +179,11 @@ export function usePackingData(
         setDailyData([]);
       })
       .finally(() => setLoadingDaily(false));
-  }, [apiBase, selectedModel, currentISOWeekStart]);
+  }, [apiBase, selectedModelsOrModel, currentISOWeekStart]);
 
-  // 2️⃣ Fetch & build weekly summary whenever model or weeksToShow changes
+  // 2️⃣ Fetch & build weekly summary whenever models or weeksToShow changes
   useEffect(() => {
-    if (!apiBase || !selectedModel) return;
+    if (!apiBase || !selectedModelsOrModel || (Array.isArray(selectedModelsOrModel) && selectedModelsOrModel.length === 0)) return;
     
     setLoadingWeekly(true);
     setErrorWeekly(null);
@@ -184,7 +194,7 @@ export function usePackingData(
 
     fetchPackingRecords(apiBase, '/api/packing/packing-records', earliest, thisWeekStart)
       .then(apiData => {
-        const dateMap = processPackingData(apiData, selectedModel);
+        const dateMap = processPackingData(apiData, selectedModelsOrModel);
         
         // Roll up daily data by ISO week
         const weeklyTotals = {};
@@ -217,7 +227,7 @@ export function usePackingData(
         setWeeklyData([]);
       })
       .finally(() => setLoadingWeekly(false));
-  }, [apiBase, selectedModel, weeksToShow]);
+  }, [apiBase, selectedModelsOrModel, weeksToShow]);
 
   return {
     dailyData,

@@ -213,8 +213,14 @@ export function PackingChartWidget({ widgetId }) {
   // Render: explicit empty-state error (kept as-is)
   if (data.length === 0) {
     return (
-      <Paper sx={paperStyle}>
-        <Typography color="error">Error: Data failed to load</Typography>
+      <Paper sx={{...paperStyle, textAlign: 'center', py: 8}}>
+        <Header 
+            title="Failed to load data for given range"
+            subTitle="ISO week may have no results"
+            titleVariant="h6"
+            subTitleVariant="body2"
+            titleColor="text.secondary"
+          />
       </Paper>
     );
   }
