@@ -1,5 +1,5 @@
 // Widget for TestStation Reports with Persistence
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 import { Header } from '../../pagecomp/Header.jsx'
 import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
@@ -48,6 +48,9 @@ export function TestStationWidget({ widgetId }) {
     const [testStationData, setTestStationData] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const latestReqId = useRef(0);
+    const [lastGoodData, setLastGoodData] = useState([]);
+
     // Use persisted values or defaults
     const model = widgetSettings.model || '';
     const key = widgetSettings.key || '';
@@ -63,39 +66,85 @@ export function TestStationWidget({ widgetId }) {
     };
 
     useEffect(() => {
-        if (!loaded) return;
-        
-        let isActive = true;
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                await fetchWorkstationQuery({
-                    parameters: [{ id: 'model', value: model }],
-                    startDate,
-                    endDate,
-                    key: key,
-                    setDataCache: data => {
-                        if (isActive) setTestStationData(data);
-                    },
-                    API_BASE,
-                    API_Route: '/api/functional-testing/station-performance?'
-                });
-            } catch (err) {
-                console.error('Error fetching data', err);
-                if (isActive) setTestStationData([]);
-            } finally {
-                if (isActive) setLoading(false);
-            }
-        };
-
-        fetchData();
-        const intervalId = setInterval(fetchData, 300000);
-        
-        return () => {
-            isActive = false;
+         if (!loaded || !model || !key || !startDate || !endDate) return;
+ 
+         let isMounted = true;
+         const reqId = ++latestReqId.current;
+         // setLoading true but keep the last good data rendered
+         setLoading(true);
+ 
+         const fetchData = async () => {
+             try {
+                 await fetchWorkstationQuery({
+                     parameters: [{ id: 'model', value: model }],
+                     startDate,
+                     endDate,
+                     key,
+                     setDataCache: data => {
+                         // Only accept if this is the latest request
+                         if (isMounted && latestReqId.current === reqId) {
+                             setTestStationData(data);
+                             if (Array.isArray(data) && data.length > 0) {
+                                 setLastGoodData(data);
+                             }
+                         }
+                     },
+                     API_BASE,
+                     API_Route: '/api/functional-testing/station-performance?'
+                 });
+             } catch (err) {
+                 console.error('Error fetching data', err);
+                 if (isMounted && latestReqId.current === reqId) {
+                     setTestStationData([]);
+                 }
+             } finally {
+                 if (isMounted && latestReqId.current === reqId) {
+                     setLoading(false);
+                 }
+             }
+         };
+ 
+         fetchData();
+         const intervalId = setInterval(fetchData, 300000);
+         return () => {
+             isMounted = false;
             clearInterval(intervalId);
-        };
-    }, [model, key, startDate, endDate, loaded, widgetId]);
+         };
+     }, [model, key, startDate, endDate, loaded, widgetId]);
+    // useEffect(() => {
+    //     if (!loaded) return;
+        
+    //     let isActive = true;
+    //     const fetchData = async () => {
+    //         setLoading(true);
+    //         try {
+    //             await fetchWorkstationQuery({
+    //                 parameters: [{ id: 'model', value: model }],
+    //                 startDate,
+    //                 endDate,
+    //                 key: key,
+    //                 setDataCache: data => {
+    //                     if (isActive) setTestStationData(data);
+    //                 },
+    //                 API_BASE,
+    //                 API_Route: '/api/functional-testing/station-performance?'
+    //             });
+    //         } catch (err) {
+    //             console.error('Error fetching data', err);
+    //             if (isActive) setTestStationData([]);
+    //         } finally {
+    //             if (isActive) setLoading(false);
+    //         }
+    //     };
+
+    //     fetchData();
+    //     const intervalId = setInterval(fetchData, 300000);
+        
+    //     return () => {
+    //         isActive = false;
+    //         clearInterval(intervalId);
+    //     };
+    // }, [model, key, startDate, endDate, loaded, widgetId]);
 
     const handleSetModelKey = (e) => {
         const selectedId = e.target.value;

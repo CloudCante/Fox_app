@@ -51,7 +51,7 @@ export function PackingChartWidget({widgetId}) {
         }
     }, [widgetId, state.widgetSettings, dispatch]);
     const model = widgetSettings.model || '';
-    const timeFrame = widgetSettings.timeFrame || '';
+    const timeFrame = widgetSettings.timeFrame || 'Daily';
     const loaded = widgetSettings.loaded || false;
 
     const updateWidgetSettings = (updates) => {
@@ -83,7 +83,7 @@ export function PackingChartWidget({widgetId}) {
             setLoading(loadingWeekly);
             setError(errorWeekly);
         }
-    }, [model, timeFrame, startDate, endDate, loaded]);
+    }, [loaded, timeFrame, dailyData, loadingDaily, errorDaily, weeklyData, loadingWeekly, errorWeekly]);
 
 
     const handleSetModelKey= e => {
