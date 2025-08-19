@@ -1,17 +1,21 @@
 // Widget for TestStation Reports
 // ------------------------------------------------------------
-// Imports (grouped by purpose; logic unchanged)
+// Imports
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+// Page Comps
 import { Header } from '../../pagecomp/Header.jsx';
-import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
+// Style Guides
+import { buttonStyle, paperStyle } from '../../theme/themes.js';
+// Chart Comps
 import { TestStationChart } from '../../charts/TestStationChart.js';
+// Utils
 import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
-import { getInitialStartDate, normalizeDate } from '../../../utils/dateUtils.js';
+// Global Settings
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
 // ------------------------------------------------------------
-// Environment / constants (kept as-is)
+// Environment / constants
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -23,12 +27,10 @@ const modelKeys = [
   { id: 'Tesla SXM6', model: 'SXM6',       key: 'sxm6' }
 ];
 
-const options = modelKeys.map(w => w.id);
-
 // ------------------------------------------------------------
 // Component
 export function TestStationWidget({ widgetId }) {
-  // ----- Global settings & extract commonly used values
+  // ----- Global settings & extractions
   const { state, dispatch } = useGlobalSettings();
   const { startDate, endDate, barLimit } = state;
 
@@ -40,7 +42,7 @@ export function TestStationWidget({ widgetId }) {
     return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Widget ID missing</Box></Paper>;
   }
 
-  // ----- Widget-scoped settings from global store
+  // ----- Widget settings pulled from global state
   const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
 
   // ----------------------------------------------------------

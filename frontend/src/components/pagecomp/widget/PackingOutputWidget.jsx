@@ -1,18 +1,21 @@
 // Widget for Packing Reports Tables
 // ------------------------------------------------------------
-// Imports (kept intact; order grouped by purpose)
+// Imports
 import React,{useState, useEffect, useMemo, useCallback} from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper, setRef, } from '@mui/material';
-import { ResponsiveContainer } from 'recharts';
+import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+// Page Comps
 import { Header } from '../../pagecomp/Header.jsx'
-import { gridStyle, paperStyle } from '../../theme/themes.js';
+// Style Guides
+import { paperStyle, buttonStyle } from '../../theme/themes.js';
+// Chart Comps
 import { PackingPageTable } from '../packingPage/PackingPageTable.jsx'
+// Hooks
 import { usePackingData } from '../../hooks/packingPage/usePackingData.js';
+// Global Settings
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
-import { buttonStyle } from '../../theme/themes.js';
 
 // ------------------------------------------------------------
-// Constants & configuration
+// Environment / constants
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -30,7 +33,7 @@ const options = widgetKeys.map(w => w.id);
 // ------------------------------------------------------------
 // Component
 export function PackingOutputWidget({ widgetId }) {
-  // ----- Global context & early guards (as in original file)
+  // ----- Global context & guards
   const { state, dispatch } = useGlobalSettings();
   const { startDate, endDate, barLimit } = state;
   if (!state) {
@@ -40,7 +43,7 @@ export function PackingOutputWidget({ widgetId }) {
     return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Widget ID missing</Box></Paper>;
   }
 
-  // ----- Widget settings derived from global state
+  // ----- Widget settings pulled from global state
   const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
 
   // ----------------------------------------------------------

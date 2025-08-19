@@ -1,17 +1,21 @@
 // Widget for Packing Charts
 // ------------------------------------------------------------
-// Imports (grouped by purpose; logic unchanged)
+// Imports
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper, CircularProgress } from '@mui/material';
+// Page Comps
 import { Header } from '../../pagecomp/Header.jsx';
-import { paperStyle } from '../../theme/themes.js';
+// Style Guides
+import { paperStyle, buttonStyle } from '../../theme/themes.js';
+// Chart Comps
 import PackingOutputBarChart from '../../charts/PackingOutputBarChart.js';
-import { buttonStyle } from '../../theme/themes.js';
+// Hooks
 import { usePackingData } from '../../hooks/packingCharts/usePackingData.js';
+// Global Settings
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
 // ------------------------------------------------------------
-// Environment / constants (kept as-is)
+// Environment / constants
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -27,7 +31,7 @@ const options = modelKeys.map(w => w.id);
 // ------------------------------------------------------------
 // Component
 export function PackingChartWidget({ widgetId }) {
-  // ----- Global context & guards (unchanged)
+  // ----- Global settings and guards
   const { state, dispatch } = useGlobalSettings();
   const { startDate, endDate, barLimit, currentISOWeekStart } = state;
 
@@ -46,7 +50,7 @@ export function PackingChartWidget({ widgetId }) {
     );
   }
 
-  // ----- Widget settings from global state
+  // ----- Widget settings pulled from global state
   const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
 
   // ----------------------------------------------------------

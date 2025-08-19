@@ -1,16 +1,21 @@
 // Widget for TestStation Pareto Charts
 // ------------------------------------------------------------
-// Imports (grouped by purpose; logic unchanged)
+// Imports
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+// Page Comps
 import { Header } from '../Header.jsx';
-import { buttonStyle, gridStyle, paperStyle } from '../../theme/themes.js';
+// Style Guides
+import { buttonStyle, paperStyle } from '../../theme/themes.js';
+// Chart Comps
 import { ParetoChart } from '../../charts/ParetoChart.js';
+// Utils
 import { fetchErrorQuery } from '../../../utils/queryUtils.js';
+// Global Settings
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
 // ------------------------------------------------------------
-// Environment / constants (kept as-is)
+// Environment / constants
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) {
   console.error('REACT_APP_API_BASE environment variable is not set! Please set it in your .env file.');
@@ -28,7 +33,7 @@ const options = modelKeys.map(w => w.id);
 // ------------------------------------------------------------
 // Component
 export function ParetoWidget({ widgetId }) {
-  // ----- Global settings & extraction
+  // ----- Global settings & extractions
   const { state, dispatch } = useGlobalSettings();
   const { startDate, endDate, barLimit } = state;
 
@@ -42,7 +47,7 @@ export function ParetoWidget({ widgetId }) {
     return <Paper sx={paperStyle}><Box sx={{ p: 2 }}>Widget ID missing</Box></Paper>;
   }
 
-  // ----- Widget-scoped settings from global store
+  // ----- Widget settings pulled from global state
   const widgetSettings = (state.widgetSettings && state.widgetSettings[widgetId]) || {};
 
   // ----------------------------------------------------------
