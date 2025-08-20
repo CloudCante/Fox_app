@@ -126,23 +126,24 @@ const SnFnPage = () => {
 
   // Reset station filter on group toggle
   useEffect(() => {
-    console.log('station changed');
     onStationChange({ target: { value: ['__CLEAR__'] } });
   }, [groupByWorkstation]);
 
-  // Handle navigation from dashboardchart
+  // Handle navigation from chart
   useEffect(()=>{
-    if(location.state?.stationFilter && location.state?.autoFilled){
-      onStationChange({
-        target:{
-          value: location.state.stationFilter
-        }
-      });
+    if(location.state?.autoFilled){
+      if(location.state?.stationFilter) onStationChange({ target:{ value: location.state.stationFilter } });
+
+      if(location.state?.errorCodeFilter) onErrorCodeChange({ target:{ value: location.state.errorCodeFilter } });
+
+      setSortAsc(location.state?.sortAsc ?? sortAsc);
+      setByCount(location.state?.sortByCount ?? sortByCount);
+
       handleStartDateChange(state.startDate)
       handleEndDateChange(state.endDate)
       window.history.replaceState({},document.title);
     }
-  },[location.state,onStationChange]);
+  },[location.state]);
 
   // Pagination handler
   const handleChangePage = (event, value) => setPage(value);

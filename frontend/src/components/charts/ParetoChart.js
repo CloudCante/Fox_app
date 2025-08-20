@@ -1,22 +1,32 @@
 import React, { useMemo } from 'react';
 import { useTheme, Paper, Box, Typography, CircularProgress } from '@mui/material';
 import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LabelList,
+  ComposedChart, Bar, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, LabelList,
 } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { paperStyle, flexStyle, typeStyle, boxStyle } from '../theme/themes.js';
 
 export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)",limit=7 }) => {
     const theme = useTheme();
     const textColor = theme.palette.mode === 'dark' ? '#fff' : '#000';
+    const navigate = useNavigate();
+
+    const handleBarClick = (data,index) => {
+      if (data && data.activeLabel){
+        console.log(label || "cant read model");
+        const errorCode = data.activeLabel;
+        navigate('/snfn',{
+          state:{
+            errorCodeFilter:[errorCode],
+            sortAsc:false,
+            sortByCount:true,
+            autoFilled:true
+          }
+        });
+      }
+    };
 
     const totalFails = useMemo(
       () => data.reduce((sum, { code_count }) => sum + Number(code_count || 0), 0),
@@ -72,6 +82,7 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
                     left: 8,
                     bottom: 1,
                   }}
+                  onClick={handleBarClick}
                 >
                   <CartesianGrid 
                     strokeDasharray="3 3" 
@@ -105,13 +116,13 @@ export const ParetoChart = ({ data,label,loading, lineLabel = "Failure Rate (%)"
                       fontSize: '12px',
                       padding: '4px',
                       backgroundColor: theme.palette.mode === 'dark' ? '#1e3a5f' : '#fff',
-                      color: theme.palette.mode === 'dark' ? '#fff' : '#666'
+                      color: textColor
                     }}
                   />
                   <Legend 
                     wrapperStyle={{
                       fontSize: '12px',
-                      color: theme.palette.mode === 'dark' ? '#fff' : '#666'
+                      color: textColor
                     }}
                   />
                   <Bar
