@@ -19,22 +19,16 @@ const processPackingData = (apiData, selectedModelsOrModel) => {
   const selectedModels = Array.isArray(selectedModelsOrModel) 
     ? selectedModelsOrModel 
     : [selectedModelsOrModel];
-    
-  console.log('Processing data for models:', selectedModels);
-  console.log('API Response structure:', apiData);
-  console.log('Available models in API data:', Object.keys(apiData || {}));
   
   const dateMap = {};
   
   // Handle case where apiData might be empty or null
   if (!apiData || typeof apiData !== 'object') {
-    console.log('API data is empty or invalid:', apiData);
     return dateMap;
   }
   
   // Process each selected model
   selectedModels.forEach(selectedModel => {
-    console.log(`Processing selected model: ${selectedModel}`);
     
     // Look for exact match first, then fuzzy match
     let matchingModelKey = null;
@@ -42,28 +36,22 @@ const processPackingData = (apiData, selectedModelsOrModel) => {
     // First try exact match
     if (apiData[selectedModel]) {
       matchingModelKey = selectedModel;
-      console.log('Found exact model match:', matchingModelKey);
     } else {
       // Try to find a model that contains the selected model name or vice versa
       const modelKeys = Object.keys(apiData);
-      console.log('Trying fuzzy match. Available models:', modelKeys);
       
       matchingModelKey = modelKeys.find(key => 
         key.toLowerCase().includes(selectedModel.toLowerCase()) ||
         selectedModel.toLowerCase().includes(key.toLowerCase())
       );
       
-      if (matchingModelKey) {
-        console.log('Found fuzzy model match:', matchingModelKey, 'for selected:', selectedModel);
-      } else {
-        console.log('No model match found for:', selectedModel);
-        console.log('Available models were:', modelKeys);
+      if (!matchingModelKey) {
+        console.log('No model match found for:', selectedModel,' Available models were:', modelKeys);
         return; // Skip this model
       }
     }
     
     const modelData = apiData[matchingModelKey];
-    console.log(`Processing model data for: ${matchingModelKey}`, modelData);
     
     // Check if modelData has the expected structure
     if (!modelData || !modelData.parts) {
@@ -73,7 +61,6 @@ const processPackingData = (apiData, selectedModelsOrModel) => {
     
     // Iterate through all parts for this model
     Object.entries(modelData.parts).forEach(([partNumber, partData]) => {
-      console.log(`Processing part: ${partNumber}`, partData);
       
       if (!partData || typeof partData !== 'object') {
         console.log('Invalid part data for:', partNumber);
@@ -98,9 +85,7 @@ const processPackingData = (apiData, selectedModelsOrModel) => {
             console.log('Invalid count value:', count, 'for date:', dateStr);
             return;
           }
-          
-          console.log(`Date conversion: ${dateStr} -> ${isoDate}, count: ${numericCount} (model: ${selectedModel})`);
-          
+
           // Sum up counts for the same date across all parts and models
           dateMap[isoDate] = (dateMap[isoDate] || 0) + numericCount;
         } catch (error) {
@@ -110,7 +95,6 @@ const processPackingData = (apiData, selectedModelsOrModel) => {
     });
   });
   
-  console.log('Final dateMap:', dateMap);
   return dateMap;
 };
 
@@ -145,32 +129,21 @@ export function usePackingData(
       : currentISOWeekStart;
     const weekEnd = endOfISOWeek(weekStart);
 
-    console.log('Fetching daily data:', {
-      selectedModelsOrModel,
-      weekStart: format(weekStart, 'yyyy-MM-dd'),
-      weekEnd: format(weekEnd, 'yyyy-MM-dd'),
-      apiUrl: `${apiBase}/api/packing/packing-records`
-    });
-
     fetchPackingRecords(apiBase, '/api/packing/packing-records', weekStart, weekEnd)
       .then(apiData => {
-        console.log('API Response:', apiData);
         
         const dateMap = processPackingData(apiData, selectedModelsOrModel);
-        console.log('Processed dateMap:', dateMap);
         
         const allDates = getDateRangeArray(
           format(weekStart, 'yyyy-MM-dd'),
           format(weekEnd,   'yyyy-MM-dd')
         );
-        console.log('All dates for week:', allDates);
         
         const dailyChartData = allDates.map(date => ({
           label: date,
           value: dateMap[date] || 0
         }));
         
-        console.log('Final daily chart data:', dailyChartData);
         setDailyData(dailyChartData);
       })
       .catch(err => {

@@ -60,8 +60,6 @@ export function PackingChartWidget({ widgetId }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showTrend, setShowTrend] = useState(false);
-  const [showAvg, setShowAvg] = useState(false);
   const [color, setColor] = useState(false); // retained as in source
 
   // ----------------------------------------------------------
@@ -81,6 +79,8 @@ export function PackingChartWidget({ widgetId }) {
   const model = widgetSettings.model || '';
   const timeFrame = widgetSettings.timeFrame || 'Daily';
   const loaded = widgetSettings.loaded || false;
+  const showTrend = widgetSettings.showTrend || false;
+  const showAvg = widgetSettings.showAvg || false;
 
   // Helper to update this widget's settings
   const updateWidgetSettings = updates => {
@@ -144,6 +144,14 @@ export function PackingChartWidget({ widgetId }) {
     updateWidgetSettings({ loaded: true });
   };
 
+  const handleSetShowAvg = () => {
+    updateWidgetSettings({showAvg:!showAvg});
+  };
+
+  const handleSetShowTrend = () => {
+    updateWidgetSettings({showTrend:!showTrend});
+  };
+
   // ----------------------------------------------------------
   // Render: setup view (choose model & timeframe)
   if (!loaded) {
@@ -186,7 +194,7 @@ export function PackingChartWidget({ widgetId }) {
               sx={buttonStyle}
               variant="contained"
               size="small"
-              onClick={() => setShowTrend(!showTrend)}
+              onClick={handleSetShowTrend}
             >
               {showTrend ? "Don't show Trendline" : 'Show Trendline'}
             </Button>
@@ -194,7 +202,7 @@ export function PackingChartWidget({ widgetId }) {
               sx={buttonStyle}
               variant="contained"
               size="small"
-              onClick={() => setShowAvg(!showAvg)}
+              onClick={handleSetShowAvg}
             >
               {showAvg ? "Don't show Avg line" : 'Show Avg line'}
             </Button>
