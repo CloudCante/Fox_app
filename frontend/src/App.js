@@ -7,6 +7,7 @@ import { AppHeader } from './components/navigation/AppHeader';
 import { Dashboard } from './components/dashboard/Dashboard';
 import PackingPage from './components/pages/PackingPage';
 import PerformancePage from './components/pages/PerformancePage';
+import TestStationPerformancePage from './components/pages/TestStationPerformancePage'
 import ThroughputPage from './components/pages/ThroughputPage';
 import SNFNPage from './components/pages/SNFNPage';
 import PackingCharts from './components/pages/PackingCharts';
