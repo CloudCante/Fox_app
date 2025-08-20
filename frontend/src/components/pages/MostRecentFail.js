@@ -36,8 +36,6 @@ export const MostRecentFail = () => {
   };
 
   const handleFileChange = useCallback(async e => {
-    if(passCheck)console.log('check',passCheck);
-    else console.log("no check");
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -46,8 +44,6 @@ export const MostRecentFail = () => {
       skipEmptyLines: true,
       dynamicTyping: true,
       complete: async results => {
-        console.log('Parsed CSV:', results.data);
-
         // Store raw CSV rows
         setCsvData(results.data);
 
@@ -73,7 +69,6 @@ export const MostRecentFail = () => {
             'POST',
             { sns,startDate, endDate }
           );
-          console.log('Backend SN data:', backendSnData);
 
           // Store backend query results
           setSnData(backendSnData);
@@ -93,7 +88,6 @@ export const MostRecentFail = () => {
             'POST',
             { sns,startDate, endDate }
           );
-          console.log('Backend Error data:', backendData);
 
           // Store backend query results
           setCodeData(backendData);
@@ -118,7 +112,6 @@ export const MostRecentFail = () => {
               'POST',
               { sns,startDate, endDate, passCheck:passCheckStations }
             );
-            console.log('Backend Pass data:', backendPassData);
 
             // Store backend query results
             setPassData(backendPassData);
