@@ -1,10 +1,11 @@
-// Global Variable Toolbar for Dashboard - Fixed prop name with debugging
+// Enhanced WidgetManager with reset functionality
 import React, { useState, Component, useEffect, useMemo } from 'react';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, IconButton } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh'; // or your preferred icon
 import { Header } from '../pagecomp/Header.jsx'
 import { gridStyle } from '../theme/themes.js';
 import { GlobalSettingsContext, useGlobalSettings } from '../../data/GlobalSettingsContext.js';
-import { useTestStationData } from '../hooks/widget/useTestStationData.js';
+import { useTheme } from '@emotion/react';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 
@@ -42,11 +43,15 @@ export function WidgetManager({
     const { state, dispatch } = useGlobalSettings();
     const { startDate, endDate } = state;
 
-    // const {testStationData,loading} = useTestStationData(API_BASE,startDate,endDate);
-    // useEffect(()=>{ test to confrim memo is working
-    //     console.log('Station Data: ',testStationData);
-    //     return;
-    // },[testStationData])
+    const theme = useTheme();
+
+    const handleResetWidget = (widgetId) => {
+        dispatch({
+            type: 'UPDATE_WIDGET_SETTINGS',
+            widgetId,
+            settings: { loaded: false } // Reset to unloaded state
+        });
+    };
 
     if (!Array.isArray(widgets) || widgets.length === 0) {
         return (
@@ -63,11 +68,19 @@ export function WidgetManager({
     }
         
     return (
-        <Box sx={gridStyle} >
+        <Box sx={gridStyle}>
             {widgets.map(({ id, Widget }, index) => {             
                 return (
-                    <Box key={id} sx={{ textAlign: 'center', py: 8 }}>
-                        {/* Add error boundary check */}
+                    <Box 
+                        key={id} 
+                        sx={{ 
+                            position: 'relative',
+                            '& > *': { // Target the direct child (the widget)
+                                position: 'relative'
+                            }
+                        }}
+                    >
+                        {/* Widget content */}
                         {Widget ? (
                             <ErrorBoundary widgetId={id}>
                                 <Widget widgetId={id}/>
@@ -75,6 +88,32 @@ export function WidgetManager({
                         ) : (
                             <Typography>Widget component missing for id: {id}</Typography>
                         )}
+
+                        {/* Reset button overlay - positioned over the widget */}
+                        <IconButton
+                            onClick={() => handleResetWidget(id)}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                zIndex: 1001,
+                                backgroundColor: theme.palette.background.default,
+                                color: theme.palette.background.paper,
+                                width: 32,
+                                height: 32,
+                                opacity: 0.7,
+                                transition: 'opacity 0.2s ease-in-out',
+                                '&:hover': {
+                                    opacity: 1,
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    color: 'white'
+                                }
+                            }}
+                            size="small"
+                            title="Reset Widget"
+                        >
+                            <RefreshIcon fontSize="small" />
+                        </IconButton>
                     </Box>
                 )
             })}

@@ -19,6 +19,7 @@ import { useSnFnExport } from '../hooks/snfn/useSnFnExport.js';
 import { processStationData } from '../../utils/snfn/snfnDataUtils.js';
 import { normalizeDate,getInitialStartDate } from '../../utils/dateUtils.js';
 import { modalStyle } from '../theme/themes.js';
+import { useGlobalSettings } from '../../data/GlobalSettingsContext.js';
 
 // Check for environment variable for API base
 const API_BASE = process.env.REACT_APP_API_BASE;
@@ -28,6 +29,7 @@ if (!API_BASE) {
 
 const SnFnPage = () => {
   const location = useLocation();
+  const { state, dispatch } = useGlobalSettings();
 
   // Date range state
   const [startDate, setStartDate] = useState(getInitialStartDate());
@@ -136,6 +138,8 @@ const SnFnPage = () => {
           value: location.state.stationFilter
         }
       });
+      handleStartDateChange(state.startDate)
+      handleEndDateChange(state.endDate)
       window.history.replaceState({},document.title);
     }
   },[location.state,onStationChange]);

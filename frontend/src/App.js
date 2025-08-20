@@ -16,7 +16,7 @@ import StationCycleTime from './components/pages/CycleTime';
 import MostRecentFail from './components/pages/MostRecentFail';
 import ParetoPage from './components/pages/ParetoPage';
 import ByErrorCode from './components/pages/ByErrorCode';
-import TestStationPerformancePage from './components/pages/TestStationPerformancePage';
+import JsonToCsv from './components/pages/JsonToCSV';
 import { SimplePerformanceMonitor } from './components/debug/SimplePerformanceMonitor';
 import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 import './components/theme/theme.css';
@@ -39,23 +39,26 @@ const MainContent = React.memo(({ children }) => {
 });
 
 const AppRoutes = React.memo(() => (
-  <Routes>
-    <Route path="/" element={<Dashboard />} />
-    <Route path="/packing" element={<PackingPage />} />
-    <Route path="/performance" element={<PerformancePage />} />
-    <Route path="/throughput" element={<ThroughputPage />} />
-    <Route path="/snfn" element={<SNFNPage />} />
-    <Route path="/packing-charts" element={<PackingCharts />} />
-    <Route path="/station-hourly-summary" element={<StationHourlySummaryPage />} />
-    <Route path="/cycle-time" element={<StationCycleTime />} />
-    <Route path="/most-recent-fail" element={<MostRecentFail />} />
-    <Route path="/pareto" element={<ParetoPage />} />
-    <Route path="/by-error" element={<ByErrorCode/>}/>
-    <Route path="station-performance" element={<TestStationPerformancePage/>}/>
-    {process.env.NODE_ENV === 'development' && (
-      <Route path="/dev/upload" element={<UploadPage />} />
-    )}
-  </Routes>
+   <GlobalSettingsProvider>
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/packing" element={<PackingPage />} />
+      <Route path="/performance" element={<PerformancePage />} />
+      <Route path="/throughput" element={<ThroughputPage />} />
+      <Route path="/snfn" element={<SNFNPage />} />
+      <Route path="/packing-charts" element={<PackingCharts />} />
+      <Route path="/station-hourly-summary" element={<StationHourlySummaryPage />} />
+      <Route path="/cycle-time" element={<StationCycleTime />} />
+      <Route path="/most-recent-fail" element={<MostRecentFail />} />
+      <Route path="/pareto" element={<ParetoPage />} />
+      <Route path="/station-performance" element={<TestStationPerformancePage/>}/>
+      <Route path="/by-error" element={<ByErrorCode/>}/>
+      <Route path="/json-to-csv" element={<JsonToCsv/>}/>
+      {process.env.NODE_ENV === 'development' && (
+        <Route path="/dev/upload" element={<UploadPage />} />
+      )}
+    </Routes>
+  </GlobalSettingsProvider>
 ));
 
 function App() {
