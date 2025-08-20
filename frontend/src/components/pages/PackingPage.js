@@ -168,7 +168,16 @@ const PackingPage = () => {
         </div>
         {lastUpdated && <div style={subTextStyle}>Last updated: {lastUpdated.toLocaleTimeString()}</div>}
       </div>
-      <table style={tableStyle}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gap: 24,
+          margin: '0 auto',
+        }}
+        role="grid"
+        aria-label="Packing tables"
+      >
         {/* Dynamically render each model group */}
         {groups.map(g => (
           <PackingPageTable
@@ -214,7 +223,7 @@ const PackingPage = () => {
           copied={copied}
           isSort={true}
         />
-      </table>
+      </div>
     </div>
   );
 };
