@@ -45,11 +45,8 @@ const processPackingData = (apiData, selectedModelsOrModel) => {
         selectedModel.toLowerCase().includes(key.toLowerCase())
       );
       
-      if (matchingModelKey) {
-        console.log('Found fuzzy model match:', matchingModelKey, 'for selected:', selectedModel);
-      } else {
-        console.log('No model match found for:', selectedModel);
-        console.log('Available models were:', modelKeys);
+      if (!matchingModelKey) {
+        console.log('No model match found for:', selectedModel,' Available models were:', modelKeys);
         return; // Skip this model
       }
     }
