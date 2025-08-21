@@ -1,16 +1,20 @@
-// Widget for TestStation Reports
+// Widget for Throughput Reports
 // ------------------------------------------------------------
 // Imports
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper, Typography, Card, CardContent } from '@mui/material';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper, Typography, Card, CardContent, Chip, CircularProgress } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 // Page Comps
 import { Header } from '../../pagecomp/Header.jsx';
 // Style Guides
 import { buttonStyle, paperStyle } from '../../theme/themes.js';
 // Chart Comps
 import { ThroughputBarChart } from '../../charts/ThroughputBarChart.js';
-// Utils
-import { fetchWorkstationQuery } from '../../../utils/queryUtils.js';
+// Hooks from ThroughputPage
+import { useDataProcessing } from '../../hooks/throughput/useDataProcessing.js';
+import { useThroughputData } from '../../hooks/throughput/useThroughputData.js';
+import { useDateFormatter } from '../../hooks/throughput/useDateFormatter.js';
+import { useStyles } from '../../hooks/throughput/useStyles.js';
 // Global Settings
 import { useGlobalSettings } from '../../../data/GlobalSettingsContext.js';
 
@@ -27,10 +31,20 @@ const modelKeys = [
   { id: 'Tesla SXM6', model: 'SXM6',       key: 'sxm6' }
 ];
 
+const CONSTANTS = {
+  HARDCODED_STATIONS: {
+    sxm4: ['VI2', 'ASSY2', 'FI', 'FQC'],
+    sxm5: ['BBD', 'ASSY2', 'FI', 'FQC'],
+    sxm6: ['BBD', 'ASSY2', 'FI', 'FQC']
+  }
+};
+
+// ------------------------------------------------------------
+// Component
 export function ThroughputWidget({ widgetId }) {
   // ----- Global settings & extractions
   const { state, dispatch } = useGlobalSettings();
-  const { startDate, endDate, barLimit } = state;
+  const theme = useTheme();
 
   // ----- Guards: missing global state or widget id
   if (!state) {
@@ -50,24 +64,78 @@ export function ThroughputWidget({ widgetId }) {
       dispatch({
         type: 'UPDATE_WIDGET_SETTINGS',
         widgetId,
-        settings: {}
+        settings: {
+          useHardcodedTPY: true,
+          sortBy: 'volume',
+          showRepairStations: false,
+          selectedWeek: ''
+        }
       });
     }
   }, [widgetId, state.widgetSettings, dispatch]);
 
   // ----------------------------------------------------------
-  // Local state (data, loading, and “latest request” tracking)
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const latestReqId = useRef(0);
-  const [lastGoodData, setLastGoodData] = useState([]);
+  // Derived values from widget settings (persisted selections)
+  const model = widgetSettings.model || '';
+  const key = widgetSettings.key || '';
+  const loaded = widgetSettings.loaded || false;
+  const useHardcodedTPY = widgetSettings.useHardcodedTPY !== undefined ? widgetSettings.useHardcodedTPY : true;
+  const sortBy = widgetSettings.sortBy || 'volume';
+  const showRepairStations = widgetSettings.showRepairStations || false;
+  const selectedWeek = widgetSettings.selectedWeek || '';
 
   // ----------------------------------------------------------
-  // Derived values from widget settings (persisted selections)
-  const model  = widgetSettings.model  || '';
-  const key    = widgetSettings.key    || '';
-  const loaded = widgetSettings.loaded || false;
+  // Use ThroughputPage hooks
+  const { formatWeekDateRange } = useDateFormatter();
+  const { availableWeeks, loading, error, throughputData } = useThroughputData(selectedWeek, formatWeekDateRange);
+  const styles = useStyles(loading);
+  const { processModelData } = useDataProcessing({
+    showRepairStations,
+    sortBy
+  });
+
+  // ----------------------------------------------------------
+  // Process data using the same logic as ThroughputPage
+  const processedStationData = useMemo(() => {
+    if (!throughputData?.weeklyThroughputYield?.modelSpecific || !loaded || !key) {
+      return { modelData: [], tpyData: {} };
+    }
+    
+    const { modelSpecific } = throughputData.weeklyThroughputYield;
+    const tpySource = useHardcodedTPY ? 'hardcoded' : 'dynamic';
+    
+    // Get the correct model data based on key
+    let modelData = [];
+    if (key === 'sxm4' && modelSpecific['Tesla SXM4']) {
+      modelData = processModelData(modelSpecific['Tesla SXM4']);
+    } else if (key === 'sxm5' && modelSpecific['Tesla SXM5']) {
+      modelData = processModelData(modelSpecific['Tesla SXM5']);
+    } else if (key === 'sxm6' && modelSpecific['SXM6']) {
+      modelData = processModelData(modelSpecific['SXM6']);
+    }
+    
+    return {
+      modelData,
+      tpyData: throughputData.weeklyTPY?.[tpySource] || {}
+    };
+  }, [throughputData, processModelData, useHardcodedTPY, loaded, key]);
+
+  // Filter stations for table/chart display
+  const displayStationData = useMemo(() => {
+    if (!useHardcodedTPY || !CONSTANTS.HARDCODED_STATIONS[key]) {
+      return processedStationData.modelData;
+    }
+    
+    return processedStationData.modelData.filter(s => 
+      CONSTANTS.HARDCODED_STATIONS[key].includes(s.station)
+    );
+  }, [processedStationData.modelData, useHardcodedTPY, key]);
+
+  // Get TPY value for display
+  const tpyValue = useMemo(() => {
+    const modelKey = model.replace('Tesla ', '').toUpperCase();
+    return processedStationData.tpyData[modelKey]?.tpy;
+  }, [processedStationData.tpyData, model]);
 
   // ----------------------------------------------------------
   // Helper: update current widget's settings (merge)
@@ -80,12 +148,6 @@ export function ThroughputWidget({ widgetId }) {
   };
 
   // ----------------------------------------------------------
-  // Fetch: station performance with request-order protection
-  useEffect(() => {
-    if (!loaded) return;
-  }, [loaded, widgetId]);
-
-  // ----------------------------------------------------------
   // Handlers (selection + trigger load)
   const handleSetModelKey = (e) => {
     const selectedId = e.target.value;
@@ -96,126 +158,285 @@ export function ThroughputWidget({ widgetId }) {
         model: entry.model,
         key: entry.key
       });
-      setData([]); // reset data
     }
   };
+
+  const handleWeekChange = useCallback((event) => {
+    const value = event.target.value;
+    if (typeof value === 'string' && value.trim()) {
+      updateWidgetSettings({ selectedWeek: value.trim() });
+    }
+  }, [updateWidgetSettings]);
 
   const handleLoadChart = () => {
     updateWidgetSettings({ loaded: true });
   };
 
+  const handleTPYModeChange = useCallback((event) => {
+    const newValue = Boolean(event.target.checked);
+    updateWidgetSettings({ useHardcodedTPY: newValue });
+  }, [updateWidgetSettings]);
+
+  const handleSortChange = useCallback((event) => {
+    const newValue = String(event.target.value);
+    const validSortOptions = ['volume', 'failureRate', 'impactScore', 'alphabetical'];
+    
+    if (validSortOptions.includes(newValue)) {
+      updateWidgetSettings({ sortBy: newValue });
+    }
+  }, [updateWidgetSettings]);
+
+  const handleRepairStationsChange = useCallback((event) => {
+    const newValue = Boolean(event.target.checked);
+    updateWidgetSettings({ showRepairStations: newValue });
+  }, [updateWidgetSettings]);
+  
   // ----------------------------------------------------------
-  // Render: setup screen (choose model then load)
+  // Container styles
+  const containerStyles = {
+    position: 'relative',
+    minHeight: '400px'
+  };
+
+  const processingStyles = loading ? {
+    opacity: 0.7,
+    pointerEvents: 'none'
+  } : {};
+
+  // ----------------------------------------------------------
+  // Render: setup screen (choose model and week then load)
   if (!loaded) {
     return (
       <Paper sx={paperStyle}>
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Header
             title="Select Model for Throughput Chart"
-            subTitle="Choose a model to chart"
+            subTitle="Choose a model and week to chart throughput data"
             titleVariant="h6"
             subTitleVariant="body2"
             titleColor="text.secondary"
           />
-          <FormControl fullWidth>
-            <InputLabel id="model-select-label">Choose Model</InputLabel>
-            <Select
-              label="Choose Model"
-              value={modelKeys.find(mk => mk.model === model)?.id || ''}
-              onChange={handleSetModelKey}
-            >
-              {modelKeys.map(mk => (
-                <MenuItem key={mk.id} value={mk.id}>
-                  {mk.id}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {model.length > 0 && (
-            <Button sx={buttonStyle} onClick={handleLoadChart}>
-              Load Chart
-            </Button>
-          )}
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, maxWidth: 400, mx: 'auto' }}>
+            <FormControl fullWidth>
+              <InputLabel id="model-select-label">Choose Model</InputLabel>
+              <Select
+                label="Choose Model"
+                value={modelKeys.find(mk => mk.model === model)?.id || ''}
+                onChange={handleSetModelKey}
+              >
+                {modelKeys.map(mk => (
+                  <MenuItem key={mk.id} value={mk.id}>
+                    {mk.id}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Week</InputLabel>
+              <Select 
+                value={selectedWeek} 
+                label="Week" 
+                onChange={handleWeekChange} 
+                disabled={!availableWeeks.length}
+              >
+                {availableWeeks.map((week) => (
+                  <MenuItem key={week.id} value={week.id}>
+                    {week.id} ({week.dateRange})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel>Sort By</InputLabel>
+              <Select value={sortBy} label="Sort By" onChange={handleSortChange}>
+                <MenuItem value="volume">Volume (Parts Processed)</MenuItem>
+                <MenuItem value="failureRate">Failure Rate</MenuItem>
+                <MenuItem value="impactScore">Impact Score</MenuItem>
+                <MenuItem value="alphabetical">Alphabetical</MenuItem>
+              </Select>
+            </FormControl>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+
+              <FastSwitch
+                checked={useHardcodedTPY}
+                onChange={handleTPYModeChange}
+                label={useHardcodedTPY ? "Focused TPY" : "Complete TPY"}
+                color="primary"
+              />
+
+              <FastSwitch
+                checked={showRepairStations}
+                onChange={handleRepairStationsChange}
+                label="Show Repair Stations"
+                color="secondary"
+              />
+            </Box>
+
+            {model.length > 0 && selectedWeek && (
+              <Button sx={buttonStyle} onClick={handleLoadChart}>
+                Load Chart
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Paper>
+    );
+  }
+
+  // Handle loading and error states
+  if (loading) {
+    return (
+      <Paper sx={paperStyle}>
+        <Box sx={styles.loadingContainer}>
+          <CircularProgress size={24} />
+          <Typography variant="h6" color="text.secondary">Loading throughput data...</Typography>
+        </Box>
+      </Paper>
+    );
+  }
+
+  if (error) {
+    return (
+      <Paper sx={paperStyle}>
+        <Box sx={styles.errorContainer}>
+          <Typography variant="h6" color="error">Error loading data</Typography>
+          <Typography variant="body2" color="text.secondary">{error}</Typography>
         </Box>
       </Paper>
     );
   }
 
   // ----------------------------------------------------------
-  // Render: chart view
+  // Render: chart view with controls
   return (
     <Paper sx={paperStyle}>
-        <Card elevation={3} sx={{ mb: 3 }}>
-            <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom color="primary">
-                    {model} ({data.length} stations)
-                </Typography>
-                <Box sx={{...containerStyles, ...processingStyles}}>
-                    <ThroughputBarChart data={data} />
-                </Box>
-            </CardContent>
+      {/* TPY Summary Card */}
+      {tpyValue !== null && tpyValue !== undefined && (
+        <Card elevation={2} sx={{ mb: 3 }}>
+          <CardContent sx={{ textAlign: 'center' }}>
+            <Typography variant="h7" gutterBottom color="primary">
+              {model} TPY
+            </Typography>
+            <Typography 
+              variant="h5" 
+              color={key === 'sxm4' ? "error.main" : key === 'sxm5' ? "success.main" : "info.main"}
+            >
+              {tpyValue?.toFixed(1) || '--'}%
+            </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {`${useHardcodedTPY ? 'Focused Analysis' : 'Complete Analysis'} — `}
+                  {`${availableWeeks.find(w => w.id === selectedWeek)?.dateRange} — `}
+                {useHardcodedTPY ? "4 Key Stations" : "All Stations"}
+                {loading && " • Processing..."}
+              </Typography>
+          </CardContent>
         </Card>
+      )}
+
+      {/* Chart */}
+      {throughputData ? (
+        <Card elevation={3}>
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" color="primary">
+                {model} - Station Throughput
+              </Typography>
+              <Chip 
+                label={`${displayStationData.length} stations${useHardcodedTPY ? ' (TPY calc)' : ''}`} 
+                size="small" 
+              />
+            </Box>
+            <Box sx={{ ...containerStyles, ...processingStyles }}>
+              <ThroughputBarChart data={displayStationData} />
+            </Box>
+          </CardContent>
+        </Card>
+      ) : (
+        <Box sx={styles.container}>
+          <Typography variant="h6" color="text.secondary">No throughput data available</Typography>
+          <Typography variant="body2" color="text.secondary">Select a week to view station throughput analysis</Typography>
+        </Box>
+      )}
     </Paper>
   );
 }
 
+// FastSwitch component (same as ThroughputPage)
 const FastSwitch = React.memo(({ checked, onChange, label, color = 'primary' }) => {
   const theme = useTheme();
   
   const switchStyles = useMemo(() => ({
     container: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      cursor: 'pointer',
-      userSelect: 'none'
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '8px', 
+      cursor: 'pointer', 
+      userSelect: 'none', 
+      padding: '4px', 
+      borderRadius: '4px',
+      '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' }
     },
     switch: {
-      position: 'relative',
-      width: '44px',
-      height: '24px',
+      position: 'relative', 
+      width: '44px', 
+      height: '24px', 
+      borderRadius: '12px',
       backgroundColor: checked ? 
         (color === 'primary' ? theme.palette.primary.main : theme.palette.secondary.main) : 
         theme.palette.grey[400],
-      borderRadius: '12px',
-      transition: 'background-color 0.2s ease',
-      border: 'none',
-      cursor: 'pointer',
-      outline: 'none'
+      transition: 'background-color 0.2s ease', 
+      border: 'none', 
+      cursor: 'pointer', 
+      outline: 'none',
+      '&:focus': { boxShadow: `0 0 0 2px ${theme.palette.primary.main}40` }
     },
     thumb: {
-      position: 'absolute',
-      top: '2px',
+      position: 'absolute', 
+      top: '2px', 
       left: checked ? '22px' : '2px',
-      width: '20px',
-      height: '20px',
-      backgroundColor: 'white',
+      width: '20px', 
+      height: '20px', 
+      backgroundColor: 'white', 
       borderRadius: '50%',
-      transition: 'left 0.2s ease',
+      transition: 'left 0.2s ease', 
       boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
     },
-    label: {
-      fontSize: '14px',
-      fontWeight: 500,
-      color: theme.palette.text.primary
+    label: { 
+      fontSize: '14px', 
+      fontWeight: 500, 
+      color: theme.palette.text.primary 
     }
   }), [checked, color, theme]);
 
   const handleClick = useCallback((e) => {
-    // Create a synthetic event that matches MUI Switch structure
     const syntheticEvent = {
-      ...e,
-      preventDefault: () => e.preventDefault(),
-      target: {
-        ...e.target,
-        checked: !checked
-      }
+      ...e, 
+      preventDefault: () => e.preventDefault(), 
+      stopPropagation: () => e.stopPropagation(),
+      target: { ...e.target, checked: !checked }
     };
     onChange(syntheticEvent);
   }, [checked, onChange]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      handleClick(e);
+    }
+  }, [handleClick]);
+
   return (
-    <div style={switchStyles.container} onClick={handleClick}>
+    <div 
+      style={switchStyles.container} 
+      onClick={handleClick} 
+      onKeyDown={handleKeyDown}
+      tabIndex={0} 
+      role="switch" 
+      aria-checked={checked} 
+      aria-label={label}
+    >
       <div style={switchStyles.switch}>
         <div style={switchStyles.thumb} />
       </div>
@@ -223,3 +444,5 @@ const FastSwitch = React.memo(({ checked, onChange, label, color = 'primary' }) 
     </div>
   );
 });
+
+FastSwitch.displayName = 'FastSwitch';

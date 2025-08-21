@@ -51,12 +51,8 @@ const MENU_ITEMS = [
   { text: 'Performance', icon: <SpeedIcon />, children:[
     { text: 'Quality Control Charts', icon: <SpeedIcon />, route: '/performance' },
     { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' }
-  ]}
+  ]},
   //{ text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
-];
-
-const DEV_MENU_ITEMS = [
-  { text: 'File Upload', icon: <CloudUploadIcon />, route: '/dev/upload' },
   { text: 'Auxiliary Reports', icon: <SpeedIcon />, children:[
     { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
     { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' },
@@ -64,6 +60,10 @@ const DEV_MENU_ITEMS = [
     { text: 'Json to CSV', icon: <TableChartIcon />, route: '/json-to-csv' }
   ]
   }
+];
+
+const DEV_MENU_ITEMS = [
+  { text: 'File Upload', icon: <CloudUploadIcon />, route: '/dev/upload' }
 ];
 
 const menuIcons = {
