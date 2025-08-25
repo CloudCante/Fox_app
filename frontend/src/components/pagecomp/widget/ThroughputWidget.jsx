@@ -2,7 +2,7 @@
 // ------------------------------------------------------------
 // Imports
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper, Typography, Card, CardContent, Chip, CircularProgress } from '@mui/material';
+import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper, Typography, Card, CardContent, Chip, CircularProgress, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 // Page Comps
 import { Header } from '../../pagecomp/Header.jsx';
@@ -122,14 +122,33 @@ export function ThroughputWidget({ widgetId }) {
 
   // Filter stations for table/chart display
   const displayStationData = useMemo(() => {
+    //return processedStationData.modelData;
     if (!useHardcodedTPY || !CONSTANTS.HARDCODED_STATIONS[key]) {
       return processedStationData.modelData;
     }
-    
     return processedStationData.modelData.filter(s => 
       CONSTANTS.HARDCODED_STATIONS[key].includes(s.station)
     );
   }, [processedStationData.modelData, useHardcodedTPY, key]);
+
+  const tooltipContent = useMemo(() => {
+    if (!displayStationData || displayStationData.length === 0) {
+      return "No station data available";
+    }
+
+    return (
+      <Box>
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Stations ({displayStationData.length}):
+        </Typography>
+        {displayStationData.map((station, index) => (
+          <Typography key={station.station || index} variant="body2" sx={{ fontSize: '0.75rem' }}>
+            {station.station}: {station.failedParts || 0}/{station.totalParts}  ({((station.failureRate || 0)).toFixed(1)}% failure)
+          </Typography>
+        ))}
+      </Box>
+    );
+  }, [displayStationData]);
 
   // Get TPY value for display
   const tpyValue = useMemo(() => {
@@ -195,7 +214,9 @@ export function ThroughputWidget({ widgetId }) {
   // Container styles
   const containerStyles = {
     position: 'relative',
-    minHeight: '400px'
+    minHeight: '400px',
+    height: '400px', // Add explicit height
+    width: '100%'    // Add explicit width
   };
 
   const processingStyles = loading ? {
@@ -258,14 +279,12 @@ export function ThroughputWidget({ widgetId }) {
               </Select>
             </FormControl>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-
               <FastSwitch
                 checked={useHardcodedTPY}
                 onChange={handleTPYModeChange}
                 label={useHardcodedTPY ? "Focused TPY" : "Complete TPY"}
                 color="primary"
               />
-
               <FastSwitch
                 checked={showRepairStations}
                 onChange={handleRepairStationsChange}
@@ -273,7 +292,6 @@ export function ThroughputWidget({ widgetId }) {
                 color="secondary"
               />
             </Box>
-
             {model.length > 0 && selectedWeek && (
               <Button sx={buttonStyle} onClick={handleLoadChart}>
                 Load Chart
@@ -343,13 +361,36 @@ export function ThroughputWidget({ widgetId }) {
               <Typography variant="h6" color="primary">
                 {model} - Station Throughput
               </Typography>
-              <Chip 
-                label={`${displayStationData.length} stations${useHardcodedTPY ? ' (TPY calc)' : ''}`} 
-                size="small" 
-              />
+              <Tooltip 
+                title={tooltipContent}>
+                <Chip 
+                  label={`${displayStationData.length} stations${useHardcodedTPY ? ' (TPY calc)' : ''}`} 
+                  size="small" 
+                />
+              </Tooltip>
             </Box>
-            <Box sx={{ ...containerStyles, ...processingStyles }}>
-              <ThroughputBarChart data={displayStationData} />
+            {/* FIX: Add explicit height to the chart container */}
+            <Box sx={{ 
+              ...containerStyles, 
+              ...processingStyles,
+              height: '400px', // Add explicit height
+              width: '100%'    // Ensure full width
+            }}>
+              {/* Add debugging info */}
+              {console.log('ThroughputWidget - Chart Data:', displayStationData)}
+              {displayStationData && displayStationData.length > 0 ? (
+                // Force re-render with key prop
+                <ThroughputBarChart 
+                  key={`${widgetId}-${selectedWeek}-${model}-${displayStationData.length}`}
+                  data={processedStationData.modelData} 
+                />
+              ) : (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No chart data available (Length: {displayStationData?.length || 0})
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>
