@@ -6,6 +6,7 @@ import { PackingChartWidget } from '../components/pagecomp/widget/PackingChartWi
 import { ParetoWidget } from '../components/pagecomp/widget/ParetoWidget.jsx';
 import { PackingOutputWidget } from '../components/pagecomp/widget/PackingOutputWidget.jsx';
 import { ThroughputWidget } from '../components/pagecomp/widget/ThroughputWidget.jsx';
+import { PChartWidget } from '../components/pagecomp/widget/PchartWidget.jsx';
 
 
 export const widgetList = [
@@ -15,4 +16,5 @@ export const widgetList = [
   {type:"Packing chart",comp:PackingChartWidget,tools:["weekRange"]},
   {type:"Pareto chart",comp:ParetoWidget,tools:["dateRange","barLimit"]},
   {type:"Throughput chart",comp:ThroughputWidget,tools:["dateRange","barLimit"]},
+  {type:"P-chart",comp:PChartWidget,tools:["dateRange","barLimit"]},
 ];

@@ -189,10 +189,14 @@ export const SideDrawer = React.memo(({ open, onClose }) => {
           if (item.children) {
             const isOpen = item.text === 'Station Reports'
                             ? stationReportsOpen
-                            : performanceReportsOpen;
+                            : item.text ==='Performance'
+                            ?performanceReportsOpen
+                            :auxiliaryReportsOpen;
             const toggle  = item.text === 'Station Reports'
                             ? setStationReportsOpen
-                            : setPerformanceReportsOpen;
+                            : item.text ==='Performance'
+                            ?setPerformanceReportsOpen
+                            :setAuxiliaryReportsOpen;
             return (
               <React.Fragment key={item.text}>
                 <ListItem disablePadding>

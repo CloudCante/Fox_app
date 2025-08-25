@@ -143,7 +143,7 @@ export function ThroughputWidget({ widgetId }) {
         </Typography>
         {displayStationData.map((station, index) => (
           <Typography key={station.station || index} variant="body2" sx={{ fontSize: '0.75rem' }}>
-            {station.station}: {station.failedParts || 0}/{station.totalParts}  ({((station.failureRate || 0)).toFixed(1)}% failure)
+            {station.station}: {station.failedParts || 0}/{station.totalParts}  ({((station.failureRate || 0)).toFixed(2)}% failure)
           </Typography>
         ))}
       </Box>
@@ -376,8 +376,6 @@ export function ThroughputWidget({ widgetId }) {
               height: '400px', // Add explicit height
               width: '100%'    // Ensure full width
             }}>
-              {/* Add debugging info */}
-              {console.log('ThroughputWidget - Chart Data:', displayStationData)}
               {displayStationData && displayStationData.length > 0 ? (
                 // Force re-render with key prop
                 <ThroughputBarChart 

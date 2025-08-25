@@ -1,7 +1,7 @@
 // Widget for TestStation Pareto Charts
 // ------------------------------------------------------------
 // Imports
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Button, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
 // Page Comps
 import { Header } from '../Header.jsx';
