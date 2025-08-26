@@ -57,7 +57,8 @@ const MENU_ITEMS = [
     { text: 'Station Cycle Time', icon: <AccessTimeIcon />, route: '/cycle-time' },
     { text: 'Most Recent Fail', icon: <AccessTimeIcon />, route: '/most-recent-fail' },
     { text: 'Get by Error', icon: <TableChartIcon />, route: '/by-error' },
-    { text: 'Json to CSV', icon: <TableChartIcon />, route: '/json-to-csv' }
+    { text: 'Json to CSV', icon: <TableChartIcon />, route: '/json-to-csv' },
+    { text: 'Did They Fail', icon: <TableChartIcon />, route: '/did-they-fail' },
   ]
   }
 ];
