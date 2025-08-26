@@ -1,4 +1,4 @@
-// Enhanced WidgetManager with true masonry layout
+// Enhanced WidgetManager with true masonry layout and fixed reset button positioning
 import React, { useState, Component, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { Box, Button, Typography, IconButton } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -41,6 +41,13 @@ class ErrorBoundary extends Component {
 // Custom hook for masonry layout
 const useMasonryLayout = (widgets, layoutMode, containerRef) => {
     const [isLayoutReady, setIsLayoutReady] = useState(false);
+    const lastContainerRef = useRef(null);
+
+    useLayoutEffect(() => {
+        if(containerRef?.current){
+            lastContainerRef.current = containerRef.current;
+        }
+    });
     
     useLayoutEffect(() => {
         if (debug) console.log('🚀 useMasonryLayout - Effect triggered', { 
@@ -51,6 +58,9 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
 
         if (layoutMode !== 'masonry') {
             if (debug) console.log('❌ Not masonry mode, layoutMode:', layoutMode);
+            if(lastContainerRef.current){
+                resetMasonryStyles(lastContainerRef.current);
+            }
             setIsLayoutReady(true);
             return;
         }
@@ -97,7 +107,7 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
 
             // Setup ResizeObserver for size changes
             resizeObserver = new ResizeObserver((entries) => {
-                if (debug) console.log('📐 ResizeObserver triggered with', entries.length, 'entries');
+                if (debug) console.log('📏 ResizeObserver triggered with', entries.length, 'entries');
                 // Debounce rapid resize events
                 if (timeoutId) clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => {
@@ -164,6 +174,9 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
             if (resizeObserver) resizeObserver.disconnect();
             if (mutationObserver) mutationObserver.disconnect();
             if (timeoutId) clearTimeout(timeoutId);
+            if(layoutMode === 'masonry' && container){
+                resetMasonryStyles(container);
+            }
         };
     }, [widgets, layoutMode]);
 
@@ -175,7 +188,7 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
         const containerWidth = container.offsetWidth;
         const gap = 16;
         
-        if (debug) console.log('📐 Container width:', containerWidth);
+        if (debug) console.log('📏 Container width:', containerWidth);
         
         // Calculate number of columns based on container width
         let columnCount = Math.floor(containerWidth / 280);
@@ -209,6 +222,9 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
             
             // Ensure box-sizing
             item.style.boxSizing = 'border-box';
+            
+            // IMPORTANT: Don't set overflow: hidden to prevent clipping reset button
+            item.style.overflow = 'visible';
             
             if (debug) console.log(`📦 Item ${index} - Reset to natural sizing`);
         });
@@ -253,8 +269,9 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
             item.style.left = `${left}px`;
             item.style.top = `${top}px`;
             item.style.width = `${columnWidth}px`;
-            item.style.height = `${itemHeight}px`; // Set explicit height to prevent stretching
-            item.style.overflow = 'hidden'; // Prevent content overflow
+            // Don't set explicit height to allow reset button positioning
+            // item.style.height = `${itemHeight}px`;
+            item.style.overflow = 'visible'; // Keep visible to prevent clipping reset button
             
             // Update column height with actual item height
             columnHeights[shortestColumnIndex] += itemHeight + gap;
@@ -280,11 +297,40 @@ const useMasonryLayout = (widgets, layoutMode, containerRef) => {
         container.style.height = `${maxHeight}px`;
         container.style.position = 'relative';
         
-        if (debug) console.log('🏁 Layout complete - Container height:', maxHeight);
+        if (debug) console.log('📐 Layout complete - Container height:', maxHeight);
     };
 
     return { isLayoutReady };
 };
+
+// Remove all inline styles applied by the JS masonry
+function resetMasonryStyles(rootEl) {
+  if (!rootEl) return;
+  // Reset container
+  rootEl.style.height = '';
+  rootEl.style.position = '';
+  rootEl.style.width = '';
+  rootEl.style.minHeight = '';
+
+  // Reset each item that we touched during masonry
+  const items = rootEl.querySelectorAll('.masonry-item');
+  items.forEach((item) => {
+    item.style.position = '';
+    item.style.left = '';
+    item.style.top = '';
+    item.style.width = '';
+    item.style.height = '';
+    item.style.overflow = '';
+    item.style.transform = '';
+    item.style.transition = '';
+    // If you changed display/flex/boxSizing during masonry, clear those too:
+    item.style.display = '';
+    item.style.flex = '';
+    item.style.alignSelf = '';
+    item.style.boxSizing = '';
+  });
+}
+
 
 export function WidgetManager({
     widgets = []
@@ -293,6 +339,7 @@ export function WidgetManager({
     const theme = useTheme();
     const containerRef = useRef(null);
     const { layoutMode } = state;
+    const [layoutRevision, setLayoutRevision] = useState(0); // To force re-layout when widgets change
     
     // Use custom masonry hook
     const { isLayoutReady } = useMasonryLayout(widgets, layoutMode, containerRef);
@@ -344,6 +391,7 @@ export function WidgetManager({
         breakInside: 'avoid',
         position: 'relative',
         boxSizing: 'border-box', // Ensure consistent box model
+        overflow: 'visible', // Allow reset button to be visible
         '& > *': {
             position: 'relative',
             height: 'auto', // Ensure children don't stretch
@@ -361,7 +409,8 @@ export function WidgetManager({
                 // Debug styles - remove these after debugging
                 border: debug ? '2px solid red': '',
                 backgroundColor: debug ? 'rgba(255,0,0,0.1)' : '',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                overflow: 'visible' // Ensure reset button isn't clipped
             }}
         >
             {Widget ? (
@@ -375,8 +424,8 @@ export function WidgetManager({
                 onClick={() => handleResetWidget(id)}
                 sx={{
                     position: 'absolute',
-                    top: 8,
-                    right: 8,
+                    top: layoutMode === 'masonry' ? 7 : 8, // Adjust position for masonry mode
+                    right: layoutMode === 'masonry' ? 7 : 8, // Adjust position for masonry mode
                     zIndex: 1001,
                     backgroundColor: theme.palette.background.default,
                     color: theme.palette.background.paper,
@@ -388,7 +437,12 @@ export function WidgetManager({
                         opacity: 1,
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         color: 'white'
-                    }
+                    },
+                    // Add border and shadow for better visibility in masonry mode
+                    // ...(layoutMode === 'masonry' && {
+                    //     border: '2px solid white',
+                    //     boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                    // })
                 }}
                 size="small"
                 title="Reset Widget"
@@ -447,7 +501,9 @@ export function WidgetManager({
                         transition: 'opacity 0.3s ease',
                         // Debug container styles
                         border: debug ? '3px solid blue' : '',
-                        backgroundColor: debug ? 'rgba(0,0,255,0.05)' : ''
+                        backgroundColor: debug ? 'rgba(0,0,255,0.05)' : '',
+                        // Add padding to accommodate reset buttons positioned outside widget bounds
+                        padding: '16px'
                     }}
                 >
                     {widgets.map(renderItem)}
