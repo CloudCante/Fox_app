@@ -9,6 +9,7 @@ import { importQuery } from '../../utils/queryUtils.js';
 import { stationBuckets } from '../../data/dataTables';
 import * as d3 from 'd3';
 import { exportSecureCSV } from '../../utils/exportUtils.js';
+import { data } from 'react-router-dom';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) console.error('REACT_APP_API_BASE is not set');
@@ -18,6 +19,8 @@ export const StationCycleTime = () => {
   const fileInputRef = useRef(null);
   const [useBuckets, setUseBuckets] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('');
+  const [selectedMode, setSelectedMode] = useState('Workstations');
+  const modeOptions = ['Workstations','Buckets','Lifetime'];
 
   const boxChartRef = useRef(null);
   const violinChartRef = useRef(null);
@@ -58,26 +61,44 @@ export const StationCycleTime = () => {
 
   // bucketData: array of objects matching rawData schema
   const bucketData = useMemo(() => {
-    const combinedData = Object.values(rawData.map(r => ({
-        ...r,
-        // overwrite workstation_name with its bucket (or 'Unbucketed')
-        workstation_name: stationBucketLookup[r.workstation_name] || 'Unbucketed'
-    })).reduce((acc,item)=>{
-        const cKey = `${item.sn}-${item.workstation_name}`;
-        if(!acc[cKey]){
-            acc[cKey]={sn:item.sn,workstation_name:item.workstation_name,total_time:item.total_time};
+    const combinedData = Object.values(
+    rawData
+      .map(r => {
+        let tempBucket = stationBucketLookup[r.workstation_name] || 'Unbucketed';
+
+        // Apply lifetime logic
+        if (selectedMode === 'Lifetime') {
+          tempBucket = tempBucket === 'shipping' ? tempBucket : 'Lifetime';
         }
-        acc[cKey].total_time+=item.total_time;
+
+        return {
+          ...r,
+          workstation_name: tempBucket
+        };
+      })
+      .reduce((acc, item) => {
+        const cKey = `${item.sn}-${item.workstation_name}`;
+        if (!acc[cKey]) {
+          acc[cKey] = {
+            sn: item.sn,
+            workstation_name: item.workstation_name,
+            total_time: 0
+          };
+        }
+        acc[cKey].total_time += item.total_time;
         return acc;
-    },{}));
+      }, {})
+  );
+
 
     //console.log("raw:",rawData);
     //console.log("combined:",combinedData);
     //console.log("key:",stationBucketLookup);
     return combinedData;
-  }, [rawData, stationBucketLookup]);
+  }, [rawData, stationBucketLookup, selectedMode]);
 
-  const data = useBuckets ? bucketData : rawData;
+  //const data = useBuckets ? bucketData : rawData;
+  const data = selectedMode === 'Workstations' ? rawData : bucketData;
 
   const filterOptions = useMemo(
     () => [...new Set(data.map(r => r.workstation_name).filter(Boolean))],
@@ -103,7 +124,8 @@ export const StationCycleTime = () => {
             {label : 'Q3', value : Number(d3.quantile(s, 0.75)).toFixed(2)},
             {label : 'Maximum', value : Number(d3.max(s)).toFixed(2)},
             {label : 'IQR', value : Number(d3.quantile(s, 0.75)).toFixed(2)-Number(d3.quantile(s, 0.25)).toFixed(2)},
-            {label : 'Mean', value : Number(d3.mean(s)).toFixed(2)}
+            {label : 'Mean', value : Number(d3.mean(s)).toFixed(2)},
+            {count: s.length, label : 'Count', value : s.length}
         ]
         return {stats}
   },[filteredData]);
@@ -162,12 +184,25 @@ export const StationCycleTime = () => {
         </FormControl>
         <Button sx={buttonStyle} onClick={handleImportClick}>Import CSV</Button>
         <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+        {/* 
         <Button sx={buttonStyle} onClick={() => {
             setSelectedFilter('');
             setUseBuckets(prev => !prev);
             }}>
           {useBuckets ? 'Use Workstations' : 'Use Buckets'}
         </Button>
+         */}
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Mode</InputLabel>
+          <Select value={selectedMode} onChange={
+            (e) => {
+              setSelectedFilter('');
+              setSelectedMode(e.target.value)
+            }
+            }>
+            {modeOptions.map((opt, i) => <MenuItem key={i} value={opt}>{opt}</MenuItem>)}
+          </Select>
+        </FormControl>
       </Box>
       <Divider />
       {!data.length ? (
