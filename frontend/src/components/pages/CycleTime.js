@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { Box, Typography, Button, Divider, FormControl, InputLabel, Select, MenuItem, Fade, Paper } from '@mui/material';
+import { Box, Typography, Button, Divider, FormControl, InputLabel, Select, MenuItem, Fade, Paper, LinearProgress } from '@mui/material';
 import Papa from 'papaparse';
 import { Header } from '../pagecomp/Header.jsx';
 import { BoxChart } from '../charts/BoxChart.js';
@@ -14,12 +14,27 @@ import { data } from 'react-router-dom';
 const API_BASE = process.env.REACT_APP_API_BASE;
 if (!API_BASE) console.error('REACT_APP_API_BASE is not set');
 
+// Helper function to chunk array into smaller arrays
+const chunkArray = (array, chunkSize) => {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+// Helper function to add delay between requests
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const StationCycleTime = () => {
   const [rawData, setRawData] = useState([]);
   const fileInputRef = useRef(null);
   const [useBuckets, setUseBuckets] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('');
   const [selectedMode, setSelectedMode] = useState('Workstations');
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const modeOptions = ['Workstations','Buckets','Lifetime'];
 
   const boxChartRef = useRef(null);
@@ -30,21 +45,81 @@ export const StationCycleTime = () => {
   const handleFileChange = useCallback(async e => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    setIsLoading(true);
+    setLoadingProgress(0);
+    setLoadingStatus('Parsing CSV...');
+    
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: true,
       complete: async results => {
         const sns = results.data.map(r => r.sn).filter(Boolean);
-        if (!sns.length) return console.warn('No SNs found in CSV');
+        if (!sns.length) {
+          console.warn('No SNs found in CSV');
+          setIsLoading(false);
+          return;
+        }
+
+        console.log(`Processing ${sns.length} SNs in chunks of 500`);
+        setLoadingStatus(`Processing ${sns.length} SNs in chunks...`);
+        
+        // Chunk SNs into groups of 500
+        const chunks = chunkArray(sns, 500);
+        const allResults = [];
+        
         try {
-          const backendData = await importQuery(API_BASE, '/api/workstationRoutes/station-times', {}, 'POST', { sns });
-          setRawData(backendData);
+          for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            setLoadingStatus(`Processing chunk ${i + 1} of ${chunks.length} (${chunk.length} SNs)`);
+            setLoadingProgress(((i) / chunks.length) * 100);
+            
+            try {
+              const chunkData = await importQuery(
+                API_BASE, 
+                '/api/workstationRoutes/station-times', 
+                {}, 
+                'POST', 
+                { sns: chunk }
+              );
+              
+              // Add chunk data to results
+              if (Array.isArray(chunkData)) {
+                allResults.push(...chunkData);
+              }
+              
+              console.log(`Chunk ${i + 1} completed: ${chunkData?.length || 0} records`);
+              
+              // Add small delay between requests to be nice to the server
+              if (i < chunks.length - 1) {
+                await delay(100); // 100ms delay
+              }
+              
+            } catch (chunkError) {
+              console.error(`Error processing chunk ${i + 1}:`, chunkError);
+              // Continue with other chunks even if one fails
+            }
+          }
+          
+          setLoadingStatus('Combining results...');
+          setLoadingProgress(100);
+          
+          console.log(`Total records retrieved: ${allResults.length}`);
+          setRawData(allResults);
+          
         } catch (err) {
-          console.error('Fetch error:', err);
+          console.error('Overall fetch error:', err);
+        } finally {
+          setIsLoading(false);
+          setLoadingProgress(0);
+          setLoadingStatus('');
         }
       },
-      error: err => console.error(err)
+      error: err => {
+        console.error('CSV parsing error:', err);
+        setIsLoading(false);
+      }
     });
     e.target.value = null;
   }, []);
@@ -90,22 +165,15 @@ export const StationCycleTime = () => {
       }, {})
   );
 
-
-    //console.log("raw:",rawData);
-    //console.log("combined:",combinedData);
-    //console.log("key:",stationBucketLookup);
     return combinedData;
   }, [rawData, stationBucketLookup, selectedMode]);
 
-  //const data = useBuckets ? bucketData : rawData;
   const data = selectedMode === 'Workstations' ? rawData : bucketData;
 
   const filterOptions = useMemo(
     () => [...new Set(data.map(r => r.workstation_name).filter(Boolean))],
     [data]
   );
-
-  //const log = useMemo(()=> console.log("filter",filterOptions),[filterOptions]);
 
   const filteredData = useMemo(() => {
     if (!selectedFilter) return [];
@@ -166,33 +234,26 @@ export const StationCycleTime = () => {
     // this will now reference the passed-in data
     const limitedData = data.filter(v => v >= lowerBound && v <= upperBound);
     console.log("limited:", limitedData);
-    //console.log("filtered:", data);
     const fullName = `${filename}_${Number(lowerBound).toFixed(0)}_${Number(upperBound).toFixed(0)}`
     exportSelection(limitedData,fullName);
-    // …generate CSV or download…
   };
 
   return (
     <Box>
       <Header title="Station Cycle Time" subTitle="Charting station cycle times" />
       <Box>
-        <FormControl sx={{ minWidth: 200 }} disabled={!filterOptions.length}>
+        <FormControl sx={{ minWidth: 200 }} disabled={!filterOptions.length || isLoading}>
           <InputLabel>Filter</InputLabel>
           <Select value={selectedFilter} onChange={e => setSelectedFilter(e.target.value)}>
             {filterOptions.map((opt, i) => <MenuItem key={i} value={opt}>{opt}</MenuItem>)}
           </Select>
         </FormControl>
-        <Button sx={buttonStyle} onClick={handleImportClick}>Import CSV</Button>
-        <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
-        {/* 
-        <Button sx={buttonStyle} onClick={() => {
-            setSelectedFilter('');
-            setUseBuckets(prev => !prev);
-            }}>
-          {useBuckets ? 'Use Workstations' : 'Use Buckets'}
+        <Button sx={buttonStyle} onClick={handleImportClick} disabled={isLoading}>
+          {isLoading ? 'Processing...' : 'Import CSV'}
         </Button>
-         */}
-        <FormControl sx={{ minWidth: 200 }}>
+        <input type="file" accept=".csv" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+        
+        <FormControl sx={{ minWidth: 200 }} disabled={isLoading}>
           <InputLabel>Mode</InputLabel>
           <Select value={selectedMode} onChange={
             (e) => {
@@ -204,8 +265,19 @@ export const StationCycleTime = () => {
           </Select>
         </FormControl>
       </Box>
+      
+      {/* Loading Progress */}
+      {isLoading && (
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <Typography variant="body2" gutterBottom>
+            {loadingStatus}
+          </Typography>
+          <LinearProgress variant="determinate" value={loadingProgress} />
+        </Box>
+      )}
+      
       <Divider />
-      {!data.length ? (
+      {!data.length && !isLoading ? (
         <Typography>No data available</Typography>
       ) : selectedFilter ? (
         <>
@@ -240,9 +312,9 @@ export const StationCycleTime = () => {
           }/>
         </Box>
         </>
-      ) : (
+      ) : !isLoading ? (
         <Typography>Select a filter to view charts</Typography>
-      )}
+      ) : null}
     </Box>
   );
 };

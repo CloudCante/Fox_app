@@ -44,6 +44,11 @@ const MENU_ITEMS = [
   { text: 'Station Performance Charts', icon: <TableChartIcon/>, route: '/station-performance'},
   { text: 'Packing', icon: <Inventory2Icon />, route: '/packing' },
   { text: 'Pareto', icon: <TrendingUpIcon />, route: '/pareto' },
+  { text: 'Fixture Management', icon: <Inventory2Icon />, children:[
+    { text: 'Fixture Dashboard', icon: <GridViewIcon />, route: '/fixture-dash' },
+    { text: 'Fixture Details', icon: <TableChartIcon />, route: '/fixture-details' },
+    { text: 'Fixture Inventory', icon: <TableChartIcon />, route: '/fixture-inventory' },
+  ]},
   { text: 'Station Reports', icon: <GradingIcon />, children:[
     { text: 'SnFn Reports', icon: <GridViewIcon />, route: '/snfn' },
     { text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' },
@@ -118,9 +123,12 @@ const MenuList = React.memo(({ onClose }) => (
 ));
 
 export const SideDrawer = React.memo(({ open, onClose }) => {
-  const [stationReportsOpen, setStationReportsOpen] = useState(false);
-  const [performanceReportsOpen, setPerformanceReportsOpen] = useState(false);
-  const [auxiliaryReportsOpen, setAuxiliaryReportsOpen] = useState(false);
+  const [openState, setOpenState] = useState({
+    "Station Reports": false,
+    "Performance": false,
+    "Auxiliary Reports": false,
+    "Fixture Management": false,
+  });
   const [isLowEndDevice, setIsLowEndDevice] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -188,16 +196,13 @@ export const SideDrawer = React.memo(({ open, onClose }) => {
         {MENU_ITEMS.map(item => {
           // If it has children, render collapse
           if (item.children) {
-            const isOpen = item.text === 'Station Reports'
-                            ? stationReportsOpen
-                            : item.text ==='Performance'
-                            ?performanceReportsOpen
-                            :auxiliaryReportsOpen;
-            const toggle  = item.text === 'Station Reports'
-                            ? setStationReportsOpen
-                            : item.text ==='Performance'
-                            ?setPerformanceReportsOpen
-                            :setAuxiliaryReportsOpen;
+            const isOpen = openState[item.text];
+            const toggle  = () => {
+              setOpenState(prev => ({
+                ...prev,
+                [item.text]: !prev[item.text]
+              }));
+            }
             return (
               <React.Fragment key={item.text}>
                 <ListItem disablePadding>
@@ -244,16 +249,13 @@ export const SideDrawer = React.memo(({ open, onClose }) => {
             {DEV_MENU_ITEMS.map(item => {
           // If it has children, render collapse
           if (item.children) {
-            const isOpen = item.text === 'Station Reports'
-                            ? stationReportsOpen
-                            : item.text ==='Performance'
-                            ?performanceReportsOpen
-                            :auxiliaryReportsOpen;
-            const toggle  = item.text === 'Station Reports'
-                            ? setStationReportsOpen
-                            : item.text ==='Performance'
-                            ?setPerformanceReportsOpen
-                            :setAuxiliaryReportsOpen;
+            const isOpen = openState[item.text];
+            const toggle  = () => {
+              setOpenState(prev => ({
+                ...prev,
+                [item.text]: !prev[item.text]
+              }));
+            }
             return (
               <React.Fragment key={item.text}>
                 <ListItem disablePadding>

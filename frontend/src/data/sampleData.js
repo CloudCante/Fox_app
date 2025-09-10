@@ -264,3 +264,30 @@ export const sampleViolinData = [
   // Outliers
   0.00, 25.00
 ];
+
+export const testFixtureData = [
+  { date: '2025-08-01', health: 80, healthKPI: 95, usage: 50},
+  { date: '2025-08-02', health: 85, healthKPI: 95, usage: 60},
+  { date: '2025-08-03', health: 90, healthKPI: 95, usage: 70},
+  { date: '2025-08-04', health: 100, healthKPI: 95, usage: 90},
+  { date: '2025-08-05', health: 99, healthKPI: 95, usage: 50},
+  { date: '2025-08-06', health: 99, healthKPI: 95, usage: 50},
+  { date: '2025-08-07', health: 70, healthKPI: 95, usage: 90},
+  { date: '2025-08-08', health: 58, healthKPI: 95, usage: 85},
+  { date: '2025-08-09', health: 55, healthKPI: 95, usage: 90},]
+
+export const testFixtureStatusData = [
+  { name: 'NV-NCT011-1', rack: 1, sn: '0001', status: 'Active', lastBeat: '12:00:00', type:'Refurbish'},
+  { name: 'NV-NCT011-2', rack: 1, sn: '0002', status: 'No Response', lastBeat: '11:00:00', type:'New'},
+  { name: 'NV-NCT011-3', rack: 1, sn: '0003', status: 'Active', lastBeat: '12:05:00', type:'Refurbish'},
+  { name: 'NV-NCT011-4', rack: 2, sn: '0004', status: 'No Response', lastBeat: '10:30:00', type:'New'},
+  { name: 'NV-NCT011-5', rack: 2, sn: '0005', status: 'Partial', lastBeat: '12:10:00', type:'Refurbish'},
+  { name: 'NV-NCT011-6', rack: 3, sn: '0006', status: 'Maintenece', lastBeat: '09:45:00', type:'New'},
+  { name: 'NV-NCT011-7', rack: 3, sn: '0007', status: 'Active', lastBeat: '12:15:00', type:'Refurbish'},
+  { name: 'NV-NCT011-8', rack: 4, sn: '0008', status: 'Repair', lastBeat: '11:30:00', type:'New'},
+  { name: 'NV-NCT011-9', rack: 4, sn: '0009', status: 'Active', lastBeat: '12:20:00', type:'Refurbish'},
+  { name: 'NV-NCT011-10', rack: 5, sn: '0010', status: 'Partial', lastBeat: '10:15:00', type:'New'},
+  { name: 'NV-NCT011-11', rack: 5, sn: '0011', status: 'Active', lastBeat: '12:25:00', type:'Refurbish'},
+  { name: 'NV-NCT011-12', rack: 6, sn: '0012', status: 'No Response', lastBeat: '11:15:00', type:'New'},
+  { name: 'NV-NCT011-13', rack: 6, sn: '0013', status: 'Maintenece', lastBeat: '09:30:00', type:'Refurbish'},
+];
