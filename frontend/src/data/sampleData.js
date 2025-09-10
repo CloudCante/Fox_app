@@ -291,3 +291,34 @@ export const testFixtureStatusData = [
   { name: 'NV-NCT011-12', rack: 6, sn: '0012', status: 'No Response', lastBeat: '11:15:00', type:'New'},
   { name: 'NV-NCT011-13', rack: 6, sn: '0013', status: 'Maintenece', lastBeat: '09:30:00', type:'Refurbish'},
 ];
+
+export const testFixtureAvailabilityData = [
+  { date: '2025-08-01', id: 'NV-NCT01-1', eventType: 'Weekly_Maintenance', outTime: '30 min', comments: 'Everything is normal'},
+  { date: '2025-08-02', id: 'NV-NCT01-2', eventType: 'Emergency_Maintenance', outTime: '120 min', comments: 'Replaced riser'},
+  { date: '2025-08-03', id: 'NV-NCT01-3', eventType: 'Partial_Active', outTime: '25 min', comments: 'Left Slot is down'},
+  { date: '2025-08-04', id: 'NV-NCT01-4', eventType: 'Admin_Disabled', outTime: '90 min', comments: 'Waiting for Parts'},
+  { date: '2025-08-05', id: 'NV-NCT01-5', eventType: 'Needs_Maintenance', outTime: '20 min', comments: 'Waiting for TE'},
+  { date: '2025-08-06', id: 'NV-NCT01-6', eventType: 'TE_testing', outTime: '60 min', comments: 'Used by Thay'},
+  { date: '2025-08-07', id: 'NV-NCT01-7', eventType: 'Other', outTime: '35 min', comments: 'Any other event'},
+  { date: '2025-08-08', id: 'NV-NCT01-8', eventType: 'Next_Maintenance', outTime: '30 min', comments: 'Next scheduled maintenance'},
+];
+export const testFixtureUsageData = [
+  { date: '2025-08-01', id: 'NV-NCT01-1', testType: 'FLA', usage: '50%', alarm:'None' },
+  { date: '2025-08-01', id: 'NV-NCT01-2', testType: 'BAT', usage: '60%', alarm:'None' },
+  { date: '2025-08-01', id: 'NV-NCT01-3', testType: 'FCT', usage: '70%', alarm:'None' },
+  { date: '2025-08-01', id: 'NV-NCT01-4', testType: 'IST', usage: '90%', alarm:'None' },
+  { date: '2025-08-02', id: 'NV-NCT01-1', testType: 'FLA', usage: '50%', alarm:'None' },
+  { date: '2025-08-02', id: 'NV-NCT01-2', testType: 'None', usage: '60%', alarm:'No Response 1' },
+  { date: '2025-08-02', id: 'NV-NCT01-3', testType: 'None', usage: '70%', alarm:'No Response 2' },
+  { date: '2025-08-02', id: 'NV-NCT01-4', testType: 'FLA', usage: '90%', alarm:'None' },
+];
+export const testFixtureFailureData = [
+  { date: '2025-08-01', id: 'NV-NCT01-1', testType: 'FLA', topError:'143', count:5, rate:1 },
+  { date: '2025-08-01', id: 'NV-NCT01-2', testType: 'BAT', topError:'281', count:3, rate:10 },
+  { date: '2025-08-01', id: 'NV-NCT01-3', testType: 'FCT', topError:'773', count:2, rate:99 },
+  { date: '2025-08-01', id: 'NV-NCT01-4', testType: 'IST', topError:'288', count:1, rate:8 },
+  { date: '2025-08-02', id: 'NV-NCT01-1', testType: 'FLA', topError:'143', count:4, rate:100 },
+  { date: '2025-08-02', id: 'NV-NCT01-2', testType: 'None', topError:'281', count:2, rate:25 },
+  { date: '2025-08-02', id: 'NV-NCT01-3', testType: 'None', topError:'773', count:3, rate:60 },
+  { date: '2025-08-02', id: 'NV-NCT01-4', testType: 'IST', topError:'288', count:1, rate:0 },
+];

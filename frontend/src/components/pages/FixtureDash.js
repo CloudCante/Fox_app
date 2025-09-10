@@ -1,17 +1,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Card, CardContent, CardHeader, CircularProgress, Container,
-  Divider, FormControl, InputLabel, MenuItem,
-  Select, Typography, Alert, Stack, Grid
+import { Box, Card, CardContent, CardHeader, CircularProgress, Container, Divider, FormControl, InputLabel, MenuItem, Select, Typography, Alert, Stack, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
 } from '@mui/material';
-import { DateRange } from '../pagecomp/DateRange';
-import { useNavigate } from 'react-router-dom';
-import PChart from '../charts/PChart';
 import {LineChart} from '../charts/LineChart.js';
 import { PieChart } from '../charts/PieChart.js';
 import { Header } from '../pagecomp/Header';
-import { normalizeDate, getInitialStartDate } from '../../utils/dateUtils.js';
 import { testFixtureData,testFixtureStatusData } from '../../data/sampleData.js';
-import { Pie } from 'recharts';
+import { gridStyle } from '../theme/themes.js';
 
 const FixtureDash = () => {
     const currentHealth = 99;
@@ -34,12 +28,12 @@ const FixtureDash = () => {
             <Box>
                 <Header
                 title="Fixture Station Dashboard"
-                subTitle={`Secondary Dashboard for Monitoring Fixture Stations`}
+                subTitle={`Dashboard for Monitoring Fixture Stations`}
                 />
             </Box>
 
 
-            <Grid container spacing={3}>
+            <Grid container spacing={3} >
                 <Grid size={2}>
                     <Stack spacing={2} mb={2}>
                         <Card>
@@ -69,12 +63,46 @@ const FixtureDash = () => {
                 </Grid>
                 <Grid size={5}>
                     <PieChart
-                        label="Fixture Station Status"
+                        label="Fixture Station Current Status"
                         data={pieData}
                         loading={false}
                     />
                 </Grid>
             </Grid>
+
+            <TableContainer component={Paper}>
+                <Table sx={{ minWidth: 650 }} aria-label="simple table">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Fixture_Name</TableCell>
+                            <TableCell align="right">Rack</TableCell>
+                            <TableCell align="right">Fixture_SN</TableCell>
+                            <TableCell align="right">Current_Status</TableCell>
+                            <TableCell align="right">Last_Heartbeat_Time</TableCell>
+                            <TableCell align="right">Test_Type</TableCell>
+                            <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                    {testFixtureStatusData.map((row) => (
+                        <TableRow
+                        key={row.name}
+                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                        >
+                        <TableCell component="th" scope="row">
+                            {row.name}
+                        </TableCell>
+                        <TableCell align="right">{row.rack}</TableCell>
+                        <TableCell align="right">{row.sn}</TableCell>
+                        <TableCell align="right">{row.status}</TableCell>
+                        <TableCell align="right">{row.lastBeat}</TableCell>
+                        <TableCell align="right">{row.type}</TableCell>
+                        <TableCell align="right">placeholder</TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
            
         </Container>
     );
