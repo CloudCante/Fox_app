@@ -14,7 +14,7 @@ import { useTheme } from '@mui/material/styles';
 // Styles
 import { paperStyle, flexStyle, typeStyle, boxStyle } from '../theme/themes.js';
 
-const COLORS = [
+const COLORS = [ // extended color set
   '#4caf50', // green
   '#f44336', // red
   '#ff9800', // orange
@@ -23,7 +23,7 @@ const COLORS = [
   '#607d8b', // gray
 ];
 
-export const PieChart = memo(function PieChart({ label, data, loading }) {
+export const PieChart = memo(function PieChart({ label, data, getPercent = true, showTag = true, loading = false }) {
   const theme = useTheme();
 
   if (!data.length && !loading) {
@@ -60,7 +60,7 @@ export const PieChart = memo(function PieChart({ label, data, loading }) {
                 cy="50%"
                 outerRadius={120}
                 label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
+                  `${showTag ? `${name}: `:``} ${getPercent ? `${(percent * 100).toFixed(0)}%` : `${data.find(d => d.status === name)?.value || 0}`}`
                 }
               >
                 {data.map((entry, index) => (
@@ -87,10 +87,16 @@ PieChart.propTypes = {
       status: PropTypes.string,
     })
   ),
+  // Toggle between showing percentage or raw value in labels
+  getPercent: PropTypes.bool,
+  // Toggle showing the name tag in labels
+  showTag: PropTypes.bool,
   loading: PropTypes.bool,
 };
 
 PieChart.defaultProps = {
   data: [],
+  getPercent: true,
+  showTag: true,
   loading: false,
 };

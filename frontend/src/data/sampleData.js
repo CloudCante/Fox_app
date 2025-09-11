@@ -266,7 +266,7 @@ export const sampleViolinData = [
 ];
 
 export const testFixtureData = [
-  { date: '2025-08-01', health: 80, healthKPI: 95, usage: 50},
+  { date: '2025-08-01', health: 80, healthKPI: 95, usage: 45},
   { date: '2025-08-02', health: 85, healthKPI: 95, usage: 60},
   { date: '2025-08-03', health: 90, healthKPI: 95, usage: 70},
   { date: '2025-08-04', health: 100, healthKPI: 95, usage: 90},
@@ -278,18 +278,21 @@ export const testFixtureData = [
 
 export const testFixtureStatusData = [
   { name: 'NV-NCT011-1', rack: 1, sn: '0001', status: 'Active', lastBeat: '12:00:00', type:'Refurbish'},
-  { name: 'NV-NCT011-2', rack: 1, sn: '0002', status: 'No Response', lastBeat: '11:00:00', type:'New'},
-  { name: 'NV-NCT011-3', rack: 1, sn: '0003', status: 'Active', lastBeat: '12:05:00', type:'Refurbish'},
-  { name: 'NV-NCT011-4', rack: 2, sn: '0004', status: 'No Response', lastBeat: '10:30:00', type:'New'},
-  { name: 'NV-NCT011-5', rack: 2, sn: '0005', status: 'Partial', lastBeat: '12:10:00', type:'Refurbish'},
-  { name: 'NV-NCT011-6', rack: 3, sn: '0006', status: 'Maintenece', lastBeat: '09:45:00', type:'New'},
+  { name: 'NV-NCT011-2', rack: 1, sn: '0002', status: 'Active', lastBeat: '11:00:00', type:'Refurbish'},
+  { name: 'NV-NCT011-3', rack: 1, sn: '0003', status: 'No Response', lastBeat: '12:05:00', type:'Refurbish'},
+  { name: 'NV-NCT011-4', rack: 2, sn: '0004', status: 'No Response', lastBeat: '10:30:00', type:'Refurbish'},
+  { name: 'NV-NCT011-5', rack: 2, sn: '0005', status: 'Active', lastBeat: '12:10:00', type:'Refurbish'},
+  { name: 'NV-NCT011-6', rack: 3, sn: '0006', status: 'Active', lastBeat: '09:45:00', type:'Refurbish'},
   { name: 'NV-NCT011-7', rack: 3, sn: '0007', status: 'Active', lastBeat: '12:15:00', type:'Refurbish'},
-  { name: 'NV-NCT011-8', rack: 4, sn: '0008', status: 'Repair', lastBeat: '11:30:00', type:'New'},
-  { name: 'NV-NCT011-9', rack: 4, sn: '0009', status: 'Active', lastBeat: '12:20:00', type:'Refurbish'},
-  { name: 'NV-NCT011-10', rack: 5, sn: '0010', status: 'Partial', lastBeat: '10:15:00', type:'New'},
-  { name: 'NV-NCT011-11', rack: 5, sn: '0011', status: 'Active', lastBeat: '12:25:00', type:'Refurbish'},
-  { name: 'NV-NCT011-12', rack: 6, sn: '0012', status: 'No Response', lastBeat: '11:15:00', type:'New'},
-  { name: 'NV-NCT011-13', rack: 6, sn: '0013', status: 'Maintenece', lastBeat: '09:30:00', type:'Refurbish'},
+  { name: 'NV-NCT011-8', rack: 4, sn: '0008', status: 'Partial', lastBeat: '11:30:00', type:'Refurbish'},
+  { name: 'NV-NCT011-9', rack: 4, sn: '0009', status: 'Partial', lastBeat: '12:20:00', type:'Sort'},
+  { name: 'NV-NCT011-10', rack: 5, sn: '0010', status: 'Active', lastBeat: '10:15:00', type:'Sort'},
+  { name: 'NV-NCT011-11', rack: 5, sn: '0011', status: 'Maintenance', lastBeat: '12:25:00', type:'Sort'},
+  { name: 'NV-NCT011-12', rack: 6, sn: '0012', status: 'Maintenance', lastBeat: '11:15:00', type:'Sort'},
+  { name: 'NV-NCT011-13', rack: 6, sn: '0013', status: 'Active', lastBeat: '09:30:00', type:'Refurbish'},
+  { name: 'NV-NCT011-14', rack: 7, sn: '0014', status: 'Repair', lastBeat: '12:30:00', type:'Refurbish'},
+  { name: 'NV-NCT011-15', rack: 7, sn: '0015', status: 'Repair', lastBeat: '11:45:00', type:'Refurbish'},
+  { name: 'NV-NCT011-16', rack: 8, sn: '0016', status: 'Active', lastBeat: '12:35:00', type:'Refurbish'},
 ];
 
 export const testFixtureAvailabilityData = [

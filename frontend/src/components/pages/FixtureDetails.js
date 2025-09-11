@@ -128,9 +128,9 @@ const FixtureDetails = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                    {testFixtureAvailabilityData.map((row) => (
+                    {testFixtureAvailabilityData.map((row,idx) => (
                         <TableRow
-                        key={row.id}
+                        key={idx}
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                         >
                         <TableCell component="th" scope="row">
@@ -161,9 +161,9 @@ const FixtureDetails = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                    {testFixtureUsageData.map((row) => (
+                    {testFixtureUsageData.map((row,idx) => (
                         <TableRow
-                        key={row.id}
+                        key={idx}
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                         >
                         <TableCell component="th" scope="row">
@@ -195,9 +195,9 @@ const FixtureDetails = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                    {testFixtureFailureData.map((row) => (
+                    {testFixtureFailureData.map((row,idx) => (
                         <TableRow
-                        key={row.id}
+                        key={idx}
                         sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                         >
                         <TableCell component="th" scope="row">
