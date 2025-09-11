@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, Card, CardContent, CardHeader, CircularProgress, Container, Divider, FormControl, InputLabel, MenuItem, Select, Typography, Alert, Stack, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab
+import { Box, Card, CardContent, CardHeader, CircularProgress, Container, Divider, FormControl, InputLabel, MenuItem, Select, Typography, Alert, Stack, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab, IconButton
 } from '@mui/material';
 import { DateRange } from '../pagecomp/DateRange';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,13 @@ import { Header } from '../pagecomp/Header';
 import {LineChart} from '../charts/LineChart.js';
 import { PieChart } from '../charts/PieChart.js';
 import { testFixtureData,testFixtureStatusData, testFixtureAvailabilityData,testFixtureUsageData,testFixtureFailureData } from '../../data/sampleData.js';
+import { headerStyle, dataTextStyle } from '../theme/themes.js';
+import SquareIcon from '@mui/icons-material/Square';
+import MarkunreadMailboxIcon from '@mui/icons-material/MarkunreadMailbox';
+import FolderIcon from '@mui/icons-material/Folder';
+import ArticleIcon from '@mui/icons-material/Article';
+
+const iconStyle = { fontSize: '20px' };
 
 const FixtureDetails = () => {
 
@@ -17,22 +24,16 @@ const FixtureDetails = () => {
     const slot = 0
 
     const tableData = testFixtureStatusData;
+
     const [value, setValue] = React.useState(0);
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
     
-    const pieData = useMemo(() => {
-        if (!Array.isArray(tableData)) return [];
-        const counts = tableData.reduce((acc, item) => {
-            const key = item.status || 'Unknown';
-            acc[key] = (acc[key] || 0) + 1;
-            return acc;
-        }, {});
-        return Object.entries(counts).map(([status, value]) => ({ status, value }));
-    }, [tableData]);
-
-    
+    const handleOnClick0 = () => {};
+    const handleOnClick1 = () => {};
+    const handleOnClick2 = () => {};
+    const handleOnClick3 = () => {};
 
     return (
         <Container maxWidth="xl">
@@ -45,7 +46,7 @@ const FixtureDetails = () => {
 
 
             <Grid container spacing={4}>
-                <Grid size={2}>
+                <Grid size={1.5}>
                 <Card>
                     <CardHeader title="Current Health" />
                     <CardContent>
@@ -55,7 +56,7 @@ const FixtureDetails = () => {
                     </CardContent>
                 </Card>
                 </Grid>
-                <Grid size={2}>
+                <Grid size={1.5}>
                 <Card>
                     <CardHeader title="Current Usage" />
                     <CardContent>
@@ -65,7 +66,7 @@ const FixtureDetails = () => {
                     </CardContent>
                 </Card>
                 </Grid>
-                <Grid size={2}>
+                <Grid size={1.5}>
                 <Card>
                     <CardHeader title="Failure Rate" />
                     <CardContent>
@@ -75,7 +76,7 @@ const FixtureDetails = () => {
                     </CardContent>
                 </Card>
                 </Grid>
-                <Grid size={6}>
+                <Grid size={7.5}>
                 <TableContainer component={Paper}>
                     <Table sx={{ minWidth: 650 }} aria-label="simple table">
                         <TableHead>
@@ -119,28 +120,36 @@ const FixtureDetails = () => {
                 <Table sx={{ minWidth: 650 }} aria-label="simple table">
                     <TableHead>
                         <TableRow>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Fixture_ID</TableCell>
-                            <TableCell align="right">EventType</TableCell>
-                            <TableCell align="right">Outage_Time</TableCell>
-                            <TableCell align="right">Comments</TableCell>
-                            <TableCell align="right">Actions</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Date</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Fixture ID</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Event Type</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Outage Time</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Comments</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                     {testFixtureAvailabilityData.map((row,idx) => (
-                        <TableRow
-                        key={idx}
-                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                        >
-                        <TableCell component="th" scope="row">
-                            {row.date}
+                        <TableRow key={idx}>
+                        <TableCell component="th" scope="row">{row.date}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.id}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.eventType}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.outTime}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.comments}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>
+                            <IconButton size="small" onClick={() => handleOnClick0} >
+                                <SquareIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick1} >
+                                <MarkunreadMailboxIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick2} >
+                                <FolderIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick3} >
+                                <ArticleIcon sx={iconStyle} />
+                            </IconButton>
                         </TableCell>
-                        <TableCell align="right">{row.id}</TableCell>
-                        <TableCell align="right">{row.eventType}</TableCell>
-                        <TableCell align="right">{row.outTime}</TableCell>
-                        <TableCell align="right">{row.comments}</TableCell>
-                        <TableCell align="right">placeholder</TableCell>
                         </TableRow>
                     ))}
                     </TableBody>
@@ -152,28 +161,36 @@ const FixtureDetails = () => {
                 <Table sx={{ minWidth: 650 }} aria-label="simple table">
                     <TableHead>
                         <TableRow>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Fixture_ID</TableCell>
-                            <TableCell align="right">Test_Type</TableCell>
-                            <TableCell align="right">Usage</TableCell>
-                            <TableCell align="right">Alarm</TableCell>
-                            <TableCell align="right">Actions</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Date</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Fixture ID</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Test Type</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Usage</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Alarm</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                     {testFixtureUsageData.map((row,idx) => (
-                        <TableRow
-                        key={idx}
-                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                        >
-                        <TableCell component="th" scope="row">
-                            {row.date}
+                        <TableRow key={idx}>
+                        <TableCell component="th" scope="row">{row.date}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.id}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.testType}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.usage}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.alarm}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>
+                            <IconButton size="small" onClick={() => handleOnClick0} >
+                                <SquareIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick1} >
+                                <MarkunreadMailboxIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick2} >
+                                <FolderIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick3} >
+                                <ArticleIcon sx={iconStyle} />
+                            </IconButton>
                         </TableCell>
-                        <TableCell align="right">{row.id}</TableCell>
-                        <TableCell align="right">{row.testType}</TableCell>
-                        <TableCell align="right">{row.usage}</TableCell>
-                        <TableCell align="right">{row.alarm}</TableCell>
-                        <TableCell align="right">placeholder</TableCell>
                         </TableRow>
                     ))}
                     </TableBody>
@@ -185,30 +202,38 @@ const FixtureDetails = () => {
                 <Table sx={{ minWidth: 650 }} aria-label="simple table">
                     <TableHead>
                         <TableRow>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Fixture_ID</TableCell>
-                            <TableCell align="right">Test_Type</TableCell>
-                            <TableCell align="right">Top_Error</TableCell>
-                            <TableCell align="right">Count</TableCell>
-                            <TableCell align="right">FailureRate</TableCell>
-                            <TableCell align="right">Actions</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Date</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Fixture ID</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Test Type</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Top Error</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Count</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Failure Rate</TableCell>
+                            <TableCell align="center" sx={headerStyle}>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                     {testFixtureFailureData.map((row,idx) => (
-                        <TableRow
-                        key={idx}
-                        sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                        >
-                        <TableCell component="th" scope="row">
-                            {row.date}
+                        <TableRow key={idx}>
+                        <TableCell component="th" scope="row">{row.date}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.id}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.testType}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.topError}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.count}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>{row.rate}</TableCell>
+                        <TableCell align="center" sx={dataTextStyle}>
+                            <IconButton size="small" onClick={() => handleOnClick0} >
+                                <SquareIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick1} >
+                                <MarkunreadMailboxIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick2} >
+                                <FolderIcon sx={iconStyle} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleOnClick3} >
+                                <ArticleIcon sx={iconStyle} />
+                            </IconButton>
                         </TableCell>
-                        <TableCell align="right">{row.id}</TableCell>
-                        <TableCell align="right">{row.testType}</TableCell>
-                        <TableCell align="right">{row.topError}</TableCell>
-                        <TableCell align="right">{row.count}</TableCell>
-                        <TableCell align="right">{row.failureRate}</TableCell>
-                        <TableCell align="right">placeholder</TableCell>
                         </TableRow>
                     ))}
                     </TableBody>

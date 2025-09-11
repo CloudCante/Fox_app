@@ -18,6 +18,8 @@ const clampPct = (v) => {
   return Math.max(0, Math.min(100, n));
 };
 
+const iconStyle = { fontSize: '20px' };
+
 const FixtureDash = () => {
     const theme = useTheme();
 
@@ -63,7 +65,7 @@ const FixtureDash = () => {
     const currentHealth = 99;
     const currentUsage = 75;
 
-
+    // Handlers for action buttons - replace with real logic
     const handleOnClick0 = () => {};
     const handleOnClick1 = () => {};
     const handleOnClick2 = () => {};
@@ -152,23 +154,23 @@ const FixtureDash = () => {
                         {testFixtureStatusData.map((row) => (
                             <TableRow key={row.name}>
                                 <TableCell component="th" scope="row">{row.name}</TableCell>
-                                <TableCell align="right" sx={dataTextStyle}>{row.rack}</TableCell>
-                                <TableCell align="right" sx={dataTextStyle}>{row.sn}</TableCell>
-                                <TableCell align="right" sx={{...dataTextStyle,bgcolor:getColorForStatus(row.status)}}>{row.status}</TableCell>
-                                <TableCell align="right" sx={dataTextStyle}>{row.lastBeat}</TableCell>
-                                <TableCell align="right" sx={dataTextStyle}>{row.type}</TableCell>
-                                <TableCell align="right">
+                                <TableCell align="center" sx={dataTextStyle}>{row.rack}</TableCell>
+                                <TableCell align="center" sx={dataTextStyle}>{row.sn}</TableCell>
+                                <TableCell align="center" sx={{...dataTextStyle,bgcolor:getColorForStatus(row.status)}}>{row.status}</TableCell>
+                                <TableCell align="center" sx={dataTextStyle}>{row.lastBeat}</TableCell>
+                                <TableCell align="center" sx={dataTextStyle}>{row.type}</TableCell>
+                                <TableCell align="center">
                                     <IconButton size="small" onClick={() => handleOnClick0} >
-                                        <SquareIcon sx={{ fontSize: '20px' }} />
+                                        <SquareIcon sx={iconStyle} />
                                     </IconButton>
                                     <IconButton size="small" onClick={() => handleOnClick1} >
-                                        <MarkunreadMailboxIcon sx={{ fontSize: '20px' }} />
+                                        <MarkunreadMailboxIcon sx={iconStyle} />
                                     </IconButton>
                                     <IconButton size="small" onClick={() => handleOnClick2} >
-                                        <FolderIcon sx={{ fontSize: '20px' }} />
+                                        <FolderIcon sx={iconStyle} />
                                     </IconButton>
                                     <IconButton size="small" onClick={() => handleOnClick3} >
-                                        <ArticleIcon sx={{ fontSize: '20px' }} />
+                                        <ArticleIcon sx={iconStyle} />
                                     </IconButton>
                                 </TableCell>
                             </TableRow>
