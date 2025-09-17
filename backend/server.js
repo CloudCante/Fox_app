@@ -79,7 +79,7 @@ pool.query('SELECT NOW()', (err, res) => {
 const PORT = process.env.PORT || 5000;
 
 console.log('🌐 Starting server on all interfaces...');
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '10.23.8.215', () => {
     console.log('🎉 Server is running!');
     console.log(`📍 Local: http://localhost:${PORT}`);
     console.log(`📍 Network: http://10.23.8.215:${PORT}`);
