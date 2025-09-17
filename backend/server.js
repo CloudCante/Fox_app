@@ -48,9 +48,13 @@ const testboardRouter = require('./routes/testboardRecords');
 app.use('/api/testboardRecords', testboardRouter);
 
 try {
+    console.log('[Server] Loading upload handler...');
     const uploadHandlerRouter = require('./routes/uploadHandler');
+    console.log('[Server] Upload handler loaded, adding middleware...');
     app.use('/api/upload', uploadHandlerRouter);
+    console.log('[Server] Upload handler middleware added successfully');
 } catch (error) {
+    console.error('[Server] Error in upload handler setup:', error);
 }
 
 

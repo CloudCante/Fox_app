@@ -10,8 +10,11 @@ const upload = multer({
 }).single('file');
 
 router.post('/catch-file', (req, res) => {
+    console.log('[Upload] Received upload request');
+    console.log('[Upload] Request headers:', req.headers);
     
     upload(req, res, function(err) {
+        console.log('[Upload] Multer processing completed:', err ? `Error: ${err.message}` : 'Success');
         if (err) {
             return res.status(400).json({ 
                 message: 'File upload failed',
