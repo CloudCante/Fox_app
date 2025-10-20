@@ -33,6 +33,8 @@ import { isLowEndDevice, LightweightBackdrop } from './utils/muiOptimizations';
 import './components/theme/theme.css';
 import { GlobalSettingsProvider } from './data/GlobalSettingsContext';
 
+import QueryPage from './components/pages/quality/QueryPage';
+
 const MainContent = React.memo(({ children }) => {
   const mainContentStyle = useMemo(() => ({ 
     flexGrow: 1, 
@@ -69,6 +71,7 @@ const AppRoutes = React.memo(() => (
       <Route path="/fixture-dash" element={<FixtureDash/>}/>
       <Route path="/fixture-details" element={<FixtureDetails/>}/>
       <Route path="/fixture-inventory" element={<FixtureInventory/>}/>
+      <Route path="/query-page" element={<QueryPage/>}/>
       {process.env.NODE_ENV === 'development' && (
         <Route path="/dev/upload" element={<UploadPage />} />
       )}
