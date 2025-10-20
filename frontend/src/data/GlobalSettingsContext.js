@@ -14,6 +14,7 @@ const initialState = {
   widgets: [],
   widgetSettings: {}, // Initialize as empty object, not undefined
   currentPage: 'dashboard',
+  currentMode: 'Home', // 'quality', 'te', or 'dev' (home is default landing page),
   layoutMode: 'grid' 
 };
 
@@ -82,9 +83,12 @@ function settingsReducer(state, action) {
     case 'SET_PAGE':
       return { ...state, currentPage: action.page };
 
+    case 'SET_MODE':
+      return { ...state, currentMode: action.mode };
+    
     case 'SET_LAYOUT_MODE':
       return { ...state, layoutMode: action.mode };
-    
+
     default:
       return state;
   }
@@ -135,6 +139,7 @@ export const GlobalSettingsProvider = ({ children }) => {
       })),
       widgetSettings: state.widgetSettings, // Save widget-specific settings
       layoutMode: state.layoutMode // Save layout mode
+      
     };
     
     persistenceManager.saveLocal(settingsToSave);
@@ -150,6 +155,7 @@ export const GlobalSettingsProvider = ({ children }) => {
     state.barLimit, 
     state.widgets, 
     state.widgetSettings, // Add widgetSettings to dependencies
+    state.layoutMode, // Add layoutMode to dependencies
     isInitialized
   ]);
 
