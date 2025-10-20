@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
+import {
+  Box,
+  Typography,
   Paper,
   Alert,
   Input
@@ -22,16 +22,16 @@ const PostgresTablesPage = () => {
     try {
       setUploadError(null);
       setUploadResponse(null);
-      
-      const response = await fetch('http://10.23.8.97:5000/api/upload/catch-file', {
+      const API_BASE = process.env.REACT_APP_API_BASE;
+      const response = await fetch(`${API_BASE}/api/upload/catch-file`, {
         method: 'POST',
         body: formData,
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) throw new Error(result.message || 'Upload failed');
-      
+
       setUploadResponse(result);
       // Clear the file input
       event.target.value = '';
@@ -46,7 +46,7 @@ const PostgresTablesPage = () => {
       <Typography variant="h4" gutterBottom>
         Test File Upload
       </Typography>
-      
+
       <Paper sx={{ p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Input
@@ -55,7 +55,7 @@ const PostgresTablesPage = () => {
             sx={{ flexGrow: 1 }}
           />
         </Box>
-        
+
         {/* Show upload response or error */}
         {uploadResponse && (
           <Alert severity="success" sx={{ mt: 2 }}>
