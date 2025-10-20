@@ -98,7 +98,7 @@ export const QueryPage = () => {
     };
  
     const handleQuery = async (q) => {
-        const response = await fetch(`${API_BASE}/api/v1/query/query-table`, {
+        const response = await fetch(`${API_BASE}/api/v1/query`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
