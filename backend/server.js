@@ -73,8 +73,6 @@ app.use('/api/v1/spc', spcRouter);
 const sqlPortalRouter = require('./routes/sqlPortal');
 app.use('/api/v1/sql-portal', sqlPortalRouter);
 
-const queryRouter = require('./routes/queryRoutes');
-app.use('/api/v1/query', queryRouter);
 
 /*#################################################
 #    Optional Route Registration                #
