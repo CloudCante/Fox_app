@@ -1,5 +1,5 @@
 // React Core
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 // Material UI Components
 import { Box, Stack, Paper, Typography, CircularProgress, Button, TextField } from '@mui/material';
 // Third Party Libraries
@@ -126,9 +126,118 @@ export const QueryPage = () => {
         }
     }
  
-    const handleExport = ()  => {
-        // placeholder
+    // hidden file input for CSV
+    const fileInputRef = useRef(null);
+
+    // split a CSV line on commas that are not inside quotes
+    const csvSplit = (line) => line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+
+    // naive header detector for common names; skip if it looks like a header
+    const looksLikeHeader = (cells) =>
+    cells.some((c) => /^(id|sn|serial|serial_?number|part|pn|name|model)$/i.test(c?.trim()));
+
+    // open the file picker
+    const handleImport = () => {
+    fileInputRef.current?.click();
+    };
+
+    // when a CSV is chosen, parse and fill optionals.one..four
+    const onCsvChosen = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isCsv = /\.csv$/i.test(file.name) || /text\/csv/i.test(file.type);
+    if (!isCsv) {
+        alert('Please choose a .csv file');
+        e.target.value = '';
         return;
+    }
+
+    try {
+        const text = await file.text();
+
+        // normalize newlines, split rows, drop empty lines
+        const lines = text.replace(/\r/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
+        if (!lines.length) {
+        alert('CSV is empty');
+        return;
+        }
+
+        // get first row to detect header
+        const firstRow = csvSplit(lines[0]).map((c) => c.replace(/^"(.*)"$/, '$1').trim());
+        const startIdx = looksLikeHeader(firstRow) ? 1 : 0;
+
+        const col1 = [];
+        const col2 = [];
+        const col3 = [];
+        const col4 = [];
+
+        for (let i = startIdx; i < lines.length; i++) {
+        const cells = csvSplit(lines[i]).map((c) => c.replace(/^"(.*)"$/, '$1').trim());
+        if (!cells.length) continue;
+        if (cells[0]) col1.push(cells[0]);
+        if (cells[1]) col2.push(cells[1]);
+        if (cells[2]) col3.push(cells[2]);
+        if (cells[3]) col4.push(cells[3]);
+        }
+
+        setOptionals({
+        one: col1.join(','),
+        two: col2.join(','),
+        three: col3.join(','),
+        four: col4.join(',')
+        });
+
+        alert(`Imported ${lines.length - startIdx} row(s) into optionals`);
+    } catch (err) {
+        console.error('CSV import error:', err);
+        alert(`Import failed: ${err.message}`);
+    } finally {
+        // allow re-selecting the same file later
+        e.target.value = '';
+    }
+    };
+
+
+    const handleExport = () => {
+        if (!output?.success || !output?.rows?.length) {
+            alert('No data to export');
+            return;
+        }
+
+        // Create CSV header
+        const headers = output.fields.map(field => field.name).join(',');
+        
+        // Create CSV rows
+        const csvRows = output.rows.map(row => {
+            return output.fields.map(field => {
+                const value = row[field.name];
+                // Handle null/undefined
+                if (value === null || value === undefined) return '';
+                // Escape quotes and wrap in quotes if contains comma, quote, or newline
+                const stringValue = String(value);
+                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
+            }).join(',');
+        });
+        
+        // Combine headers and rows
+        const csv = [headers, ...csvRows].join('\n');
+        
+        // Create blob and download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `query_results_${new Date().toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
  
     return (
@@ -138,7 +247,7 @@ export const QueryPage = () => {
                 <Stack direction="row">
                     <TextField
                         name = "one"
-                        label="Input 1"
+                        label="Input 1 {n1}"
                         placeholder='Optional input 1 {n1}'
                         value={optionals.one}
                         onChange={handleOptChange}
@@ -146,7 +255,7 @@ export const QueryPage = () => {
                     />
                     <TextField
                         name = "two"
-                        label="Input 2"
+                        label="Input 2 {n2}"
                         placeholder='Optional input 2 {n2}'
                         value={optionals.two}
                         onChange={handleOptChange}
@@ -154,7 +263,7 @@ export const QueryPage = () => {
                     />
                     <TextField
                         name = "three"
-                        label="Input 3"
+                        label="Input 3 {n3}"
                         placeholder='Optional input 3 {n3}'
                         value={optionals.three}
                         onChange={handleOptChange}
@@ -162,12 +271,26 @@ export const QueryPage = () => {
                     />
                     <TextField
                         name="four"
-                        label="Input 4"
+                        label="Input 4 {n4}"
                         placeholder='Optional input 4 {n4}'
                         value={optionals.four}
                         onChange={handleOptChange}
                         size='small'
                     />
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept='.csv,text/csv'
+                        hidden
+                        onChange={onCsvChosen}
+                    />
+                    <Button
+                        onClick ={handleImport}
+                        variant='contained'
+                        size='small'
+                    >
+                        Import 
+                    </Button>
                     <DateRange
                         startDate={startDate}
                         setStartDate={setStartDate}
