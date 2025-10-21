@@ -98,16 +98,32 @@ export const QueryPage = () => {
     };
  
     const handleQuery = async (q) => {
-        const response = await fetch(`${API_BASE}/api/v1/query`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ query: q })
-        });
-        const data = await response.json();
-        setOutput(data);
-        console.log(q);
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/sql-portal/query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ sql: q })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Response data:', data);
+            
+            // Format the response for display
+            if (data.success) {
+                setOutput(JSON.stringify(data, null, 2));
+            } else {
+                setOutput(`Error: ${data.error}\nMessage: ${data.message || 'No additional details'}`);
+            }
+        } catch (error) {
+            console.error('Query error:', error);
+            setOutput(`Network Error: ${error.message}`);
+        }
     }
  
     const handleExport = ()  => {
