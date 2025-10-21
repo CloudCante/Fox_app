@@ -33,7 +33,7 @@ export const QueryPage = () => {
   });
   const [endDate, setEndDate] = useState(normalizeEnd(new Date()));
  
-    const [output,setOutput] = useState("Query Output will go here.");
+    const [output,setOutput] = useState(null);
  
     const [optionals,setOptionals] = useState({
         one:'',
@@ -116,7 +116,7 @@ export const QueryPage = () => {
             
             // Format the response for display
             if (data.success) {
-                setOutput(JSON.stringify(data, null, 2));
+                setOutput(data);
             } else {
                 setOutput(`Error: ${data.error}\nMessage: ${data.message || 'No additional details'}`);
             }
@@ -197,9 +197,54 @@ export const QueryPage = () => {
             </Box>
             <Box>
                 <Paper sx={paperStyle}>
-                    <Typography>
-                        {output}
-                    </Typography>
+                    {output?.success && output?.rows?.length > 0 ? (
+                        <Box sx={{ overflowX: 'auto' }}>
+                            <Typography variant="caption" sx={{ mb: 1, display: 'block' }}>
+                            {output.rowCount} rows returned in {output.executionTime}
+                            </Typography>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr>
+                                {output.fields.map((field, index) => (
+                                    <th
+                                    key={index}
+                                    style={{
+                                        border: '1px solid #ddd',
+                                        padding: '8px',
+                                        backgroundColor: '#f2f2f2',
+                                        textAlign: 'left',
+                                        fontWeight: 'bold'
+                                    }}
+                                    >
+                                    {field.name}
+                                    </th>
+                                ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {output.rows.map((row, rowIndex) => (
+                                <tr key={rowIndex}>
+                                    {output.fields.map((field, colIndex) => (
+                                    <td
+                                        key={colIndex}
+                                        style={{
+                                        border: '1px solid #ddd',
+                                        padding: '8px'
+                                        }}
+                                    >
+                                        {row[field.name] !== null && row[field.name] !== undefined
+                                        ? String(row[field.name])
+                                        : ''}
+                                    </td>
+                                    ))}
+                                </tr>
+                                ))}
+                            </tbody>
+                            </table>
+                        </Box>
+                        ) : (
+                        <Typography>Query Output Here</Typography>
+                        )}
                 </Paper>
                 <Button
                     onClick ={handleExport}
