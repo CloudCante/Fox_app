@@ -5,16 +5,6 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-<<<<<<< HEAD
-/*#################################################
-#    Query Routes - Read-Only Access             #
-#    Uses dedicated fox_observer user             #
-#    Provides SQL query interface for analysts   #
-#    Version: v1 (October 2025)                   #
-#################################################*/
-
-=======
->>>>>>> feature/custom-sql
 const observerPool = new Pool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -25,15 +15,9 @@ const observerPool = new Pool({
  
 router.post('/query-table', async (req, res) => {
     try {
-<<<<<<< HEAD
-        const { query } = req.body;
-       
-        const result = await pool.query(query, []);
-=======
         const { que } = req.body;
        
-        const result = await pool.query(que, []);
->>>>>>> feature/custom-sql
+        const result = await observerPool.query(que, []);
  
         return res.json(result.rows);
     } catch (error) {
