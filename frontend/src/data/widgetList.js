@@ -6,7 +6,7 @@ import { PackingChartWidget } from '../components/pagecomp/widget/PackingChartWi
 import { ParetoWidget } from '../components/pagecomp/widget/ParetoWidget.jsx';
 import { PackingOutputWidget } from '../components/pagecomp/widget/PackingOutputWidget.jsx';
 import { ThroughputWidget } from '../components/pagecomp/widget/ThroughputWidget.jsx';
-import { PChartWidget } from '../components/pagecomp/widget/PchartWidget.jsx';
+import { PChartWidget } from '../components/pagecomp/widget/PChartWidget.jsx';
 
 
 export const widgetList = [
