@@ -44,7 +44,8 @@ const MENU_ITEMS_QUALITY = [
   ]},
   { text: 'Performance', icon: <SpeedIcon />, children:[
     { text: 'Quality Control Charts', icon: <SpeedIcon />, route: '/performance' },
-    { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' }
+    { text: 'Throughput', icon: <TrendingUpIcon />, route: '/throughput' },
+    { text: 'Total Time Of Ownership', icon: <TrendingUpIcon />, route: '/too' },
   ]},
   //{ text: 'Station Hourly Summary', icon: <TableChartIcon />, route: '/station-hourly-summary' }
 ];
