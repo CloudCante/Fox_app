@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '@mui/material';
 
 // Helper function to get cell background color based on category
@@ -49,186 +49,100 @@ const dataRows = [
     { dateRange: '10/4-10/12', unitQty: 1866 },
 ];
 
+// Table sizing configurations for different screen sizes
+const TABLE_CONFIG_LARGE = {
+    columnWidths: {
+        shipmentDate: 100,
+        station: 70,
+        metric: 120,
+    },
+    headerHeight: 150,
+    dataRowHeight: 40,
+    fontSizes: {
+        headerMain: 11,
+        headerSub: 10,
+        dataMain: 13,
+        dataMetric: 12,
+    }
+};
+
+// Scaled down for 13-14 inch laptop displays (1366x768 to 1920x1080)
+const TABLE_CONFIG_SMALL = {
+    columnWidths: {
+        shipmentDate: 70,    // 30% smaller
+        station: 50,         // ~29% smaller
+        metric: 85,          // ~29% smaller
+    },
+    headerHeight: 120,       // 20% smaller
+    dataRowHeight: 32,       // 20% smaller
+    fontSizes: {
+        headerMain: 9,       // 2px smaller
+        headerSub: 8,
+        dataMain: 11,        // 2px smaller
+        dataMetric: 10,      // 2px smaller
+    }
+};
+
 const TOO = () => {
     const theme = useTheme();
+    
+    // State to hold current table configuration
+    const [TABLE_CONFIG, setTableConfig] = useState(TABLE_CONFIG_LARGE);
+    
+    // Detect screen size and adjust table config
+    useEffect(() => {
+        const handleResize = () => {
+            const width = window.innerWidth;
+            // Switch to small config for screens narrower than 1600px (typical for 13-14" laptops)
+            if (width < 1600) {
+                setTableConfig(TABLE_CONFIG_SMALL);
+            } else {
+                setTableConfig(TABLE_CONFIG_LARGE);
+            }
+        };
+        
+        // Set initial config
+        handleResize();
+        
+        // Add resize listener
+        window.addEventListener('resize', handleResize);
+        
+        // Cleanup
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     return (
         <div style={{ padding: '20px' }}>
-            <h1 style={{ margin: 0, marginBottom: '20px' }}>
+            <h1 style={{ margin: 0, marginBottom: '5px' }}>
                 Total Time Of Ownership (TOO)
             </h1>
+            <p style={{ margin: 0, marginBottom: '20px', fontSize: '14px', color: '#666' }}>
+                All times displayed in HH:MM:SS format
+            </p>
 
-            {/* ORIGINAL TABLE - COMMENTED OUT */}
-            {/* 
-            <table style={{ 
-                borderCollapse: 'separate',
-                borderSpacing: 0,
-                width: '100%'
-            }}>
-                <tbody>
-                        <tr>
-                            <td style={{
-                                position: 'sticky',
-                                left: 0,
-                                zIndex: 10,
-                                boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                                padding: '12px 8px',
-                                fontWeight: 'bold',
-                                fontSize: '13px',
-                                textAlign: 'center',
-                                backgroundColor: theme.palette.background.paper,
-                                border: '1px solid #ddd',
-                                minWidth: '150px',
-                                width: '150px',
-                            }}>
-                                Stations / (Avg Hrs)<br/>Shipment Dates
-                            </td>
-                            <td style={{
-                                position: 'sticky',
-                                left: '150px',
-                                zIndex: 10,
-                                boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                                padding: '12px 8px',
-                                fontWeight: 'bold',
-                                fontSize: '13px',
-                                textAlign: 'center',
-                                backgroundColor: theme.palette.background.paper,
-                                border: '1px solid #ddd',
-                                minWidth: '100px',
-                                width: '100px',
-                            }}>
-                                Unit QTY
-                            </td>
-                            {stations.map((station, idx) => (
-                                <td 
-                                    key={idx} 
-                                    style={{
-                                        padding: '12px 8px',
-                                        fontWeight: 'bold',
-                                        fontSize: '11px',
-                                        textAlign: 'center',
-                                        backgroundColor: getCellColor(station.category),
-                                        border: '1px solid #ddd',
-                                        whiteSpace: 'nowrap',
-                                        minWidth: '120px',
-                                    }}
-                                >
-                                    {station.name}
-                                    <br/>
-                                    <span style={{ fontSize: '10px', fontWeight: 'normal' }}>
-                                        ({station.avgTime})
-                                    </span>
-                                </td>
-                            ))}
-                            {metricsColumns.map((metric, idx) => (
-                                <td 
-                                    key={idx} 
-                                    style={{
-                                        padding: '12px 8px',
-                                        fontWeight: 'bold',
-                                        fontSize: '11px',
-                                        textAlign: 'center',
-                                        backgroundColor: theme.palette.background.paper,
-                                        border: '1px solid #ddd',
-                                        minWidth: '180px',
-                                    }}
-                                >
-                                    {metric.name}
-                                </td>
-                            ))}
-                        </tr>
-
-                        {dataRows.map((row, rowIdx) => (
-                            <tr key={rowIdx}>
-                                <td style={{
-                                    position: 'sticky',
-                                    left: 0,
-                                    zIndex: 5,
-                                    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                                    padding: '10px 8px',
-                                    fontSize: '13px',
-                                    textAlign: 'center',
-                                    backgroundColor: theme.palette.background.default,
-                                    border: '1px solid #ddd',
-                                    fontWeight: 500,
-                                    width: '150px',
-                                }}>
-                                    {row.dateRange}
-                                </td>
-                                <td style={{
-                                    position: 'sticky',
-                                    left: '150px',
-                                    zIndex: 5,
-                                    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
-                                    padding: '10px 8px',
-                                    fontSize: '13px',
-                                    textAlign: 'center',
-                                    backgroundColor: theme.palette.background.default,
-                                    border: '1px solid #ddd',
-                                    width: '100px',
-                                }}>
-                                    {row.unitQty}
-                                </td>
-                                {stations.map((station, idx) => (
-                                    <td 
-                                        key={idx}
-                                        style={{
-                                            padding: '10px 8px',
-                                            fontSize: '13px',
-                                            textAlign: 'center',
-                                            backgroundColor: getCellColor(station.category),
-                                            border: '1px solid #ddd',
-                                        }}
-                                    >
-                                        {station.avgTime}
-                                    </td>
-                                ))}
-                                {metricsColumns.map((metric, idx) => (
-                                    <td 
-                                        key={idx} 
-                                        style={{
-                                            padding: '10px 8px',
-                                            fontSize: '13px',
-                                            textAlign: 'center',
-                                            backgroundColor: theme.palette.background.default,
-                                            border: '1px solid #ddd',
-                                        }}
-                                    >
-                                        {metric.value}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                </tbody>
-            </table>
-            */}
-
-            {/* NEW TABLE WITH ROTATED HEADERS WILL GO HERE */}
-            
-            {/* TEST: Separate slanted headers */}
-            <div style={{ marginTop: '40px' }}>
-                <h3>Test: Separate Headers Approach</h3>
-                
+            {/* FULL TABLE WITH SLANTED HEADERS */}
+            <div>
                 {/* Slanted headers - separate container */}
                 <div style={{ 
                     display: 'flex',
-                    paddingLeft: '100px',
-                    marginBottom: '-1px', // Overlap with data table border
+                    marginBottom: '-1px',
                 }}>
-                    {/* First slanted header */}
-                    <div style={{
-                        width: '50px',
-                        height: '150px',
-                        position: 'relative',
-                        overflow: 'visible',
-                    }}>
+                    {/* Shipment Date header */}
+                    <div 
+                        style={{
+                            width: `${TABLE_CONFIG.columnWidths.shipmentDate}px`,
+                            height: `${TABLE_CONFIG.headerHeight}px`,
+                            position: 'relative',
+                            overflow: 'visible',
+                        }}
+                    >
                         <div style={{
                             position: 'absolute',
                             bottom: 0,
                             left: 0,
-                            width: '50px',
-                            height: '150px',
-                            backgroundColor: '#FFFF00',
+                            width: `${TABLE_CONFIG.columnWidths.shipmentDate}px`,
+                            height: `${TABLE_CONFIG.headerHeight}px`,
+                            backgroundColor: theme.palette.background.paper,
                             transform: 'skewX(-45deg)',
                             transformOrigin: 'bottom left',
                             border: '1px solid #000',
@@ -239,84 +153,171 @@ const TOO = () => {
                         }}>
                             <div style={{
                                 transform: 'skewX(45deg) rotate(-45deg)',
-                                fontSize: '10px',
+                                fontSize: `${TABLE_CONFIG.fontSizes.headerMain}px`,
                                 fontWeight: 'bold',
-                                whiteSpace: 'nowrap',
+                                textAlign: 'center',
+                                maxWidth: '100px',
+                                wordWrap: 'break-word',
                             }}>
-                                Station 1
+                                Shipment Date
                             </div>
                         </div>
                     </div>
                     
-                    {/* Second slanted header */}
-                    <div style={{
-                        width: '50px',
-                        height: '150px',
-                        position: 'relative',
-                        overflow: 'visible',
-                    }}>
-                        <div style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            width: '50px',
-                            height: '150px',
-                            backgroundColor: '#00FF00',
-                            transform: 'skewX(-45deg)',
-                            transformOrigin: 'bottom left',
-                            border: '1px solid #000',
-                            borderBottom: '1px solid #000',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
+                    {/* Station headers */}
+                    {stations.map((station, idx) => (
+                        <div 
+                            key={`station-${idx}`}
+                            style={{
+                                width: `${TABLE_CONFIG.columnWidths.station}px`,
+                                height: `${TABLE_CONFIG.headerHeight}px`,
+                                position: 'relative',
+                                overflow: 'visible',
+                            }}
+                        >
                             <div style={{
-                                transform: 'skewX(45deg) rotate(-45deg)',
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                whiteSpace: 'nowrap',
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                width: `${TABLE_CONFIG.columnWidths.station}px`,
+                                height: `${TABLE_CONFIG.headerHeight}px`,
+                                backgroundColor: getCellColor(station.category),
+                                transform: 'skewX(-45deg)',
+                                transformOrigin: 'bottom left',
+                                border: '1px solid #000',
+                                borderBottom: '1px solid #000',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                             }}>
-                                Station 2
+                                <div style={{
+                                    transform: 'skewX(45deg) rotate(-45deg)',
+                                    fontSize: `${TABLE_CONFIG.fontSizes.headerMain}px`,
+                                    fontWeight: 'bold',
+                                    textAlign: 'center',
+                                    maxWidth: '80px',
+                                    wordWrap: 'break-word',
+                                    lineHeight: '1.2',
+                                }}>
+                                    {station.name}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    ))}
+                    
+                    {/* Metrics headers */}
+                    {metricsColumns.map((metric, idx) => (
+                        <div 
+                            key={`metric-${idx}`}
+                            style={{
+                                width: `${TABLE_CONFIG.columnWidths.metric}px`,
+                                height: `${TABLE_CONFIG.headerHeight}px`,
+                                position: 'relative',
+                                overflow: 'visible',
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                width: `${TABLE_CONFIG.columnWidths.metric}px`,
+                                height: `${TABLE_CONFIG.headerHeight}px`,
+                                backgroundColor: theme.palette.background.paper,
+                                transform: 'skewX(-45deg)',
+                                transformOrigin: 'bottom left',
+                                border: '1px solid #000',
+                                borderBottom: '1px solid #000',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}>
+                                <div style={{
+                                    transform: 'skewX(45deg) rotate(-45deg)',
+                                    fontSize: `${TABLE_CONFIG.fontSizes.headerMain}px`,
+                                    fontWeight: 'bold',
+                                    textAlign: 'center',
+                                    maxWidth: '120px',
+                                    wordWrap: 'break-word',
+                                    lineHeight: '1.2',
+                                }}>
+                                    {metric.name}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
                 
-                {/* Data table - separate container */}
+                {/* Data table - ONE ROW */}
                 <table style={{ 
                     borderCollapse: 'collapse',
-                    marginLeft: '100px',
                 }}>
                     <tbody>
                         <tr>
-                            <td style={{
-                                width: '50px',
-                                minWidth: '50px',
-                                maxWidth: '50px',
-                                height: '40px',
-                                border: '1px solid #000',
-                                borderTop: 'none',
-                                padding: 0,
-                                textAlign: 'center',
-                                backgroundColor: '#FFFF00',
-                                boxSizing: 'border-box',
-                            }}>
-                                Data1
+                            {/* Shipment Date data cell */}
+                            <td 
+                                style={{
+                                    width: `${TABLE_CONFIG.columnWidths.shipmentDate}px`,
+                                    minWidth: `${TABLE_CONFIG.columnWidths.shipmentDate}px`,
+                                    maxWidth: `${TABLE_CONFIG.columnWidths.shipmentDate}px`,
+                                    height: `${TABLE_CONFIG.dataRowHeight}px`,
+                                    border: '1px solid #000',
+                                    borderTop: 'none',
+                                    padding: '4px',
+                                    textAlign: 'center',
+                                    backgroundColor: theme.palette.background.default,
+                                    boxSizing: 'border-box',
+                                    fontSize: `${TABLE_CONFIG.fontSizes.dataMain}px`,
+                                    fontWeight: 'bold',
+                                }}
+                            >
+                                9/29-10/3
                             </td>
-                            <td style={{
-                                width: '50px',
-                                minWidth: '50px',
-                                maxWidth: '50px',
-                                height: '40px',
-                                border: '1px solid #000',
-                                borderTop: 'none',
-                                padding: 0,
-                                textAlign: 'center',
-                                backgroundColor: '#00FF00',
-                                boxSizing: 'border-box',
-                            }}>
-                                Data2
-                            </td>
+                            
+                            {/* Station data cells */}
+                            {stations.map((station, idx) => (
+                                <td 
+                                    key={`data-station-${idx}`}
+                                    style={{
+                                        width: `${TABLE_CONFIG.columnWidths.station}px`,
+                                        minWidth: `${TABLE_CONFIG.columnWidths.station}px`,
+                                        maxWidth: `${TABLE_CONFIG.columnWidths.station}px`,
+                                        height: `${TABLE_CONFIG.dataRowHeight}px`,
+                                        border: '1px solid #000',
+                                        borderTop: 'none',
+                                        padding: 0,
+                                        textAlign: 'center',
+                                        backgroundColor: getCellColor(station.category),
+                                        boxSizing: 'border-box',
+                                        fontSize: `${TABLE_CONFIG.fontSizes.dataMain}px`,
+                                        fontWeight: 'bold',
+                                    }}
+                                >
+                                    {station.avgTime}
+                                </td>
+                            ))}
+                            
+                            {/* Metrics data cells */}
+                            {metricsColumns.map((metric, idx) => (
+                                <td 
+                                    key={`data-metric-${idx}`}
+                                    style={{
+                                        width: `${TABLE_CONFIG.columnWidths.metric}px`,
+                                        minWidth: `${TABLE_CONFIG.columnWidths.metric}px`,
+                                        maxWidth: `${TABLE_CONFIG.columnWidths.metric}px`,
+                                        height: `${TABLE_CONFIG.dataRowHeight}px`,
+                                        border: '1px solid #000',
+                                        borderTop: 'none',
+                                        padding: '4px',
+                                        textAlign: 'center',
+                                        backgroundColor: theme.palette.background.default,
+                                        boxSizing: 'border-box',
+                                        fontSize: `${TABLE_CONFIG.fontSizes.dataMetric}px`,
+                                        fontWeight: 'bold',
+                                    }}
+                                >
+                                    {metric.value}
+                                </td>
+                            ))}
                         </tr>
                     </tbody>
                 </table>
