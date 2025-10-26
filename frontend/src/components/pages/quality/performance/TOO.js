@@ -233,7 +233,18 @@ const TOO = () => {
                             transformOrigin: 'bottom left',
                             border: '1px solid #000',
                             borderBottom: '1px solid #000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                         }}>
+                            <div style={{
+                                transform: 'skewX(45deg) rotate(-45deg)',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                whiteSpace: 'nowrap',
+                            }}>
+                                Station 1
+                            </div>
                         </div>
                     </div>
                     
@@ -255,7 +266,18 @@ const TOO = () => {
                             transformOrigin: 'bottom left',
                             border: '1px solid #000',
                             borderBottom: '1px solid #000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                         }}>
+                            <div style={{
+                                transform: 'skewX(45deg) rotate(-45deg)',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                whiteSpace: 'nowrap',
+                            }}>
+                                Station 2
+                            </div>
                         </div>
                     </div>
                 </div>
