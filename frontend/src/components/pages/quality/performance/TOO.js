@@ -58,13 +58,14 @@ const TOO = () => {
                 Total Time Of Ownership (TOO)
             </h1>
 
+            {/* ORIGINAL TABLE - COMMENTED OUT */}
+            {/* 
             <table style={{ 
                 borderCollapse: 'separate',
                 borderSpacing: 0,
                 width: '100%'
             }}>
                 <tbody>
-                        {/* Header Row */}
                         <tr>
                             <td style={{
                                 position: 'sticky',
@@ -137,7 +138,6 @@ const TOO = () => {
                             ))}
                         </tr>
 
-                        {/* Data Rows */}
                         {dataRows.map((row, rowIdx) => (
                             <tr key={rowIdx}>
                                 <td style={{
@@ -201,6 +201,104 @@ const TOO = () => {
                         ))}
                 </tbody>
             </table>
+            */}
+
+            {/* NEW TABLE WITH ROTATED HEADERS WILL GO HERE */}
+            
+            {/* TEST: Separate slanted headers */}
+            <div style={{ marginTop: '40px' }}>
+                <h3>Test: Separate Headers Approach</h3>
+                
+                {/* Slanted headers - separate container */}
+                <div style={{ 
+                    display: 'flex',
+                    paddingLeft: '100px',
+                    marginBottom: '-1px', // Overlap with data table border
+                }}>
+                    {/* First slanted header */}
+                    <div style={{
+                        width: '50px',
+                        height: '150px',
+                        position: 'relative',
+                        overflow: 'visible',
+                    }}>
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            width: '50px',
+                            height: '150px',
+                            backgroundColor: '#FFFF00',
+                            transform: 'skewX(-45deg)',
+                            transformOrigin: 'bottom left',
+                            border: '1px solid #000',
+                            borderBottom: '1px solid #000',
+                        }}>
+                        </div>
+                    </div>
+                    
+                    {/* Second slanted header */}
+                    <div style={{
+                        width: '50px',
+                        height: '150px',
+                        position: 'relative',
+                        overflow: 'visible',
+                    }}>
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            width: '50px',
+                            height: '150px',
+                            backgroundColor: '#00FF00',
+                            transform: 'skewX(-45deg)',
+                            transformOrigin: 'bottom left',
+                            border: '1px solid #000',
+                            borderBottom: '1px solid #000',
+                        }}>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Data table - separate container */}
+                <table style={{ 
+                    borderCollapse: 'collapse',
+                    marginLeft: '100px',
+                }}>
+                    <tbody>
+                        <tr>
+                            <td style={{
+                                width: '50px',
+                                minWidth: '50px',
+                                maxWidth: '50px',
+                                height: '40px',
+                                border: '1px solid #000',
+                                borderTop: 'none',
+                                padding: 0,
+                                textAlign: 'center',
+                                backgroundColor: '#FFFF00',
+                                boxSizing: 'border-box',
+                            }}>
+                                Data1
+                            </td>
+                            <td style={{
+                                width: '50px',
+                                minWidth: '50px',
+                                maxWidth: '50px',
+                                height: '40px',
+                                border: '1px solid #000',
+                                borderTop: 'none',
+                                padding: 0,
+                                textAlign: 'center',
+                                backgroundColor: '#00FF00',
+                                boxSizing: 'border-box',
+                            }}>
+                                Data2
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
                 📊 Color Legend: 
