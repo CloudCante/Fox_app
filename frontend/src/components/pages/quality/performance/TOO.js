@@ -322,19 +322,6 @@ const TOO = () => {
                     </tbody>
                 </table>
             </div>
-
-            <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-                📊 Color Legend: 
-                <span style={{ marginLeft: '16px', padding: '4px 8px', backgroundColor: '#FFFF00' }}>
-                    Yellow - Assembly
-                </span>
-                <span style={{ marginLeft: '8px', padding: '4px 8px', backgroundColor: '#00FF00' }}>
-                    Green - QA/Test
-                </span>
-                <span style={{ marginLeft: '8px', padding: '4px 8px', backgroundColor: '#00BFFF' }}>
-                    Blue - Final/Metrics
-                </span>
-            </div>
         </div>
     );
 };
