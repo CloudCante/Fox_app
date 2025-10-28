@@ -3,18 +3,8 @@
 // Inspired by PerformancePage hooks/structure and TestStationWidget widget pattern
 // ------------------------------------------------------------
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { 
-  Box,
-  Paper,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  Alert,
-  CircularProgress,
-  Typography
+import {  Box, Paper, Stack, FormControl, InputLabel, Select,
+  MenuItem, Button, Alert, CircularProgress, Typography
 } from '@mui/material';
 // Page Components
 import { Header } from '../../pagecomp/Header.jsx';
@@ -167,7 +157,7 @@ export function PChartWidget({ widgetId }) {
       const params = new URLSearchParams();
       if (model) params.append('model', model);
       if (workstation) params.append('workstation', workstation);
-      const res = await fetch(`${API_BASE}/api/pchart/filters?${params.toString()}`);
+      const res = await fetch(`${API_BASE}/api/v1/pchart/filters?${params.toString()}`);
       if (!res.ok) throw new Error(`Filter API error: ${res.status}`);
       const json = await res.json();
       setAvailable(prev => ({
@@ -221,7 +211,7 @@ export function PChartWidget({ widgetId }) {
       if (selFlow) params.append('serviceFlow', selFlow);
       if (selPart) params.append('pn', selPart);
 
-      const res = await fetch(`${API_BASE}/api/pchart/data?${params.toString()}`);
+      const res = await fetch(`${API_BASE}/api/v1/pchart/data?${params.toString()}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || `API error: ${res.status}`);
